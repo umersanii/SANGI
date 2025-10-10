@@ -1,0 +1,31 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
+// ===== HARDWARE CONFIGURATION =====
+// OLED display configuration
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET -1
+#define SCREEN_ADDRESS 0x3C
+
+// I2C pins for ESP32-C3
+#define I2C_SDA 6
+#define I2C_SCL 7
+
+// Battery monitoring (ADC)
+#define BATTERY_PIN 2  // GPIO2 (ADC1_CH2) - adjust if needed
+#define BATTERY_MIN_VOLTAGE 3.0
+#define BATTERY_MAX_VOLTAGE 4.2
+#define BATTERY_LOW_THRESHOLD 3.3
+
+// Touch sensor configuration
+#define TOUCH_PIN 3  // GPIO3 - adjust if needed
+#define TOUCH_THRESHOLD 40
+
+// ===== TIMING CONFIGURATION =====
+#define EMOTION_CHANGE_INTERVAL 30000  // 30 seconds
+#define BLINK_INTERVAL 3000  // 3 seconds
+#define SLEEP_TIMEOUT 300000  // 5 minutes
+#define HOUR_IN_MILLIS 3600000
+
+#endif // CONFIG_H

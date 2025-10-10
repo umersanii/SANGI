@@ -8,6 +8,8 @@ A custom square-based Mochi robot with animated OLED expressions, built with ESP
 
 This project creates a Dasai Mochi-style robot with cute animated facial expressions displayed on an SSD1306 OLED screen. The robot features 11 different emotions with smooth blinking and eye movement animations.
 
+**Architecture**: The codebase uses a clean modular design with separate manager classes for display, emotions, animations, battery, and input handling. See the [Modular Architecture](#️-modular-architecture) section below for details.
+
 ## 🔧 Hardware
 
 - **Microcontroller**: ESP32-C3
@@ -79,6 +81,29 @@ platformio device monitor
 ### Hardware Wiring
 See [HARDWARE_WIRING.md](HARDWARE_WIRING.md) for detailed wiring instructions.
 
+## 🏗️ Modular Architecture
+
+The codebase uses a clean, modular design with separate components for each functionality:
+
+### Core Modules
+
+- **`config.h`** - Hardware pin definitions and timing constants
+- **`emotion.h/cpp`** - Emotion state management with `EmotionManager` class
+- **`display.h/cpp`** - OLED display operations with `DisplayManager` class
+- **`animations.h/cpp`** - Complex animation engine with `AnimationManager` class
+- **`battery.h/cpp`** - Battery monitoring with `BatteryManager` class
+- **`input.h/cpp`** - Touch sensor handling with `InputManager` class
+- **`main.cpp`** - Clean orchestration layer (~150 lines)
+
+### Benefits
+
+✅ **Maintainable**: Easy to locate and modify specific features  
+✅ **Scalable**: Simple to add new emotions or sensors  
+✅ **Testable**: Each module can be tested independently  
+✅ **Readable**: Clear separation of concerns  
+
+> See [COPILOT.md](COPILOT.md) for detailed refactoring documentation and [REFACTORING_SUMMARY.md](REFACTORING_SUMMARY.md) for module descriptions.
+
 ## 📐 Future Plans
 
 - [ ] Add motor control for movement
@@ -98,13 +123,26 @@ Simple geometric eyes (rounded rectangles) inspired by classic Dasai Mochi robot
 ```
 SANGI/
 ├── src/
-│   └── main.cpp              # Main robot code with state machine
-├── include/                  # Header files
+│   ├── main.cpp              # Main orchestration layer
+│   ├── emotion.cpp           # Emotion state management
+│   ├── display.cpp           # Display operations
+│   ├── animations.cpp        # Animation engine
+│   ├── battery.cpp           # Battery monitoring
+│   └── input.cpp             # Input handling
+├── include/
+│   ├── config.h              # Hardware & timing configuration
+│   ├── emotion.h             # Emotion manager interface
+│   ├── display.h             # Display manager interface
+│   ├── animations.h          # Animation manager interface
+│   ├── battery.h             # Battery manager interface
+│   └── input.h               # Input manager interface
 ├── lib/                      # Custom libraries
 ├── test/                     # Unit tests
 ├── platformio.ini            # PlatformIO configuration
 ├── HARDWARE_WIRING.md        # Detailed wiring guide
 ├── PHASE1_IMPLEMENTATION.md  # Development roadmap
+├── REFACTORING_SUMMARY.md    # Module architecture details
+├── COPILOT.md                # AI-assisted development log
 └── README.md                 # This file
 ```
 
