@@ -16,6 +16,7 @@ public:
   bool init();
   void scanI2C();
   void showBootScreen();
+  void drawBatSignal();
   
   // Basic drawing functions
   void drawEyes(int leftX, int leftY, int rightX, int rightY, int eyeHeight);
@@ -35,12 +36,16 @@ public:
   void drawFace_Thinking();
   void drawFace_Dead();
   void drawFace_Surprised();
+  void drawFace_Batman();
   
   // Emotion-based drawing
   void drawEmotionFace(EmotionState emotion);
   
   // Transition animation
   void performTransition();
+  
+  // Helper functions for special transitions
+  void performSleepyTransition(int transitionFrame, EmotionState targetEmotion);
   
   Adafruit_SSD1306& getDisplay() { return display; }
   

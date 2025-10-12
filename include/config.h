@@ -28,4 +28,16 @@
 #define SLEEP_TIMEOUT 300000  // 5 minutes
 #define HOUR_IN_MILLIS 3600000
 
+// ===== ANIMATION NEUTRAL STATE =====
+// Standard neutral pose for smooth transitions between emotions
+#define NEUTRAL_EYE_LEFT_X 40
+#define NEUTRAL_EYE_LEFT_Y 28
+#define NEUTRAL_EYE_RIGHT_X 88
+#define NEUTRAL_EYE_RIGHT_Y 28
+#define NEUTRAL_EYE_HEIGHT 18
+#define NEUTRAL_MOUTH_X 58
+#define NEUTRAL_MOUTH_Y 50
+#define NEUTRAL_MOUTH_WIDTH 12
+#define NEUTRAL_MOUTH_HEIGHT 5
+
 #endif // CONFIG_H

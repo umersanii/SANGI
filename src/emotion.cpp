@@ -1,4 +1,5 @@
 #include "emotion.h"
+#include "animations.h"
 
 EmotionManager emotionManager;
 
@@ -63,4 +64,7 @@ void EmotionManager::completeTransition() {
   currentEmotion = targetEmotion;
   isTransitioning = false;
   transitionFrame = 0;
+  
+  // Reset animation to start from frame 0 for smooth entry
+  animationManager.resetAnimation(currentEmotion);
 }

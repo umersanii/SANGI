@@ -19,6 +19,10 @@ public:
   void animateAngry();
   void animateSad();
   void animateSurprised();
+  void animateMusic();
+  
+  // Reset animation frames when switching emotions
+  void resetAnimation(EmotionState emotion);
   
 private:
   // Animation state tracking
@@ -31,6 +35,7 @@ private:
   unsigned long lastAngryAnim;
   unsigned long lastSadAnim;
   unsigned long lastSurprisedAnim;
+  unsigned long lastMusicAnim;
   
   int sleepyFrame;
   int thinkFrame;
@@ -41,6 +46,7 @@ private:
   int angryFrame;
   int sadFrame;
   int surprisedFrame;
+  int musicFrame;
 };
 
 extern AnimationManager animationManager;

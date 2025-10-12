@@ -46,16 +46,86 @@ void DisplayManager::scanI2C() {
   }
 }
 
-void DisplayManager::showBootScreen() {
+void DisplayManager::drawBatSignal() {
   display.clearDisplay();
-  display.setTextSize(2);
-  display.setTextColor(SSD1306_WHITE);
-  display.setCursor(15, 20);
-  display.println("SANGI");
-  display.setTextSize(1);
-  display.setCursor(30, 45);
-  display.println("Booting...");
+  
+  // Batman signal - centered with sharp, angular wings
+  // Center point for the bat (x=64, y=32)
+  int cx = 64;
+  int cy = 32;
+  
+  // Top bat ears (sharp pointed)
+  display.fillTriangle(cx - 5, cy - 14, cx - 1, cy - 6, cx - 9, cy - 6, SSD1306_WHITE);
+  display.fillTriangle(cx + 5, cy - 14, cx + 1, cy - 6, cx + 9, cy - 6, SSD1306_WHITE);
+  
+  // Bat head/body center
+  display.fillCircle(cx, cy - 4, 6, SSD1306_WHITE);
+  display.fillRect(cx - 6, cy - 4, 12, 14, SSD1306_WHITE);
+  
+  // LEFT WING - sharp angular design
+  // Upper wing sweep with sharp tip
+  display.fillTriangle(cx - 6, cy - 2, cx - 54, cy - 16, cx - 50, cy + 2, SSD1306_WHITE);
+  display.fillTriangle(cx - 6, cy - 2, cx - 50, cy + 2, cx - 44, cy - 4, SSD1306_WHITE);
+  
+  // Middle wing section with sharp scallop
+  display.fillTriangle(cx - 6, cy + 2, cx - 50, cy + 2, cx - 46, cy + 12, SSD1306_WHITE);
+  display.fillTriangle(cx - 6, cy + 2, cx - 46, cy + 12, cx - 38, cy + 8, SSD1306_WHITE);
+  
+  // Lower wing with sharp point
+  display.fillTriangle(cx - 6, cy + 8, cx - 38, cy + 8, cx - 32, cy + 18, SSD1306_WHITE);
+  display.fillTriangle(cx - 6, cy + 8, cx - 32, cy + 18, cx - 24, cy + 14, SSD1306_WHITE);
+  
+  // RIGHT WING - sharp angular design (mirrored)
+  // Upper wing sweep with sharp tip
+  display.fillTriangle(cx + 6, cy - 2, cx + 54, cy - 16, cx + 50, cy + 2, SSD1306_WHITE);
+  display.fillTriangle(cx + 6, cy - 2, cx + 50, cy + 2, cx + 44, cy - 4, SSD1306_WHITE);
+  
+  // Middle wing section with sharp scallop
+  display.fillTriangle(cx + 6, cy + 2, cx + 50, cy + 2, cx + 46, cy + 12, SSD1306_WHITE);
+  display.fillTriangle(cx + 6, cy + 2, cx + 46, cy + 12, cx + 38, cy + 8, SSD1306_WHITE);
+  
+  // Lower wing with sharp point
+  display.fillTriangle(cx + 6, cy + 8, cx + 38, cy + 8, cx + 32, cy + 18, SSD1306_WHITE);
+  display.fillTriangle(cx + 6, cy + 8, cx + 32, cy + 18, cx + 24, cy + 14, SSD1306_WHITE);
+  
+  // Bottom center points (3 sharp points)
+  display.fillTriangle(cx - 16, cy + 10, cx - 12, cy + 22, cx - 6, cy + 10, SSD1306_WHITE);
+  display.fillTriangle(cx - 3, cy + 10, cx, cy + 24, cx + 3, cy + 10, SSD1306_WHITE);
+  display.fillTriangle(cx + 6, cy + 10, cx + 12, cy + 22, cx + 16, cy + 10, SSD1306_WHITE);
+  
   display.display();
+}
+
+void DisplayManager::showBootScreen() {
+  // Flicker effect - black screen first, then bat signal twice
+  
+  // First flicker: black -> bat -> black
+  display.clearDisplay();
+  display.display();
+  delay(80);
+  
+  drawBatSignal();
+  delay(120);
+  
+  display.clearDisplay();
+  display.display();
+  delay(500);
+  
+  // Second flicker: black -> bat -> black
+  display.clearDisplay();
+  display.display();
+  delay(80);
+  
+  drawBatSignal();
+  delay(120);
+  
+  display.clearDisplay();
+  display.display();
+  delay(80);
+  
+  // Show steady bat signal for 3 seconds
+  drawBatSignal();
+  delay(3000);
 }
 
 void DisplayManager::clearDisplay() {
@@ -93,27 +163,46 @@ void DisplayManager::drawFace_Blink() {
 void DisplayManager::drawFace_Sad() {
   display.clearDisplay();
   drawEyes(40, 28, 88, 28, 20);
-  display.fillRoundRect(50, 52, 28, 6, 3, SSD1306_WHITE);
+  display.fillRoundRect(54, 52, 20, 5, 2, SSD1306_WHITE);  // Smaller mouth
   display.display();
 }
 
 void DisplayManager::drawFace_Angry() {
   display.clearDisplay();
-  drawEyes(40, 30, 88, 30, 12);
-  display.fillTriangle(25, 18, 30, 22, 50, 18, SSD1306_WHITE);
-  display.fillTriangle(78, 18, 98, 22, 103, 18, SSD1306_WHITE);
-  display.fillRoundRect(52, 50, 24, 6, 3, SSD1306_WHITE);
+  
+  // Angry narrowed eyes (smaller, more intense)
+  drawEyes(40, 32, 88, 32, 12);
+  
+  // Left eyebrow - thick angled line slanting down toward center
+  for(int i = 0; i < 5; i++) {
+    display.drawLine(22, 16 + i, 52, 22 + i, SSD1306_WHITE);
+  }
+  
+  // Right eyebrow - thick angled line slanting down toward center  
+  for(int i = 0; i < 5; i++) {
+    display.drawLine(76, 22 + i, 106, 16 + i, SSD1306_WHITE);
+  }
+  
+  // Simple frown mouth (small horizontal line low on face)
+  display.fillRoundRect(52, 50, 24, 5, 2, SSD1306_WHITE);
+  
   display.display();
 }
 
 void DisplayManager::drawFace_Love() {
   display.clearDisplay();
-  display.fillCircle(35, 26, 8, SSD1306_WHITE);
-  display.fillCircle(45, 26, 8, SSD1306_WHITE);
-  display.fillTriangle(28, 26, 40, 38, 52, 26, SSD1306_WHITE);
-  display.fillCircle(83, 26, 8, SSD1306_WHITE);
-  display.fillCircle(93, 26, 8, SSD1306_WHITE);
-  display.fillTriangle(76, 26, 88, 38, 100, 26, SSD1306_WHITE);
+  // Left heart eye
+  display.fillCircle(34, 26, 7, SSD1306_WHITE);      // Left circle
+  display.fillCircle(44, 26, 7, SSD1306_WHITE);      // Right circle
+  display.fillRect(27, 26, 24, 6, SSD1306_WHITE);    // Connect circles
+  display.fillTriangle(27, 32, 39, 40, 51, 32, SSD1306_WHITE);  // Bottom point
+  
+  // Right heart eye
+  display.fillCircle(82, 26, 7, SSD1306_WHITE);      // Left circle
+  display.fillCircle(92, 26, 7, SSD1306_WHITE);      // Right circle
+  display.fillRect(75, 26, 24, 6, SSD1306_WHITE);    // Connect circles
+  display.fillTriangle(75, 32, 87, 40, 99, 32, SSD1306_WHITE);  // Bottom point
+  
   display.fillRoundRect(48, 50, 32, 8, 4, SSD1306_WHITE);
   display.display();
 }
@@ -143,20 +232,21 @@ void DisplayManager::drawFace_Confused() {
   display.clearDisplay();
   display.fillRoundRect(30, 24, 20, 20, 5, SSD1306_WHITE);
   display.fillRoundRect(78, 26, 20, 12, 5, SSD1306_WHITE);
-  display.drawLine(50, 48, 58, 52, SSD1306_WHITE);
-  display.drawLine(58, 52, 70, 48, SSD1306_WHITE);
-  display.drawLine(70, 48, 78, 52, SSD1306_WHITE);
+  // Simple filled mouth (24px wide, matches other emotions)
+  display.fillRoundRect(52, 48, 24, 5, 2, SSD1306_WHITE);
   display.display();
 }
 
 void DisplayManager::drawFace_Thinking() {
   display.clearDisplay();
+  // Normal eyes (original size)
   display.fillRoundRect(35, 22, 18, 20, 5, SSD1306_WHITE);
   display.fillRoundRect(83, 22, 18, 20, 5, SSD1306_WHITE);
   display.fillRoundRect(58, 50, 12, 5, 2, SSD1306_WHITE);
-  display.fillCircle(105, 15, 2, SSD1306_WHITE);
-  display.fillCircle(110, 10, 3, SSD1306_WHITE);
-  display.fillCircle(115, 5, 4, SSD1306_WHITE);
+  // Exclamation mark on the right
+  display.setTextSize(2);
+  display.setCursor(108, 20);
+  display.print("!");
   display.display();
 }
 
@@ -172,8 +262,59 @@ void DisplayManager::drawFace_Dead() {
 
 void DisplayManager::drawFace_Surprised() {
   display.clearDisplay();
-  drawEyes(40, 28, 88, 28, 28);
+  // Wide eyes with centered pupils (eyes: y=18, height=28, center y = 32)
+  display.fillRoundRect(33, 18, 18, 28, 5, SSD1306_WHITE);
+  display.fillRoundRect(81, 18, 18, 28, 5, SSD1306_WHITE);
+  display.fillCircle(42, 32, 3, SSD1306_BLACK);  // Left pupil centered
+  display.fillCircle(90, 32, 3, SSD1306_BLACK);  // Right pupil centered
   display.fillCircle(64, 50, 6, SSD1306_WHITE);
+  display.display();
+}
+
+void DisplayManager::drawFace_Batman() {
+  display.clearDisplay();
+
+  // --- Draw full BLACK mask/cowl background ---
+  display.fillRect(0, 0, 128, 64, SSD1306_BLACK);
+
+  // --- Batman cowl shape (sharp pointed bat ears on top) ---
+  // Left ear - sharp and prominent
+  display.fillTriangle(28, 0, 36, 0, 32, 12, SSD1306_BLACK);
+  // Right ear - sharp and prominent
+  display.fillTriangle(92, 0, 100, 0, 96, 12, SSD1306_BLACK);
+
+  // --- Draw WHITE glowing eyes (using standard eye size, slightly smaller) ---
+  // Standard eyes are 20px wide, 20px tall at (40, 28) and (88, 28)
+  // Batman eyes: 18px wide, 16px tall (slightly smaller than normal)
+  int leftEyeX = 40;
+  int rightEyeX = 88;
+  int eyeY = 28;
+  int eyeWidth = 18;
+  int eyeHeight = 16;
+  
+  // Left eye - slightly smaller than normal with rounded corners (WHITE glow)
+  display.fillRoundRect(leftEyeX - eyeWidth/2, eyeY - eyeHeight/2, eyeWidth, eyeHeight, 4, SSD1306_WHITE);
+  
+  // Right eye - slightly smaller than normal with rounded corners (WHITE glow)
+  display.fillRoundRect(rightEyeX - eyeWidth/2, eyeY - eyeHeight/2, eyeWidth, eyeHeight, 4, SSD1306_WHITE);
+
+  // --- Angular cape/cowl extending down from ears ---
+  // Left cape - angular line from ear to shoulder
+  for(int i = 0; i < 6; i++) {
+    display.drawLine(20 + i, 12, 10 + i, 50, SSD1306_BLACK);
+  }
+  
+  // Right cape - angular line from ear to shoulder
+  for(int i = 0; i < 6; i++) {
+    display.drawLine(102 + i, 12, 112 + i, 50, SSD1306_BLACK);
+  }
+
+  // --- Small nose bridge (proportional) ---
+  display.fillRect(62, 36, 4, 6, SSD1306_BLACK);
+
+  // --- Stern mouth line (same size as other emotions ~20-24px wide) ---
+  display.fillRoundRect(54, 50, 20, 4, 2, SSD1306_BLACK);
+
   display.display();
 }
 
@@ -212,6 +353,9 @@ void DisplayManager::drawEmotionFace(EmotionState emotion) {
     case EMOTION_DEAD:
       drawFace_Dead();
       break;
+    case EMOTION_BATMAN:
+      drawFace_Batman();
+      break;
     default:
       drawFace_Normal();
       break;
@@ -222,12 +366,21 @@ void DisplayManager::performTransition() {
   if (!emotionManager.isTransitionActive()) return;
   
   int transitionFrame = emotionManager.getTransitionFrame();
+  EmotionState currentEmotion = emotionManager.getCurrentEmotion();
+  EmotionState targetEmotion = emotionManager.getTargetEmotion();
   
+  // Special handling for sleepy transitions
+  if (currentEmotion == EMOTION_SLEEPY || targetEmotion == EMOTION_SLEEPY) {
+    performSleepyTransition(transitionFrame, targetEmotion);
+    return;
+  }
+  
+  // Standard transition for all other emotions
   switch(transitionFrame) {
     case 0:
       // Frame 1: Current emotion
-      drawEmotionFace(emotionManager.getCurrentEmotion());
-      delay(80);
+      drawEmotionFace(currentEmotion);
+      delay(200);
       emotionManager.advanceTransition();
       break;
       
@@ -236,7 +389,7 @@ void DisplayManager::performTransition() {
       display.clearDisplay();
       drawEyes(40, 28, 88, 28, 12);
       display.display();
-      delay(60);
+      delay(150);
       emotionManager.advanceTransition();
       break;
       
@@ -245,7 +398,7 @@ void DisplayManager::performTransition() {
       display.clearDisplay();
       drawEyes(40, 28, 88, 28, 6);
       display.display();
-      delay(60);
+      delay(150);
       emotionManager.advanceTransition();
       break;
       
@@ -254,7 +407,7 @@ void DisplayManager::performTransition() {
       display.clearDisplay();
       drawEyes(40, 28, 88, 28, 3);
       display.display();
-      delay(80);
+      delay(200);
       emotionManager.advanceTransition();
       break;
       
@@ -263,7 +416,7 @@ void DisplayManager::performTransition() {
       display.clearDisplay();
       drawEyes(40, 28, 88, 28, 8);
       display.display();
-      delay(60);
+      delay(150);
       emotionManager.advanceTransition();
       break;
       
@@ -272,14 +425,83 @@ void DisplayManager::performTransition() {
       display.clearDisplay();
       drawEyes(40, 28, 88, 28, 14);
       display.display();
-      delay(60);
+      delay(150);
       emotionManager.advanceTransition();
       break;
       
     case 6:
       // Frame 7: Target emotion fully revealed
-      drawEmotionFace(emotionManager.getTargetEmotion());
-      delay(80);
+      drawEmotionFace(targetEmotion);
+      delay(200);
+      emotionManager.completeTransition();
+      break;
+  }
+}
+
+// Special transition handler for sleepy emotion (uses round mouth)
+void DisplayManager::performSleepyTransition(int transitionFrame, EmotionState targetEmotion) {
+  switch(transitionFrame) {
+    case 0:
+      // Frame 1: Current emotion
+      drawEmotionFace(emotionManager.getCurrentEmotion());
+      delay(200);
+      emotionManager.advanceTransition();
+      break;
+      
+    case 1:
+      // Frame 2: Squint eyes (preparing to blink) with round mouth
+      display.clearDisplay();
+      drawEyes(40, 28, 88, 28, 12);
+      display.drawCircle(64, 48, 5, SSD1306_WHITE);  // Round mouth for sleepy
+      display.display();
+      delay(150);
+      emotionManager.advanceTransition();
+      break;
+      
+    case 2:
+      // Frame 3: Eyes mostly closed with round mouth
+      display.clearDisplay();
+      drawEyes(40, 29, 88, 29, 8);
+      display.drawCircle(64, 48, 6, SSD1306_WHITE);  // Round mouth
+      display.display();
+      delay(150);
+      emotionManager.advanceTransition();
+      break;
+      
+    case 3:
+      // Frame 4: Eyes fully closed (blink) with round mouth
+      display.clearDisplay();
+      drawEyes(40, 30, 88, 30, 4);
+      display.drawCircle(64, 48, 6, SSD1306_WHITE);  // Round mouth
+      display.display();
+      delay(200);
+      emotionManager.advanceTransition();
+      break;
+      
+    case 4:
+      // Frame 5: Eyes starting to open with round mouth
+      display.clearDisplay();
+      drawEyes(40, 29, 88, 29, 8);
+      display.drawCircle(64, 48, 6, SSD1306_WHITE);  // Round mouth
+      display.display();
+      delay(150);
+      emotionManager.advanceTransition();
+      break;
+      
+    case 5:
+      // Frame 6: Eyes half open
+      display.clearDisplay();
+      drawEyes(40, 28, 88, 28, 12);
+      display.drawCircle(64, 48, 5, SSD1306_WHITE);  // Round mouth
+      display.display();
+      delay(150);
+      emotionManager.advanceTransition();
+      break;
+      
+    case 6:
+      // Frame 7: Target emotion fully revealed
+      drawEmotionFace(targetEmotion);
+      delay(200);
       emotionManager.completeTransition();
       break;
   }

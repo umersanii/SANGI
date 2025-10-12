@@ -13,6 +13,7 @@ AnimationManager::AnimationManager()
     lastAngryAnim(0),
     lastSadAnim(0),
     lastSurprisedAnim(0),
+    lastMusicAnim(0),
     sleepyFrame(0),
     thinkFrame(0),
     exciteFrame(0),
@@ -21,7 +22,56 @@ AnimationManager::AnimationManager()
     loveFrame(0),
     angryFrame(0),
     sadFrame(0),
-    surprisedFrame(0) {
+    surprisedFrame(0),
+    musicFrame(0) {
+}
+
+// Reset animation frame to start smoothly from beginning
+void AnimationManager::resetAnimation(EmotionState emotion) {
+  switch(emotion) {
+    case EMOTION_SLEEPY:
+      sleepyFrame = 0;
+      lastSleepyAnim = 0;
+      break;
+    case EMOTION_THINKING:
+      thinkFrame = 0;
+      lastThinkAnim = 0;
+      break;
+    case EMOTION_EXCITED:
+      exciteFrame = 0;
+      lastExciteAnim = 0;
+      break;
+    case EMOTION_CONFUSED:
+      confuseFrame = 0;
+      lastConfuseAnim = 0;
+      break;
+    case EMOTION_HAPPY:
+      happyFrame = 0;
+      lastHappyAnim = 0;
+      break;
+    case EMOTION_LOVE:
+      loveFrame = 0;
+      lastLoveAnim = 0;
+      break;
+    case EMOTION_ANGRY:
+      angryFrame = 0;
+      lastAngryAnim = 0;
+      break;
+    case EMOTION_SAD:
+      sadFrame = 0;
+      lastSadAnim = 0;
+      break;
+    case EMOTION_SURPRISED:
+      surprisedFrame = 0;
+      lastSurprisedAnim = 0;
+      break;
+    case EMOTION_MUSIC:
+      musicFrame = 0;
+      lastMusicAnim = 0;
+      break;
+    default:
+      break;
+  }
 }
 
 // Animated sleepy state - smooth drowsy animations with synchronized mouth
@@ -83,46 +133,96 @@ void AnimationManager::animateSleepy() {
         break;
         
       case 8:
-        // Eyes fully closed - mouth round, zzz appear
+        // Eyes fully closed - mouth round, first zzz appear near face
         displayManager.drawEyes(40, 31, 88, 31, 2);
         displayManager.getDisplay().fillCircle(64, 50, 8, SSD1306_WHITE);
         displayManager.getDisplay().setTextSize(1);
-        displayManager.getDisplay().setCursor(105, 12);
+        displayManager.getDisplay().setCursor(85, 35);
         displayManager.getDisplay().print("z");
-        displayManager.getDisplay().setCursor(110, 8);
-        displayManager.getDisplay().print("Z");
         break;
         
-      // === STAY CLOSED (frames 9-42) - approximately 1 second at 30ms per frame ===
+      // === STAY CLOSED (frames 9-42) - slow floating zzz ===
       case 9: case 10: case 11: case 12: case 13:
-      case 14: case 15: case 16: case 17: case 18:
-      case 19: case 20: case 21: case 22: case 23:
-      case 24: case 25: case 26: case 27: case 28:
-      case 29: case 30: case 31: case 32: case 33:
-        // Eyes stay closed, mouth round, zzz active
+        // Eyes stay closed, zzz floating from face toward top right
         displayManager.drawEyes(40, 31, 88, 31, 2);
         displayManager.getDisplay().fillCircle(64, 50, 8, SSD1306_WHITE);
         displayManager.getDisplay().setTextSize(1);
-        displayManager.getDisplay().setCursor(105, 12);
+        displayManager.getDisplay().setCursor(88, 32);
         displayManager.getDisplay().print("z");
-        displayManager.getDisplay().setCursor(110, 8);
-        displayManager.getDisplay().print("Z");
-        displayManager.getDisplay().setCursor(115, 4);
-        displayManager.getDisplay().print("Z");
+        displayManager.getDisplay().setCursor(95, 30);
+        displayManager.getDisplay().print("z");
+        break;
+        
+      case 14: case 15: case 16: case 17: case 18:
+        displayManager.drawEyes(40, 31, 88, 31, 2);
+        displayManager.getDisplay().fillCircle(64, 50, 8, SSD1306_WHITE);
+        displayManager.getDisplay().setTextSize(1);
+        displayManager.getDisplay().setCursor(92, 28);
+        displayManager.getDisplay().print("z");
+        displayManager.getDisplay().setCursor(100, 25);
+        displayManager.getDisplay().print("z");
+        displayManager.getDisplay().setCursor(108, 22);
+        displayManager.getDisplay().print("z");
+        break;
+        
+      case 19: case 20: case 21: case 22: case 23:
+        displayManager.drawEyes(40, 31, 88, 31, 2);
+        displayManager.getDisplay().fillCircle(64, 50, 8, SSD1306_WHITE);
+        displayManager.getDisplay().setTextSize(1);
+        displayManager.getDisplay().setCursor(95, 24);
+        displayManager.getDisplay().print("z");
+        displayManager.getDisplay().setCursor(104, 20);
+        displayManager.getDisplay().print("z");
+        displayManager.getDisplay().setCursor(112, 16);
+        displayManager.getDisplay().print("z");
+        displayManager.getDisplay().setCursor(118, 12);
+        displayManager.getDisplay().print("z");
+        break;
+        
+      case 24: case 25: case 26: case 27: case 28:
+        displayManager.drawEyes(40, 31, 88, 31, 2);
+        displayManager.getDisplay().fillCircle(64, 50, 8, SSD1306_WHITE);
+        displayManager.getDisplay().setTextSize(1);
+        displayManager.getDisplay().setCursor(98, 20);
+        displayManager.getDisplay().print("z");
+        displayManager.getDisplay().setCursor(106, 16);
+        displayManager.getDisplay().print("z");
+        displayManager.getDisplay().setCursor(114, 12);
+        displayManager.getDisplay().print("z");
+        displayManager.getDisplay().setCursor(120, 8);
+        displayManager.getDisplay().print("z");
+        break;
+        
+      case 29: case 30: case 31: case 32: case 33:
+        displayManager.drawEyes(40, 31, 88, 31, 2);
+        displayManager.getDisplay().fillCircle(64, 50, 8, SSD1306_WHITE);
+        displayManager.getDisplay().setTextSize(1);
+        displayManager.getDisplay().setCursor(100, 18);
+        displayManager.getDisplay().print("z");
+        displayManager.getDisplay().setCursor(108, 14);
+        displayManager.getDisplay().print("z");
+        displayManager.getDisplay().setCursor(115, 10);
+        displayManager.getDisplay().print("z");
+        displayManager.getDisplay().setCursor(122, 6);
+        displayManager.getDisplay().print("z");
         break;
         
       case 34: case 35: case 36: case 37: case 38:
       case 39: case 40: case 41: case 42:
-        // Eyes stay closed, mouth round, zzz active (variation)
+        // zzz continue floating to top right corner
         displayManager.drawEyes(40, 31, 88, 31, 2);
         displayManager.getDisplay().fillCircle(64, 50, 8, SSD1306_WHITE);
         displayManager.getDisplay().setTextSize(1);
-        displayManager.getDisplay().setCursor(106, 10);
+        displayManager.getDisplay().setCursor(102, 16);
         displayManager.getDisplay().print("z");
-        displayManager.getDisplay().setCursor(111, 6);
-        displayManager.getDisplay().print("Z");
-        displayManager.getDisplay().setCursor(116, 2);
-        displayManager.getDisplay().print("Z");
+        displayManager.getDisplay().setCursor(110, 12);
+        displayManager.getDisplay().print("z");
+        displayManager.getDisplay().setCursor(116, 8);
+        displayManager.getDisplay().print("z");
+        displayManager.getDisplay().setCursor(122, 4);
+        displayManager.getDisplay().print("z");
+        displayManager.getDisplay().setCursor(126, 2);
+        displayManager.getDisplay().print("z");
         break;
         
       // === OPENING SEQUENCE (frames 43-50) ===
@@ -194,124 +294,127 @@ void AnimationManager::animateThinking() {
     switch(thinkFrame) {
       // === INITIAL PONDERING (frames 0-8) ===
       case 0:
-        // Eyes normal, looking forward
-        displayManager.drawEyes(40, 28, 88, 28, 18);
-        displayManager.getDisplay().fillRoundRect(58, 50, 12, 5, 2, SSD1306_WHITE);
+        // Normal eyes, looking forward
+        displayManager.getDisplay().fillRoundRect(33, 22, 18, 20, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(81, 22, 18, 20, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(52, 50, 24, 6, 3, SSD1306_WHITE);
         break;
         
       case 1: case 2:
         // Eyes start looking up-left
-        displayManager.drawEyes(38, 26, 86, 26, 18);
-        displayManager.getDisplay().fillRoundRect(58, 50, 12, 5, 2, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(31, 20, 18, 20, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(79, 20, 18, 20, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(50, 50, 24, 6, 3, SSD1306_WHITE);  // Mouth moves left
         break;
         
       case 3: case 4: case 5:
-        // Eyes fully looking up
-        displayManager.drawEyes(37, 24, 85, 24, 18);
-        displayManager.getDisplay().fillRoundRect(58, 50, 12, 5, 2, SSD1306_WHITE);
-        // First thought bubble appears
-        displayManager.getDisplay().fillCircle(100, 20, 2, SSD1306_WHITE);
+        // Eyes fully looking up-left
+        displayManager.getDisplay().fillRoundRect(30, 18, 18, 20, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(78, 18, 18, 20, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(52, 50, 24, 6, 3, SSD1306_WHITE);  // Static mouth
+        // Big exclamation mark appears
+        displayManager.getDisplay().setTextSize(3);
+        displayManager.getDisplay().setCursor(100, 8);
+        displayManager.getDisplay().print("!");
         break;
         
       case 6: case 7: case 8:
-        // Eyes looking up, eyebrows appear (concentrated look)
-        displayManager.drawEyes(37, 24, 85, 24, 18);
-        displayManager.getDisplay().drawLine(30, 18, 50, 16, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(78, 16, 98, 18, SSD1306_WHITE);
-        displayManager.getDisplay().fillRoundRect(58, 50, 12, 5, 2, SSD1306_WHITE);
-        // Thought bubbles growing
-        displayManager.getDisplay().fillCircle(102, 18, 2, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(108, 14, 3, SSD1306_WHITE);
+        // Eyes looking up-left (concentrated)
+        displayManager.getDisplay().fillRoundRect(30, 18, 18, 20, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(78, 18, 18, 20, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(52, 50, 24, 6, 3, SSD1306_WHITE);  // Static mouth
+        // Big exclamation mark
+        displayManager.getDisplay().setTextSize(3);
+        displayManager.getDisplay().setCursor(100, 8);
+        displayManager.getDisplay().print("!");
         break;
         
       // === DEEP THINKING (frames 9-35) ===
       case 9: case 10: case 11: case 12: case 13:
       case 14: case 15: case 16: case 17: case 18:
-        // Maintain thinking pose, bubbles floating
-        displayManager.drawEyes(37, 24, 85, 24, 18);
-        displayManager.getDisplay().drawLine(30, 18, 50, 16, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(78, 16, 98, 18, SSD1306_WHITE);
-        displayManager.getDisplay().fillRoundRect(58, 50, 12, 5, 2, SSD1306_WHITE);
-        // Thought bubble chain grows and animates
-        displayManager.getDisplay().fillCircle(104, 16, 2, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(110, 12, 3, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(116, 8, 4, SSD1306_WHITE);
-        if (thinkFrame % 4 < 2) {
-          displayManager.getDisplay().fillCircle(122, 4, 3, SSD1306_WHITE);
-        }
+        // Maintain thinking pose - eyes looking up-left
+        displayManager.getDisplay().fillRoundRect(30, 18, 18, 20, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(78, 18, 18, 20, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(52, 50, 24, 6, 3, SSD1306_WHITE);  // Static mouth
+        // Big exclamation mark
+        displayManager.getDisplay().setTextSize(3);
+        displayManager.getDisplay().setCursor(100, 8);
+        displayManager.getDisplay().print("!");
         break;
         
       case 19: case 20: case 21: case 22: case 23:
       case 24: case 25: case 26: case 27: case 28:
-        // Eyes shift slightly (contemplating)
-        displayManager.drawEyes(39, 24, 87, 24, 18);
-        displayManager.getDisplay().drawLine(32, 18, 52, 16, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(76, 16, 96, 18, SSD1306_WHITE);
-        displayManager.getDisplay().fillRoundRect(58, 50, 12, 5, 2, SSD1306_WHITE);
-        // Bubbles continue
-        displayManager.getDisplay().fillCircle(106, 14, 2, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(112, 10, 3, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(118, 6, 4, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(124, 3, 4, SSD1306_WHITE);
+        // Eyes shift slightly more left (contemplating)
+        displayManager.getDisplay().fillRoundRect(28, 18, 18, 20, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(76, 18, 18, 20, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(52, 50, 24, 6, 3, SSD1306_WHITE);  // Static mouth
+        // Big exclamation mark
+        displayManager.getDisplay().setTextSize(3);
+        displayManager.getDisplay().setCursor(100, 8);
+        displayManager.getDisplay().print("!");
         break;
         
       case 29: case 30: case 31: case 32: case 33:
       case 34: case 35:
-        // Eyes looking other direction
-        displayManager.drawEyes(35, 24, 83, 24, 18);
-        displayManager.getDisplay().drawLine(28, 18, 48, 16, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(80, 16, 100, 18, SSD1306_WHITE);
-        displayManager.getDisplay().fillRoundRect(58, 50, 12, 5, 2, SSD1306_WHITE);
-        // More thought bubbles
-        displayManager.getDisplay().fillCircle(108, 12, 2, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(114, 8, 3, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(120, 4, 4, SSD1306_WHITE);
+        // Eyes looking most left
+        displayManager.getDisplay().fillRoundRect(26, 18, 18, 20, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(74, 18, 18, 20, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(52, 50, 24, 6, 3, SSD1306_WHITE);  // Static mouth
+        // Big exclamation mark
+        displayManager.getDisplay().setTextSize(3);
+        displayManager.getDisplay().setCursor(100, 8);
+        displayManager.getDisplay().print("!");
         break;
         
       // === REALIZATION MOMENT (frames 36-42) ===
       case 36: case 37: case 38:
         // Eyes widen slightly (idea forming)
-        displayManager.drawEyes(37, 25, 85, 25, 20);
-        displayManager.getDisplay().drawLine(30, 18, 50, 16, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(78, 16, 98, 18, SSD1306_WHITE);
-        displayManager.getDisplay().fillRoundRect(58, 50, 12, 6, 2, SSD1306_WHITE);
-        // Big thought cloud
-        displayManager.getDisplay().fillCircle(110, 10, 5, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(118, 8, 4, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(30, 19, 18, 22, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(78, 19, 18, 22, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(49, 50, 24, 6, 3, SSD1306_WHITE);  // Mouth normal & left
+        // Larger exclamation mark
+        displayManager.getDisplay().setTextSize(3);
+        displayManager.getDisplay().setCursor(104, 12);
+        displayManager.getDisplay().print("!");
         break;
         
       case 39: case 40: case 41: case 42:
-        // Eyes fully open (eureka moment building)
-        displayManager.drawEyes(38, 26, 86, 26, 22);
-        displayManager.getDisplay().drawLine(30, 18, 50, 16, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(78, 16, 98, 18, SSD1306_WHITE);
-        displayManager.getDisplay().fillRoundRect(58, 50, 12, 6, 2, SSD1306_WHITE);
-        // Thought cloud with idea symbol
-        displayManager.getDisplay().fillCircle(112, 8, 6, SSD1306_WHITE);
-        displayManager.getDisplay().setTextSize(1);
-        displayManager.getDisplay().setTextColor(SSD1306_BLACK);
-        displayManager.getDisplay().setCursor(110, 5);
+        // Eyes fully open (eureka moment!)
+        displayManager.getDisplay().fillRoundRect(31, 20, 18, 24, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(79, 20, 18, 24, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(50, 50, 24, 5, 2, SSD1306_WHITE);  // Mouth smaller & left
+        // Big exclamation mark
+        displayManager.getDisplay().setTextSize(3);
+        displayManager.getDisplay().setCursor(104, 10);
         displayManager.getDisplay().print("!");
-        displayManager.getDisplay().setTextColor(SSD1306_WHITE);
         break;
         
       // === RETURN TO NEUTRAL (frames 43-50) ===
       case 43:
-        displayManager.drawEyes(39, 27, 87, 27, 20);
-        displayManager.getDisplay().fillRoundRect(58, 50, 12, 5, 2, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(115, 10, 3, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(32, 21, 18, 21, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(80, 21, 18, 21, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(51, 50, 24, 6, 3, SSD1306_WHITE);  // Mouth normal & moving back
+        // Exclamation mark fading
+        displayManager.getDisplay().setTextSize(2);
+        displayManager.getDisplay().setCursor(106, 18);
+        displayManager.getDisplay().print("!");
         break;
         
       case 44:
-        displayManager.drawEyes(40, 27, 88, 27, 19);
-        displayManager.getDisplay().fillRoundRect(58, 50, 12, 5, 2, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(118, 12, 2, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(33, 21, 18, 20, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(81, 21, 18, 20, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(52, 50, 24, 5, 2, SSD1306_WHITE);  // Mouth smaller & centered
+        // Smaller exclamation mark
+        displayManager.getDisplay().setTextSize(2);
+        displayManager.getDisplay().setCursor(106, 20);
+        displayManager.getDisplay().print("!");
         break;
         
       case 45: case 46: case 47: case 48: case 49: case 50:
         // Back to neutral thinking pose
-        displayManager.drawEyes(40, 28, 88, 28, 18);
-        displayManager.getDisplay().fillRoundRect(58, 50, 12, 5, 2, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(33, 22, 18, 20, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(81, 22, 18, 20, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(52, 50, 24, 6, 3, SSD1306_WHITE);  // Mouth normal & centered
         break;
     }
     
@@ -502,21 +605,19 @@ void AnimationManager::animateConfused() {
         // Eyes become uneven, mouth wavy
         displayManager.getDisplay().fillRoundRect(30, 24, 20, 20, 5, SSD1306_WHITE);
         displayManager.getDisplay().fillRoundRect(78, 27, 20, 14, 5, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(50, 48, 58, 52, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(58, 52, 70, 48, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(70, 48, 78, 52, SSD1306_WHITE);
+        // Simple filled mouth (24px wide, matches other emotions)
+        displayManager.getDisplay().fillRoundRect(52, 48, 24, 5, 2, SSD1306_WHITE);
         break;
         
       case 5: case 6: case 7: case 8:
         // Maximum unevenness
         displayManager.getDisplay().fillRoundRect(30, 24, 20, 20, 5, SSD1306_WHITE);
         displayManager.getDisplay().fillRoundRect(78, 26, 20, 12, 5, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(50, 48, 58, 52, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(58, 52, 70, 48, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(70, 48, 78, 52, SSD1306_WHITE);
-        // First question mark appears
+        // Simple filled mouth (24px wide)
+        displayManager.getDisplay().fillRoundRect(52, 48, 24, 5, 2, SSD1306_WHITE);
+        // First question mark appears low
         displayManager.getDisplay().setTextSize(1);
-        displayManager.getDisplay().setCursor(108, 20);
+        displayManager.getDisplay().setCursor(108, 30);
         displayManager.getDisplay().print("?");
         break;
         
@@ -526,12 +627,13 @@ void AnimationManager::animateConfused() {
         // Eyes reversed (other eye bigger)
         displayManager.getDisplay().fillRoundRect(30, 26, 20, 12, 5, SSD1306_WHITE);
         displayManager.getDisplay().fillRoundRect(78, 24, 20, 20, 5, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(50, 48, 58, 52, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(58, 52, 70, 48, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(70, 48, 78, 52, SSD1306_WHITE);
-        // Question mark grows
-        displayManager.getDisplay().setTextSize(2);
-        displayManager.getDisplay().setCursor(105, 15);
+        // Simple filled mouth (24px wide)
+        displayManager.getDisplay().fillRoundRect(52, 48, 24, 5, 2, SSD1306_WHITE);
+        // Question mark floating up
+        displayManager.getDisplay().setTextSize(1);
+        displayManager.getDisplay().setCursor(108, 26);
+        displayManager.getDisplay().print("?");
+        displayManager.getDisplay().setCursor(115, 30);
         displayManager.getDisplay().print("?");
         break;
         
@@ -540,15 +642,16 @@ void AnimationManager::animateConfused() {
         // Back to first configuration
         displayManager.getDisplay().fillRoundRect(30, 24, 20, 20, 5, SSD1306_WHITE);
         displayManager.getDisplay().fillRoundRect(78, 26, 20, 12, 5, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(50, 48, 58, 52, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(58, 52, 70, 48, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(70, 48, 78, 52, SSD1306_WHITE);
-        // Multiple question marks
-        displayManager.getDisplay().setTextSize(2);
-        displayManager.getDisplay().setCursor(105, 10);
-        displayManager.getDisplay().print("?");
+        // Simple filled mouth (24px wide)
+        displayManager.getDisplay().fillRoundRect(52, 48, 24, 5, 2, SSD1306_WHITE);
+        // Multiple question marks floating
         displayManager.getDisplay().setTextSize(1);
-        displayManager.getDisplay().setCursor(115, 25);
+        displayManager.getDisplay().setCursor(106, 22);
+        displayManager.getDisplay().print("?");
+        displayManager.getDisplay().setCursor(113, 26);
+        displayManager.getDisplay().print("?");
+        displayManager.getDisplay().setTextSize(2);
+        displayManager.getDisplay().setCursor(118, 18);
         displayManager.getDisplay().print("?");
         break;
         
@@ -564,19 +667,19 @@ void AnimationManager::animateConfused() {
           displayManager.getDisplay().fillRoundRect(30, 27, 20, 14, 5, SSD1306_WHITE);
           displayManager.getDisplay().fillRoundRect(78, 24, 20, 20, 5, SSD1306_WHITE);
         }
-        // Wavy mouth more pronounced
-        displayManager.getDisplay().drawLine(48, 46, 56, 52, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(56, 52, 64, 48, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(64, 48, 72, 52, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(72, 52, 80, 46, SSD1306_WHITE);
-        // Question marks everywhere
+        // Simple filled mouth (24px wide)
+        displayManager.getDisplay().fillRoundRect(52, 48, 24, 5, 2, SSD1306_WHITE);
+        // Question marks floating at highest position
+        displayManager.getDisplay().setTextSize(1);
+        displayManager.getDisplay().setCursor(105, 18);
+        displayManager.getDisplay().print("?");
+        displayManager.getDisplay().setCursor(112, 22);
+        displayManager.getDisplay().print("?");
         displayManager.getDisplay().setTextSize(2);
-        displayManager.getDisplay().setCursor(105, 8);
+        displayManager.getDisplay().setCursor(118, 14);
         displayManager.getDisplay().print("?");
         displayManager.getDisplay().setTextSize(1);
-        displayManager.getDisplay().setCursor(10, 15);
-        displayManager.getDisplay().print("?");
-        displayManager.getDisplay().setCursor(118, 28);
+        displayManager.getDisplay().setCursor(123, 10);
         displayManager.getDisplay().print("?");
         break;
         
@@ -584,9 +687,8 @@ void AnimationManager::animateConfused() {
       case 39: case 40:
         displayManager.getDisplay().fillRoundRect(30, 24, 20, 20, 5, SSD1306_WHITE);
         displayManager.getDisplay().fillRoundRect(78, 26, 20, 12, 5, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(50, 48, 58, 52, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(58, 52, 70, 48, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(70, 48, 78, 52, SSD1306_WHITE);
+        // Simple filled mouth (24px wide)
+        displayManager.getDisplay().fillRoundRect(52, 48, 24, 5, 2, SSD1306_WHITE);
         displayManager.getDisplay().setTextSize(1);
         displayManager.getDisplay().setCursor(110, 20);
         displayManager.getDisplay().print("?");
@@ -595,18 +697,16 @@ void AnimationManager::animateConfused() {
       case 41: case 42:
         displayManager.getDisplay().fillRoundRect(32, 25, 20, 18, 5, SSD1306_WHITE);
         displayManager.getDisplay().fillRoundRect(78, 26, 20, 16, 5, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(50, 49, 58, 51, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(58, 51, 70, 49, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(70, 49, 78, 51, SSD1306_WHITE);
+        // Simple filled mouth (24px wide)
+        displayManager.getDisplay().fillRoundRect(52, 48, 24, 5, 2, SSD1306_WHITE);
         break;
         
       case 43: case 44: case 45: case 46: case 47:
       case 48: case 49: case 50:
         // Return to mildly confused state
         displayManager.drawEyes(40, 28, 88, 28, 18);
-        displayManager.getDisplay().drawLine(50, 48, 58, 52, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(58, 52, 70, 48, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(70, 48, 78, 52, SSD1306_WHITE);
+        // Simple filled mouth (24px wide)
+        displayManager.getDisplay().fillRoundRect(52, 48, 24, 5, 2, SSD1306_WHITE);
         break;
     }
     
@@ -779,32 +879,38 @@ void AnimationManager::animateLove() {
         
       case 1: case 2:
         // Eyes transforming to hearts (circles appear)
-        displayManager.getDisplay().fillCircle(35, 28, 6, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(45, 28, 6, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(83, 28, 6, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(93, 28, 6, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(34, 28, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(44, 28, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(82, 28, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(92, 28, 5, SSD1306_WHITE);
         displayManager.getDisplay().fillRoundRect(50, 50, 28, 7, 3, SSD1306_WHITE);
         break;
         
       case 3: case 4:
-        // Hearts growing
-        displayManager.getDisplay().fillCircle(35, 27, 7, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(45, 27, 7, SSD1306_WHITE);
-        displayManager.getDisplay().fillTriangle(28, 27, 40, 37, 52, 27, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(83, 27, 7, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(93, 27, 7, SSD1306_WHITE);
-        displayManager.getDisplay().fillTriangle(76, 27, 88, 37, 100, 27, SSD1306_WHITE);
+        // Hearts growing with connection
+        displayManager.getDisplay().fillCircle(34, 27, 6, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(44, 27, 6, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(28, 27, 22, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillTriangle(28, 32, 39, 38, 50, 32, SSD1306_WHITE);
+        
+        displayManager.getDisplay().fillCircle(82, 27, 6, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(92, 27, 6, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(76, 27, 22, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillTriangle(76, 32, 87, 38, 98, 32, SSD1306_WHITE);
         displayManager.getDisplay().fillRoundRect(48, 50, 32, 8, 4, SSD1306_WHITE);
         break;
         
       case 5: case 6: case 7:
         // Full heart eyes formed
-        displayManager.getDisplay().fillCircle(35, 26, 8, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(45, 26, 8, SSD1306_WHITE);
-        displayManager.getDisplay().fillTriangle(28, 26, 40, 38, 52, 26, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(83, 26, 8, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(93, 26, 8, SSD1306_WHITE);
-        displayManager.getDisplay().fillTriangle(76, 26, 88, 38, 100, 26, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(34, 26, 7, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(44, 26, 7, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(27, 26, 24, 6, SSD1306_WHITE);
+        displayManager.getDisplay().fillTriangle(27, 32, 39, 40, 51, 32, SSD1306_WHITE);
+        
+        displayManager.getDisplay().fillCircle(82, 26, 7, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(92, 26, 7, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(75, 26, 24, 6, SSD1306_WHITE);
+        displayManager.getDisplay().fillTriangle(75, 32, 87, 40, 99, 32, SSD1306_WHITE);
         displayManager.getDisplay().fillRoundRect(48, 50, 32, 8, 4, SSD1306_WHITE);
         // Blush appears
         displayManager.getDisplay().fillCircle(15, 42, 3, SSD1306_WHITE);
@@ -813,12 +919,15 @@ void AnimationManager::animateLove() {
         
       case 8: case 9: case 10:
         // Hearts at max with first floating heart
-        displayManager.getDisplay().fillCircle(35, 26, 8, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(45, 26, 8, SSD1306_WHITE);
-        displayManager.getDisplay().fillTriangle(28, 26, 40, 38, 52, 26, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(83, 26, 8, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(93, 26, 8, SSD1306_WHITE);
-        displayManager.getDisplay().fillTriangle(76, 26, 88, 38, 100, 26, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(34, 26, 7, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(44, 26, 7, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(27, 26, 24, 6, SSD1306_WHITE);
+        displayManager.getDisplay().fillTriangle(27, 32, 39, 40, 51, 32, SSD1306_WHITE);
+        
+        displayManager.getDisplay().fillCircle(82, 26, 7, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(92, 26, 7, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(75, 26, 24, 6, SSD1306_WHITE);
+        displayManager.getDisplay().fillTriangle(75, 32, 87, 40, 99, 32, SSD1306_WHITE);
         displayManager.getDisplay().fillRoundRect(48, 50, 32, 8, 4, SSD1306_WHITE);
         displayManager.getDisplay().fillCircle(14, 42, 4, SSD1306_WHITE);
         displayManager.getDisplay().fillCircle(114, 42, 4, SSD1306_WHITE);
@@ -832,12 +941,15 @@ void AnimationManager::animateLove() {
       case 21: case 23: case 25: case 27: case 29:
       case 31: case 33: case 35:
         // Hearts pulse larger
-        displayManager.getDisplay().fillCircle(35, 26, 9, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(45, 26, 9, SSD1306_WHITE);
-        displayManager.getDisplay().fillTriangle(27, 26, 40, 39, 53, 26, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(83, 26, 9, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(93, 26, 9, SSD1306_WHITE);
-        displayManager.getDisplay().fillTriangle(75, 26, 88, 39, 101, 26, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(34, 26, 8, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(44, 26, 8, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(26, 26, 26, 7, SSD1306_WHITE);
+        displayManager.getDisplay().fillTriangle(26, 33, 39, 42, 52, 33, SSD1306_WHITE);
+        
+        displayManager.getDisplay().fillCircle(82, 26, 8, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(92, 26, 8, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(74, 26, 26, 7, SSD1306_WHITE);
+        displayManager.getDisplay().fillTriangle(74, 33, 87, 42, 100, 33, SSD1306_WHITE);
         displayManager.getDisplay().fillRoundRect(48, 50, 32, 8, 4, SSD1306_WHITE);
         displayManager.getDisplay().fillCircle(14, 42, 5, SSD1306_WHITE);
         displayManager.getDisplay().fillCircle(114, 42, 5, SSD1306_WHITE);
@@ -852,12 +964,15 @@ void AnimationManager::animateLove() {
       case 22: case 24: case 26: case 28: case 30:
       case 32: case 34:
         // Hearts pulse smaller
-        displayManager.getDisplay().fillCircle(35, 26, 7, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(45, 26, 7, SSD1306_WHITE);
-        displayManager.getDisplay().fillTriangle(29, 26, 40, 37, 51, 26, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(83, 26, 7, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(93, 26, 7, SSD1306_WHITE);
-        displayManager.getDisplay().fillTriangle(77, 26, 88, 37, 99, 26, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(34, 26, 6, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(44, 26, 6, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(28, 26, 22, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillTriangle(28, 31, 39, 38, 50, 31, SSD1306_WHITE);
+        
+        displayManager.getDisplay().fillCircle(82, 26, 6, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(92, 26, 6, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(76, 26, 22, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillTriangle(76, 31, 87, 38, 98, 31, SSD1306_WHITE);
         displayManager.getDisplay().fillRoundRect(48, 50, 32, 8, 4, SSD1306_WHITE);
         displayManager.getDisplay().fillCircle(14, 42, 4, SSD1306_WHITE);
         displayManager.getDisplay().fillCircle(114, 42, 4, SSD1306_WHITE);
@@ -872,12 +987,15 @@ void AnimationManager::animateLove() {
       case 36: case 37: case 38: case 39: case 40:
       case 41: case 42: case 43: case 44:
         // Hearts stable at max
-        displayManager.getDisplay().fillCircle(35, 26, 8, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(45, 26, 8, SSD1306_WHITE);
-        displayManager.getDisplay().fillTriangle(28, 26, 40, 38, 52, 26, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(83, 26, 8, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(93, 26, 8, SSD1306_WHITE);
-        displayManager.getDisplay().fillTriangle(76, 26, 88, 38, 100, 26, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(34, 26, 7, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(44, 26, 7, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(27, 26, 24, 6, SSD1306_WHITE);
+        displayManager.getDisplay().fillTriangle(27, 32, 39, 40, 51, 32, SSD1306_WHITE);
+        
+        displayManager.getDisplay().fillCircle(82, 26, 7, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(92, 26, 7, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(75, 26, 24, 6, SSD1306_WHITE);
+        displayManager.getDisplay().fillTriangle(75, 32, 87, 40, 99, 32, SSD1306_WHITE);
         displayManager.getDisplay().fillRoundRect(48, 50, 32, 8, 4, SSD1306_WHITE);
         displayManager.getDisplay().fillCircle(14, 42, 5, SSD1306_WHITE);
         displayManager.getDisplay().fillCircle(114, 42, 5, SSD1306_WHITE);
@@ -897,12 +1015,15 @@ void AnimationManager::animateLove() {
         
       // === CALMING (frames 45-50) ===
       case 45: case 46:
-        displayManager.getDisplay().fillCircle(35, 26, 8, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(45, 26, 8, SSD1306_WHITE);
-        displayManager.getDisplay().fillTriangle(28, 26, 40, 38, 52, 26, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(83, 26, 8, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(93, 26, 8, SSD1306_WHITE);
-        displayManager.getDisplay().fillTriangle(76, 26, 88, 38, 100, 26, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(34, 26, 7, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(44, 26, 7, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(27, 26, 24, 6, SSD1306_WHITE);
+        displayManager.getDisplay().fillTriangle(27, 32, 39, 40, 51, 32, SSD1306_WHITE);
+        
+        displayManager.getDisplay().fillCircle(82, 26, 7, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(92, 26, 7, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(75, 26, 24, 6, SSD1306_WHITE);
+        displayManager.getDisplay().fillTriangle(75, 32, 87, 40, 99, 32, SSD1306_WHITE);
         displayManager.getDisplay().fillRoundRect(48, 50, 32, 8, 4, SSD1306_WHITE);
         displayManager.getDisplay().fillCircle(15, 42, 4, SSD1306_WHITE);
         displayManager.getDisplay().fillCircle(113, 42, 4, SSD1306_WHITE);
@@ -912,12 +1033,15 @@ void AnimationManager::animateLove() {
         
       case 47: case 48: case 49: case 50:
         // Back to calm love state
-        displayManager.getDisplay().fillCircle(35, 26, 8, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(45, 26, 8, SSD1306_WHITE);
-        displayManager.getDisplay().fillTriangle(28, 26, 40, 38, 52, 26, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(83, 26, 8, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(93, 26, 8, SSD1306_WHITE);
-        displayManager.getDisplay().fillTriangle(76, 26, 88, 38, 100, 26, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(34, 26, 7, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(44, 26, 7, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(27, 26, 24, 6, SSD1306_WHITE);
+        displayManager.getDisplay().fillTriangle(27, 32, 39, 40, 51, 32, SSD1306_WHITE);
+        
+        displayManager.getDisplay().fillCircle(82, 26, 7, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(92, 26, 7, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(75, 26, 24, 6, SSD1306_WHITE);
+        displayManager.getDisplay().fillTriangle(75, 32, 87, 40, 99, 32, SSD1306_WHITE);
         displayManager.getDisplay().fillRoundRect(48, 50, 32, 8, 4, SSD1306_WHITE);
         displayManager.getDisplay().fillCircle(15, 42, 3, SSD1306_WHITE);
         displayManager.getDisplay().fillCircle(113, 42, 3, SSD1306_WHITE);
@@ -941,42 +1065,52 @@ void AnimationManager::animateAngry() {
       // === ANGER BUILDING (frames 0-10) ===
       case 0:
         // Normal but narrowed eyes
-        displayManager.drawEyes(40, 29, 88, 29, 14);
-        displayManager.getDisplay().fillRoundRect(56, 50, 16, 5, 2, SSD1306_WHITE);
+        displayManager.drawEyes(40, 30, 88, 30, 14);
+        // Simple frown mouth
+        displayManager.getDisplay().fillRoundRect(52, 52, 24, 4, 2, SSD1306_WHITE);
         break;
         
       case 1: case 2:
-        // Eyes narrowing, eyebrows appear
-        displayManager.drawEyes(40, 30, 88, 30, 12);
-        displayManager.getDisplay().drawLine(28, 20, 32, 24, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(32, 24, 50, 20, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(78, 20, 96, 24, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(96, 24, 100, 20, SSD1306_WHITE);
-        displayManager.getDisplay().fillRoundRect(54, 50, 20, 5, 2, SSD1306_WHITE);
+        // Eyes narrowing, thick angled eyebrows appear (furrowed)
+        displayManager.drawEyes(40, 31, 88, 31, 12);
+        // Left eyebrow - thick angled line pointing down toward center
+        for(int i = 0; i < 4; i++) {
+          displayManager.getDisplay().drawLine(24, 17 + i, 52, 21 + i, SSD1306_WHITE);
+        }
+        // Right eyebrow - thick angled line pointing down toward center
+        for(int i = 0; i < 4; i++) {
+          displayManager.getDisplay().drawLine(76, 21 + i, 104, 17 + i, SSD1306_WHITE);
+        }
+        // Deeper frown
+        displayManager.getDisplay().fillRoundRect(52, 52, 24, 5, 2, SSD1306_WHITE);
         break;
         
       case 3: case 4: case 5:
-        // Eyebrows lowering, eyes more narrow
-        displayManager.drawEyes(40, 30, 88, 30, 11);
-        displayManager.getDisplay().fillTriangle(26, 19, 31, 23, 50, 19, SSD1306_WHITE);
-        displayManager.getDisplay().fillTriangle(78, 19, 97, 23, 102, 19, SSD1306_WHITE);
-        displayManager.getDisplay().fillRoundRect(54, 50, 20, 6, 3, SSD1306_WHITE);
-        // First anger lines
-        displayManager.getDisplay().drawLine(14, 26, 19, 30, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(109, 26, 114, 30, SSD1306_WHITE);
+        // Eyebrows lowering more, eyes more narrow
+        displayManager.drawEyes(40, 32, 88, 32, 11);
+        // Thicker angled eyebrows (angrier)
+        for(int i = 0; i < 5; i++) {
+          displayManager.getDisplay().drawLine(22, 16 + i, 52, 22 + i, SSD1306_WHITE);
+        }
+        for(int i = 0; i < 5; i++) {
+          displayManager.getDisplay().drawLine(76, 22 + i, 106, 16 + i, SSD1306_WHITE);
+        }
+        // Small frown
+        displayManager.getDisplay().fillRoundRect(52, 52, 24, 5, 2, SSD1306_WHITE);
         break;
         
       case 6: case 7: case 8: case 9: case 10:
-        // Full angry expression
-        displayManager.drawEyes(40, 30, 88, 30, 10);
-        displayManager.getDisplay().fillTriangle(25, 18, 30, 22, 50, 18, SSD1306_WHITE);
-        displayManager.getDisplay().fillTriangle(78, 18, 98, 22, 103, 18, SSD1306_WHITE);
-        displayManager.getDisplay().fillRoundRect(52, 50, 24, 6, 3, SSD1306_WHITE);
-        // Anger lines intensify
-        displayManager.getDisplay().drawLine(13, 24, 18, 28, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(15, 28, 20, 32, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(110, 24, 115, 28, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(108, 28, 113, 32, SSD1306_WHITE);
+        // Full angry expression with maximum eyebrow angle
+        displayManager.drawEyes(40, 32, 88, 32, 10);
+        // Maximum thick furrowed eyebrows
+        for(int i = 0; i < 6; i++) {
+          displayManager.getDisplay().drawLine(20, 15 + i, 52, 23 + i, SSD1306_WHITE);
+        }
+        for(int i = 0; i < 6; i++) {
+          displayManager.getDisplay().drawLine(76, 23 + i, 108, 15 + i, SSD1306_WHITE);
+        }
+        // Small angry frown
+        displayManager.getDisplay().fillRoundRect(52, 52, 24, 5, 2, SSD1306_WHITE);
         break;
         
       // === VIOLENT SHAKING (frames 11-38) ===
@@ -986,20 +1120,16 @@ void AnimationManager::animateAngry() {
         // Shake LEFT
         {
           int xLeft = -3;
-          displayManager.drawEyes(40 + xLeft, 30, 88 + xLeft, 30, 10);
-          displayManager.getDisplay().fillTriangle(25 + xLeft, 18, 30 + xLeft, 22, 50 + xLeft, 18, SSD1306_WHITE);
-          displayManager.getDisplay().fillTriangle(78 + xLeft, 18, 98 + xLeft, 22, 103 + xLeft, 18, SSD1306_WHITE);
-          displayManager.getDisplay().fillRoundRect(52 + xLeft, 50, 24, 6, 3, SSD1306_WHITE);
-          // Anger lines
-          displayManager.getDisplay().drawLine(10, 24, 15, 28, SSD1306_WHITE);
-          displayManager.getDisplay().drawLine(12, 28, 17, 32, SSD1306_WHITE);
-          displayManager.getDisplay().drawLine(113, 24, 118, 28, SSD1306_WHITE);
-          displayManager.getDisplay().drawLine(111, 28, 116, 32, SSD1306_WHITE);
-          // Steam starting to rise
-          if (angryFrame > 20) {
-            displayManager.getDisplay().drawLine(60, 10, 62, 5, SSD1306_WHITE);
-            displayManager.getDisplay().drawLine(68, 10, 66, 5, SSD1306_WHITE);
+          displayManager.drawEyes(40 + xLeft, 32, 88 + xLeft, 32, 10);
+          // Thick angled furrowed eyebrows
+          for(int i = 0; i < 6; i++) {
+            displayManager.getDisplay().drawLine(20 + xLeft, 15 + i, 52 + xLeft, 23 + i, SSD1306_WHITE);
           }
+          for(int i = 0; i < 6; i++) {
+            displayManager.getDisplay().drawLine(76 + xLeft, 23 + i, 108 + xLeft, 15 + i, SSD1306_WHITE);
+          }
+          // Angry frown
+          displayManager.getDisplay().fillRoundRect(52 + xLeft, 52, 24, 5, 2, SSD1306_WHITE);
         }
         break;
         
@@ -1009,21 +1139,16 @@ void AnimationManager::animateAngry() {
         // Shake RIGHT
         {
           int xRight = 3;
-          displayManager.drawEyes(40 + xRight, 30, 88 + xRight, 30, 10);
-          displayManager.getDisplay().fillTriangle(25 + xRight, 18, 30 + xRight, 22, 50 + xRight, 18, SSD1306_WHITE);
-          displayManager.getDisplay().fillTriangle(78 + xRight, 18, 98 + xRight, 22, 103 + xRight, 18, SSD1306_WHITE);
-          displayManager.getDisplay().fillRoundRect(52 + xRight, 50, 24, 6, 3, SSD1306_WHITE);
-          // Anger lines opposite side
-          displayManager.getDisplay().drawLine(16, 24, 21, 28, SSD1306_WHITE);
-          displayManager.getDisplay().drawLine(18, 28, 23, 32, SSD1306_WHITE);
-          displayManager.getDisplay().drawLine(107, 24, 112, 28, SSD1306_WHITE);
-          displayManager.getDisplay().drawLine(105, 28, 110, 32, SSD1306_WHITE);
-          // Steam waves
-          if (angryFrame > 20) {
-            displayManager.getDisplay().drawLine(58, 8, 60, 3, SSD1306_WHITE);
-            displayManager.getDisplay().drawLine(70, 8, 68, 3, SSD1306_WHITE);
-            displayManager.getDisplay().drawLine(64, 6, 64, 1, SSD1306_WHITE);
+          displayManager.drawEyes(40 + xRight, 32, 88 + xRight, 32, 10);
+          // Thick angled furrowed eyebrows
+          for(int i = 0; i < 6; i++) {
+            displayManager.getDisplay().drawLine(20 + xRight, 15 + i, 52 + xRight, 23 + i, SSD1306_WHITE);
           }
+          for(int i = 0; i < 6; i++) {
+            displayManager.getDisplay().drawLine(76 + xRight, 23 + i, 108 + xRight, 15 + i, SSD1306_WHITE);
+          }
+          // Angry frown
+          displayManager.getDisplay().fillRoundRect(52 + xRight, 52, 24, 5, 2, SSD1306_WHITE);
         }
         break;
         
@@ -1033,44 +1158,45 @@ void AnimationManager::animateAngry() {
         // Extreme shaking
         {
           int xExtreme = (angryFrame % 2 == 0) ? -4 : 4;
-          displayManager.drawEyes(40 + xExtreme, 30, 88 + xExtreme, 30, 9);
-          displayManager.getDisplay().fillTriangle(25 + xExtreme, 17, 30 + xExtreme, 21, 50 + xExtreme, 17, SSD1306_WHITE);
-          displayManager.getDisplay().fillTriangle(78 + xExtreme, 17, 98 + xExtreme, 21, 103 + xExtreme, 17, SSD1306_WHITE);
-          displayManager.getDisplay().fillRoundRect(52 + xExtreme, 51, 24, 7, 3, SSD1306_WHITE);
-          // Heavy anger veins
-          displayManager.getDisplay().fillCircle(15, 28, 2, SSD1306_WHITE);
-          displayManager.getDisplay().fillCircle(113, 28, 2, SSD1306_WHITE);
-          displayManager.getDisplay().drawLine(12, 24, 17, 29, SSD1306_WHITE);
-          displayManager.getDisplay().drawLine(111, 24, 116, 29, SSD1306_WHITE);
-          // Heavy steam
-          displayManager.getDisplay().drawLine(56, 10, 58, 4, SSD1306_WHITE);
-          displayManager.getDisplay().drawLine(60, 8, 62, 2, SSD1306_WHITE);
-          displayManager.getDisplay().drawLine(64, 10, 64, 3, SSD1306_WHITE);
-          displayManager.getDisplay().drawLine(68, 8, 66, 2, SSD1306_WHITE);
-          displayManager.getDisplay().drawLine(72, 10, 70, 4, SSD1306_WHITE);
+          displayManager.drawEyes(40 + xExtreme, 32, 88 + xExtreme, 32, 9);
+          // Maximum thick furrowed eyebrows
+          for(int i = 0; i < 7; i++) {
+            displayManager.getDisplay().drawLine(18 + xExtreme, 14 + i, 52 + xExtreme, 24 + i, SSD1306_WHITE);
+          }
+          for(int i = 0; i < 7; i++) {
+            displayManager.getDisplay().drawLine(76 + xExtreme, 24 + i, 110 + xExtreme, 14 + i, SSD1306_WHITE);
+          }
+          // Small intense frown
+          displayManager.getDisplay().fillRoundRect(52 + xExtreme, 52, 24, 5, 2, SSD1306_WHITE);
         }
         break;
         
       // === CALMING SLIGHTLY (frames 46-50) ===
       case 46: case 47:
-        displayManager.drawEyes(40, 30, 88, 30, 10);
-        displayManager.getDisplay().fillTriangle(25, 18, 30, 22, 50, 18, SSD1306_WHITE);
-        displayManager.getDisplay().fillTriangle(78, 18, 98, 22, 103, 18, SSD1306_WHITE);
-        displayManager.getDisplay().fillRoundRect(52, 50, 24, 6, 3, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(14, 26, 19, 30, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(109, 26, 114, 30, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(62, 10, 64, 5, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(66, 10, 64, 5, SSD1306_WHITE);
+        displayManager.drawEyes(40, 32, 88, 32, 10);
+        // Thick furrowed eyebrows
+        for(int i = 0; i < 6; i++) {
+          displayManager.getDisplay().drawLine(20, 15 + i, 52, 23 + i, SSD1306_WHITE);
+        }
+        for(int i = 0; i < 6; i++) {
+          displayManager.getDisplay().drawLine(76, 23 + i, 108, 15 + i, SSD1306_WHITE);
+        }
+        // Frown
+        displayManager.getDisplay().fillRoundRect(52, 52, 24, 5, 2, SSD1306_WHITE);
         break;
         
       case 48: case 49: case 50:
         // Still angry but less intense
-        displayManager.drawEyes(40, 30, 88, 30, 11);
-        displayManager.getDisplay().fillTriangle(26, 19, 31, 23, 50, 19, SSD1306_WHITE);
-        displayManager.getDisplay().fillTriangle(78, 19, 97, 23, 102, 19, SSD1306_WHITE);
-        displayManager.getDisplay().fillRoundRect(54, 50, 20, 6, 3, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(15, 27, 20, 31, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(108, 27, 113, 31, SSD1306_WHITE);
+        displayManager.drawEyes(40, 32, 88, 32, 11);
+        // Slightly less thick eyebrows
+        for(int i = 0; i < 5; i++) {
+          displayManager.getDisplay().drawLine(22, 16 + i, 52, 22 + i, SSD1306_WHITE);
+        }
+        for(int i = 0; i < 5; i++) {
+          displayManager.getDisplay().drawLine(76, 22 + i, 106, 16 + i, SSD1306_WHITE);
+        }
+        // Small frown
+        displayManager.getDisplay().fillRoundRect(52, 52, 24, 5, 2, SSD1306_WHITE);
         break;
     }
     
@@ -1092,142 +1218,103 @@ void AnimationManager::animateSad() {
       case 0:
         // Normal eyes, neutral mouth
         displayManager.drawEyes(40, 28, 88, 28, 18);
-        displayManager.getDisplay().drawLine(52, 50, 76, 50, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(56, 50, 16, 4, 2, SSD1306_WHITE);
         break;
         
       case 1: case 2:
         // Eyes starting to droop
         displayManager.drawEyes(40, 29, 88, 29, 17);
-        displayManager.getDisplay().drawLine(52, 51, 76, 51, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(56, 51, 16, 4, 2, SSD1306_WHITE);
         break;
         
       case 3: case 4:
         // Eyes drooping more, mouth turning down
         displayManager.drawEyes(40, 30, 88, 30, 16);
-        displayManager.getDisplay().fillRoundRect(54, 52, 20, 5, 2, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(56, 52, 16, 4, 2, SSD1306_WHITE);
         break;
         
       case 5: case 6:
         // Eyes very droopy, frown forming
         displayManager.drawEyes(40, 31, 88, 31, 15);
-        displayManager.getDisplay().fillRoundRect(52, 52, 24, 6, 3, SSD1306_WHITE);
-        // Eyebrows drooping
-        displayManager.getDisplay().drawLine(30, 20, 50, 22, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(78, 22, 98, 20, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(56, 52, 16, 5, 2, SSD1306_WHITE);
         break;
         
       case 7: case 8:
         // Maximum droop, tear forming
         displayManager.drawEyes(40, 32, 88, 32, 14);
-        displayManager.getDisplay().fillRoundRect(50, 52, 28, 6, 3, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(28, 20, 50, 22, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(78, 22, 100, 20, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(54, 52, 20, 5, 2, SSD1306_WHITE);
         // First tear appears
         displayManager.getDisplay().fillCircle(50, 40, 2, SSD1306_WHITE);
         break;
         
       // === CRYING (frames 9-40) ===
       case 9: case 10: case 11: case 12:
-        // Tears starting to fall
+        // Tears starting to form - just dot
         displayManager.drawEyes(40, 32, 88, 32, 14);
-        displayManager.getDisplay().fillRoundRect(50, 52, 28, 6, 3, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(28, 20, 50, 22, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(78, 22, 100, 20, SSD1306_WHITE);
-        // Left tear falling
-        displayManager.getDisplay().fillCircle(50, 42, 2, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(50, 46, 1, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(54, 52, 20, 5, 2, SSD1306_WHITE);
+        // Single teardrop starting to form
+        displayManager.getDisplay().fillCircle(50, 40, 1, SSD1306_WHITE);
         break;
         
       case 13: case 14: case 15: case 16:
-        // Tears continuing
+        // Tear growing slightly
         displayManager.drawEyes(40, 32, 88, 32, 13);
-        displayManager.getDisplay().fillRoundRect(50, 52, 28, 6, 3, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(28, 20, 50, 22, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(78, 22, 100, 20, SSD1306_WHITE);
-        // Left tear further down
-        displayManager.getDisplay().fillCircle(50, 48, 2, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(50, 52, 1, SSD1306_WHITE);
-        // Right tear starts
-        displayManager.getDisplay().fillCircle(78, 40, 2, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(54, 52, 20, 5, 2, SSD1306_WHITE);
+        // Tear growing
+        displayManager.getDisplay().fillCircle(50, 41, 2, SSD1306_WHITE);
+        displayManager.getDisplay().drawLine(50, 43, 50, 45, SSD1306_WHITE);
         break;
         
       case 17: case 18: case 19: case 20:
-        // Both tears falling
+        // Tear falling slowly
         displayManager.drawEyes(40, 32, 88, 32, 13);
-        displayManager.getDisplay().fillRoundRect(50, 52, 28, 6, 3, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(28, 20, 50, 22, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(78, 22, 100, 20, SSD1306_WHITE);
-        // Left tear at bottom
-        displayManager.getDisplay().fillCircle(50, 56, 1, SSD1306_WHITE);
-        // Right tear mid-fall
-        displayManager.getDisplay().fillCircle(78, 44, 2, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(78, 48, 1, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(54, 52, 20, 5, 2, SSD1306_WHITE);
+        // Single tear falling
+        displayManager.getDisplay().fillCircle(50, 42, 2, SSD1306_WHITE);
+        displayManager.getDisplay().drawLine(50, 44, 50, 50, SSD1306_WHITE);
         break;
         
       case 21: case 22: case 23: case 24: case 25:
       case 26: case 27: case 28: case 29: case 30:
-        // Heavy crying - tears streaming
+        // Tear continuing to fall
         displayManager.drawEyes(40, 32, 88, 32, 12);
-        displayManager.getDisplay().fillRoundRect(50, 52, 28, 6, 3, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(28, 20, 50, 22, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(78, 22, 100, 20, SSD1306_WHITE);
-        // Multiple tear drops
-        if (sadFrame % 4 < 2) {
-          displayManager.getDisplay().fillCircle(50, 42, 2, SSD1306_WHITE);
-          displayManager.getDisplay().fillCircle(50, 50, 1, SSD1306_WHITE);
-          displayManager.getDisplay().fillCircle(78, 46, 2, SSD1306_WHITE);
-          displayManager.getDisplay().fillCircle(78, 54, 1, SSD1306_WHITE);
-        } else {
-          displayManager.getDisplay().fillCircle(50, 38, 2, SSD1306_WHITE);
-          displayManager.getDisplay().fillCircle(50, 46, 1, SSD1306_WHITE);
-          displayManager.getDisplay().fillCircle(50, 54, 1, SSD1306_WHITE);
-          displayManager.getDisplay().fillCircle(78, 40, 2, SSD1306_WHITE);
-          displayManager.getDisplay().fillCircle(78, 48, 1, SSD1306_WHITE);
-        }
+        displayManager.getDisplay().fillRoundRect(54, 52, 20, 5, 2, SSD1306_WHITE);
+        // Single tear falling further
+        displayManager.getDisplay().fillCircle(50, 42, 2, SSD1306_WHITE);
+        displayManager.getDisplay().drawLine(50, 44, 50, 55, SSD1306_WHITE);
         break;
         
       case 31: case 32: case 33: case 34: case 35:
       case 36: case 37: case 38: case 39: case 40:
-        // Continuous crying
-        {
-          displayManager.drawEyes(40, 32, 88, 32, 12);
-          displayManager.getDisplay().fillRoundRect(50, 52, 28, 6, 3, SSD1306_WHITE);
-          displayManager.getDisplay().drawLine(28, 20, 50, 22, SSD1306_WHITE);
-          displayManager.getDisplay().drawLine(78, 22, 100, 20, SSD1306_WHITE);
-          // Tear trails
-          displayManager.getDisplay().drawLine(50, 38, 50, 58, SSD1306_WHITE);
-          displayManager.getDisplay().drawLine(78, 38, 78, 58, SSD1306_WHITE);
-          // Animated tears
-          int tearPos = (sadFrame % 6) * 4;
-          displayManager.getDisplay().fillCircle(50, 38 + tearPos, 2, SSD1306_WHITE);
-          displayManager.getDisplay().fillCircle(78, 40 + tearPos, 2, SSD1306_WHITE);
-        }
+        // Tear reaches bottom
+        displayManager.drawEyes(40, 32, 88, 32, 12);
+        displayManager.getDisplay().fillRoundRect(54, 52, 20, 5, 2, SSD1306_WHITE);
+        // Single tear at full length
+        displayManager.getDisplay().fillCircle(50, 42, 2, SSD1306_WHITE);
+        displayManager.getDisplay().drawLine(50, 44, 50, 60, SSD1306_WHITE);
         break;
         
       // === SLIGHT RECOVERY (frames 41-50) ===
       case 41: case 42:
         displayManager.drawEyes(40, 32, 88, 32, 13);
-        displayManager.getDisplay().fillRoundRect(50, 52, 28, 6, 3, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(28, 20, 50, 22, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(78, 22, 100, 20, SSD1306_WHITE);
-        // Fewer tears
-        displayManager.getDisplay().fillCircle(50, 48, 1, SSD1306_WHITE);
-        displayManager.getDisplay().fillCircle(78, 50, 1, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(54, 52, 20, 5, 2, SSD1306_WHITE);
+        // Tear fading
+        displayManager.getDisplay().fillCircle(50, 42, 1, SSD1306_WHITE);
+        displayManager.getDisplay().drawLine(50, 43, 50, 58, SSD1306_WHITE);
         break;
         
       case 43: case 44:
         displayManager.drawEyes(40, 31, 88, 31, 14);
-        displayManager.getDisplay().fillRoundRect(52, 52, 24, 6, 3, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(28, 20, 50, 22, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(78, 22, 100, 20, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(56, 52, 16, 5, 2, SSD1306_WHITE);
+        // Last small tear
+        displayManager.getDisplay().fillCircle(50, 42, 1, SSD1306_WHITE);
+        displayManager.getDisplay().drawLine(50, 43, 50, 52, SSD1306_WHITE);
         break;
         
       case 45: case 46: case 47: case 48: case 49: case 50:
-        // Still sad but calmer
+        // Still sad but calmer - no tears
         displayManager.drawEyes(40, 30, 88, 30, 16);
-        displayManager.getDisplay().fillRoundRect(54, 52, 20, 5, 2, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(30, 20, 50, 22, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(78, 22, 98, 20, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(56, 52, 16, 4, 2, SSD1306_WHITE);
         break;
     }
     
@@ -1247,111 +1334,178 @@ void AnimationManager::animateSurprised() {
     switch(surprisedFrame) {
       // === SUDDEN REALIZATION (frames 0-5) ===
       case 0:
-        // Normal state
-        displayManager.drawEyes(40, 28, 88, 28, 18);
+        // Normal state (eyes: y=24, height=18, center y = 24+9 = 33)
+        displayManager.getDisplay().fillRoundRect(33, 24, 18, 18, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(81, 24, 18, 18, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(42, 33, 3, SSD1306_BLACK);
+        displayManager.getDisplay().fillCircle(90, 33, 3, SSD1306_BLACK);
         displayManager.getDisplay().drawCircle(64, 50, 4, SSD1306_WHITE);
         break;
         
       case 1:
-        // Eyes start widening
-        displayManager.drawEyes(40, 28, 88, 28, 20);
+        // Eyes start widening (eyes: y=23, height=20, center y = 23+10 = 33)
+        displayManager.getDisplay().fillRoundRect(33, 23, 18, 20, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(81, 23, 18, 20, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(42, 33, 3, SSD1306_BLACK);
+        displayManager.getDisplay().fillCircle(90, 33, 3, SSD1306_BLACK);
         displayManager.getDisplay().drawCircle(64, 50, 5, SSD1306_WHITE);
         break;
         
       case 2:
-        // Eyes wider
-        displayManager.drawEyes(40, 27, 88, 27, 22);
+        // Eyes wider (eyes: y=21, height=22, center y = 21+11 = 32)
+        displayManager.getDisplay().fillRoundRect(33, 21, 18, 22, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(81, 21, 18, 22, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(42, 32, 3, SSD1306_BLACK);
+        displayManager.getDisplay().fillCircle(90, 32, 3, SSD1306_BLACK);
         displayManager.getDisplay().fillCircle(64, 50, 5, SSD1306_WHITE);
-        // Eyebrows raising
-        displayManager.getDisplay().drawLine(30, 18, 50, 16, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(78, 16, 98, 18, SSD1306_WHITE);
         break;
         
       case 3:
-        // Eyes much wider
-        displayManager.drawEyes(40, 26, 88, 26, 24);
+        // Eyes much wider (eyes: y=20, height=24, center y = 20+12 = 32)
+        displayManager.getDisplay().fillRoundRect(33, 20, 18, 24, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(81, 20, 18, 24, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(42, 32, 3, SSD1306_BLACK);
+        displayManager.getDisplay().fillCircle(90, 32, 3, SSD1306_BLACK);
         displayManager.getDisplay().fillCircle(64, 50, 6, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(28, 16, 50, 14, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(78, 14, 100, 16, SSD1306_WHITE);
         break;
         
       case 4:
-        // Eyes at max, mouth opening
-        displayManager.drawEyes(40, 25, 88, 25, 26);
+        // Eyes at max, mouth opening (eyes: y=19, height=26, center y = 19+13 = 32)
+        displayManager.getDisplay().fillRoundRect(33, 19, 18, 26, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(81, 19, 18, 26, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(42, 32, 3, SSD1306_BLACK);
+        displayManager.getDisplay().fillCircle(90, 32, 3, SSD1306_BLACK);
         displayManager.getDisplay().fillCircle(64, 51, 7, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(26, 14, 50, 12, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(78, 12, 102, 14, SSD1306_WHITE);
-        // First shock wave
-        displayManager.getDisplay().drawCircle(64, 32, 40, SSD1306_WHITE);
         break;
         
       case 5:
-        // Maximum surprise
-        displayManager.drawEyes(40, 24, 88, 24, 28);
+        // Maximum surprise (eyes: y=18, height=28, center y = 18+14 = 32)
+        displayManager.getDisplay().fillRoundRect(33, 18, 18, 28, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(81, 18, 18, 28, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(42, 32, 3, SSD1306_BLACK);
+        displayManager.getDisplay().fillCircle(90, 32, 3, SSD1306_BLACK);
         displayManager.getDisplay().fillCircle(64, 52, 8, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(25, 12, 50, 10, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(78, 10, 103, 12, SSD1306_WHITE);
-        // Shock wave expanding
-        displayManager.getDisplay().drawCircle(64, 32, 45, SSD1306_WHITE);
         break;
         
       // === MAINTAINING SHOCK (frames 6-35) ===
-      case 6: case 8: case 10: case 12: case 14:
-      case 16: case 18: case 20: case 22: case 24:
-      case 26: case 28: case 30: case 32: case 34:
-        // Eyes at maximum width
-        displayManager.drawEyes(40, 24, 88, 24, 28);
-        displayManager.getDisplay().fillCircle(40, 24, 4, SSD1306_BLACK);
-        displayManager.getDisplay().fillCircle(88, 24, 4, SSD1306_BLACK);
+      case 6: case 7: case 8: case 9: case 10:
+        // Eyes at maximum width with centered pupils (eyes: y=18, height=28, center y = 32)
+        displayManager.getDisplay().fillRoundRect(33, 18, 18, 28, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(81, 18, 18, 28, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(42, 32, 3, SSD1306_BLACK);
+        displayManager.getDisplay().fillCircle(90, 32, 3, SSD1306_BLACK);
         displayManager.getDisplay().fillCircle(64, 52, 8, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(25, 12, 50, 10, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(78, 10, 103, 12, SSD1306_WHITE);
-        // Pulsing shock waves
-        displayManager.getDisplay().drawCircle(64, 32, 50, SSD1306_WHITE);
         break;
         
-      case 7: case 9: case 11: case 13: case 15:
-      case 17: case 19: case 21: case 23: case 25:
-      case 27: case 29: case 31: case 33: case 35:
-        // Slight variation
-        displayManager.drawEyes(40, 24, 88, 24, 28);
-        displayManager.getDisplay().fillCircle(40, 24, 4, SSD1306_BLACK);
-        displayManager.getDisplay().fillCircle(88, 24, 4, SSD1306_BLACK);
+      // FIRST BLINK
+      case 11:
+        // Eyes closing for first blink
+        displayManager.getDisplay().fillRoundRect(33, 28, 18, 10, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(81, 28, 18, 10, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(42, 32, 2, SSD1306_BLACK);
+        displayManager.getDisplay().fillCircle(90, 32, 2, SSD1306_BLACK);
         displayManager.getDisplay().fillCircle(64, 52, 8, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(25, 12, 50, 10, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(78, 10, 103, 12, SSD1306_WHITE);
-        // Different wave positions
-        displayManager.getDisplay().drawCircle(64, 32, 55, SSD1306_WHITE);
-        displayManager.getDisplay().drawCircle(64, 32, 45, SSD1306_WHITE);
+        break;
+        
+      case 12:
+        // Eyes fully closed
+        displayManager.getDisplay().fillRoundRect(33, 31, 18, 4, 2, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(81, 31, 18, 4, 2, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(64, 52, 8, SSD1306_WHITE);
+        break;
+        
+      case 13:
+        // Eyes opening from first blink
+        displayManager.getDisplay().fillRoundRect(33, 28, 18, 10, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(81, 28, 18, 10, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(42, 32, 2, SSD1306_BLACK);
+        displayManager.getDisplay().fillCircle(90, 32, 2, SSD1306_BLACK);
+        displayManager.getDisplay().fillCircle(64, 52, 8, SSD1306_WHITE);
+        break;
+        
+      case 14: case 15: case 16:
+        // Eyes fully open again
+        displayManager.getDisplay().fillRoundRect(33, 18, 18, 28, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(81, 18, 18, 28, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(42, 32, 3, SSD1306_BLACK);
+        displayManager.getDisplay().fillCircle(90, 32, 3, SSD1306_BLACK);
+        displayManager.getDisplay().fillCircle(64, 52, 8, SSD1306_WHITE);
+        break;
+        
+      // SECOND BLINK (quick)
+      case 17:
+        // Eyes closing for second blink
+        displayManager.getDisplay().fillRoundRect(33, 28, 18, 10, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(81, 28, 18, 10, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(42, 32, 2, SSD1306_BLACK);
+        displayManager.getDisplay().fillCircle(90, 32, 2, SSD1306_BLACK);
+        displayManager.getDisplay().fillCircle(64, 52, 8, SSD1306_WHITE);
+        break;
+        
+      case 18:
+        // Eyes fully closed
+        displayManager.getDisplay().fillRoundRect(33, 31, 18, 4, 2, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(81, 31, 18, 4, 2, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(64, 52, 8, SSD1306_WHITE);
+        break;
+        
+      case 19:
+        // Eyes opening from second blink
+        displayManager.getDisplay().fillRoundRect(33, 28, 18, 10, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(81, 28, 18, 10, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(42, 32, 2, SSD1306_BLACK);
+        displayManager.getDisplay().fillCircle(90, 32, 2, SSD1306_BLACK);
+        displayManager.getDisplay().fillCircle(64, 52, 8, SSD1306_WHITE);
+        break;
+        
+      case 20: case 21: case 22: case 23: case 24:
+      case 25: case 26: case 27: case 28: case 29:
+      case 30: case 31: case 32: case 33: case 34: case 35:
+        // Eyes fully open, maintaining shock
+        displayManager.getDisplay().fillRoundRect(33, 18, 18, 28, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(81, 18, 18, 28, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(42, 32, 3, SSD1306_BLACK);
+        displayManager.getDisplay().fillCircle(90, 32, 3, SSD1306_BLACK);
+        displayManager.getDisplay().fillCircle(64, 52, 8, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(90, 32, 3, SSD1306_BLACK);
+        displayManager.getDisplay().fillCircle(64, 52, 8, SSD1306_WHITE);
         break;
         
       // === CALMING DOWN (frames 36-50) ===
       case 36: case 37:
-        displayManager.drawEyes(40, 25, 88, 25, 26);
+        // Eyes: y=19, height=26, center y = 32
+        displayManager.getDisplay().fillRoundRect(33, 19, 18, 26, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(81, 19, 18, 26, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(42, 32, 3, SSD1306_BLACK);
+        displayManager.getDisplay().fillCircle(90, 32, 3, SSD1306_BLACK);
         displayManager.getDisplay().fillCircle(64, 51, 7, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(26, 14, 50, 12, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(78, 12, 102, 14, SSD1306_WHITE);
-        displayManager.getDisplay().drawCircle(64, 32, 50, SSD1306_WHITE);
         break;
         
       case 38: case 39:
-        displayManager.drawEyes(40, 26, 88, 26, 24);
+        // Eyes: y=20, height=24, center y = 32
+        displayManager.getDisplay().fillRoundRect(33, 20, 18, 24, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(81, 20, 18, 24, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(42, 32, 3, SSD1306_BLACK);
+        displayManager.getDisplay().fillCircle(90, 32, 3, SSD1306_BLACK);
         displayManager.getDisplay().fillCircle(64, 50, 6, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(28, 16, 50, 14, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(78, 14, 100, 16, SSD1306_WHITE);
         break;
         
       case 40: case 41:
-        displayManager.drawEyes(40, 27, 88, 27, 22);
+        // Eyes: y=21, height=22, center y = 32
+        displayManager.getDisplay().fillRoundRect(33, 21, 18, 22, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(81, 21, 18, 22, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(42, 32, 3, SSD1306_BLACK);
+        displayManager.getDisplay().fillCircle(90, 32, 3, SSD1306_BLACK);
         displayManager.getDisplay().fillCircle(64, 50, 5, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(30, 18, 50, 16, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(78, 16, 98, 18, SSD1306_WHITE);
         break;
         
       case 42: case 43: case 44: case 45: case 46:
       case 47: case 48: case 49: case 50:
-        // Return to mild surprise
-        displayManager.drawEyes(40, 28, 88, 28, 20);
+        // Return to mild surprise (eyes: y=23, height=20, center y = 33)
+        displayManager.getDisplay().fillRoundRect(33, 23, 18, 20, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(81, 23, 18, 20, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(42, 33, 3, SSD1306_BLACK);
+        displayManager.getDisplay().fillCircle(90, 33, 3, SSD1306_BLACK);
         displayManager.getDisplay().drawCircle(64, 50, 5, SSD1306_WHITE);
         break;
     }
@@ -1361,3 +1515,205 @@ void AnimationManager::animateSurprised() {
     lastSurprisedAnim = currentTime;
   }
 }
+
+// Animated music state - bulky headphones with rectangular ear cups bouncing to the beat
+void AnimationManager::animateMusic() {
+  unsigned long currentTime = millis();
+  
+  if (currentTime - lastMusicAnim > 30) {
+    displayManager.clearDisplay();
+    
+    switch(musicFrame) {
+      // === HEADPHONES APPEARING (frames 0-8) ===
+      case 0:
+        // Normal eyes with happy expression
+        displayManager.drawEyes(40, 28, 88, 28, 18);
+        displayManager.getDisplay().fillRoundRect(54, 50, 20, 6, 3, SSD1306_WHITE);
+        break;
+        
+      case 1: case 2:
+        // Eyes becoming happy, headphones start to appear
+        displayManager.drawEyes(40, 28, 88, 28, 16);
+        displayManager.getDisplay().fillRoundRect(52, 50, 24, 7, 3, SSD1306_WHITE);
+        // Headband appearing at top - thicker from start
+        displayManager.getDisplay().fillRect(15, 8, 98, 5, SSD1306_WHITE);
+        break;
+        
+      case 3: case 4:
+        // Eyes squinting with joy
+        displayManager.drawEyes(40, 29, 88, 29, 14);
+        displayManager.getDisplay().fillRoundRect(50, 50, 28, 7, 3, SSD1306_WHITE);
+        // Headband getting thicker
+        displayManager.getDisplay().fillRect(12, 6, 104, 7, SSD1306_WHITE);
+        // Small ear cups appearing
+        displayManager.getDisplay().fillRoundRect(2, 22, 14, 18, 5, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(112, 22, 14, 18, 5, SSD1306_WHITE);
+        break;
+        
+      case 5: case 6: case 7: case 8:
+        // Full bulky headphones appear
+        displayManager.drawEyes(40, 29, 88, 29, 12);
+        displayManager.getDisplay().fillRoundRect(48, 50, 32, 8, 4, SSD1306_WHITE);
+        
+        // BULKY thick headband across top
+        displayManager.getDisplay().fillRect(18, 0, 92, 11, SSD1306_WHITE);
+        
+        // LEFT side connecting arm - thick and bulky
+        displayManager.getDisplay().fillRect(12, 11, 10, 10, SSD1306_WHITE);
+        
+        // LEFT ear cup - smaller, filled semicircle design
+        displayManager.getDisplay().fillRect(12, 26, 10, 16, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(12, 34, 8, SSD1306_WHITE);
+        
+        // RIGHT side connecting arm
+        displayManager.getDisplay().fillRect(106, 11, 10, 10, SSD1306_WHITE);
+        
+        // RIGHT ear cup - smaller, filled semicircle design
+        displayManager.getDisplay().fillRect(106, 26, 10, 16, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(116, 34, 8, SSD1306_WHITE);
+        break;
+        
+      // === BEAT 1 - TILT LEFT (frames 9-13) ===
+      case 9: case 10: case 11: case 12: case 13:
+        // Eyes closed, head tilts left
+        displayManager.drawEyes(40, 30, 88, 30, 8);
+        displayManager.getDisplay().fillRoundRect(48, 52, 32, 8, 4, SSD1306_WHITE);
+        
+        // Headband with angled shape (left side up, right side down)
+        displayManager.getDisplay().fillTriangle(18, 3, 110, 8, 110, 0, SSD1306_WHITE);
+        displayManager.getDisplay().fillTriangle(18, 3, 18, 11, 110, 8, SSD1306_WHITE);
+        
+        // LEFT connecting arm - shorter (side is higher)
+        displayManager.getDisplay().fillRect(12, 11, 10, 8, SSD1306_WHITE);
+        
+        // LEFT ear cup - higher up
+        displayManager.getDisplay().fillRect(12, 20, 10, 16, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(12, 28, 8, SSD1306_WHITE);
+        
+        // RIGHT connecting arm - longer (side is lower)
+        displayManager.getDisplay().fillRect(106, 8, 10, 14, SSD1306_WHITE);
+        
+        // RIGHT ear cup - lower down
+        displayManager.getDisplay().fillRect(106, 28, 10, 16, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(116, 36, 8, SSD1306_WHITE);
+        break;
+        
+      // === BEAT 1 - TILT RIGHT (frames 14-18) ===
+      case 14: case 15: case 16: case 17: case 18:
+        // Eyes closed, head tilts right
+        displayManager.drawEyes(40, 30, 88, 30, 8);
+        displayManager.getDisplay().fillRoundRect(48, 52, 32, 8, 4, SSD1306_WHITE);
+        
+        // Headband with angled shape (right side up, left side down)
+        displayManager.getDisplay().fillTriangle(18, 8, 110, 3, 110, 11, SSD1306_WHITE);
+        displayManager.getDisplay().fillTriangle(18, 8, 18, 0, 110, 3, SSD1306_WHITE);
+        
+        // LEFT connecting arm - longer (side is lower)
+        displayManager.getDisplay().fillRect(12, 8, 10, 14, SSD1306_WHITE);
+        
+        // LEFT ear cup - lower down
+        displayManager.getDisplay().fillRect(12, 28, 10, 16, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(12, 36, 8, SSD1306_WHITE);
+        
+        // RIGHT connecting arm - shorter (side is higher)
+        displayManager.getDisplay().fillRect(106, 11, 10, 8, SSD1306_WHITE);
+        
+        // RIGHT ear cup - higher up
+        displayManager.getDisplay().fillRect(106, 20, 10, 16, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(116, 28, 8, SSD1306_WHITE);
+        break;
+        
+      // === BEAT 2 - TILT LEFT (frames 19-23) ===
+      case 19: case 20: case 21: case 22: case 23:
+        displayManager.drawEyes(40, 30, 88, 30, 8);
+        displayManager.getDisplay().fillRoundRect(48, 52, 32, 8, 4, SSD1306_WHITE);
+        displayManager.getDisplay().fillTriangle(18, 3, 110, 8, 110, 0, SSD1306_WHITE);
+        displayManager.getDisplay().fillTriangle(18, 3, 18, 11, 110, 8, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(12, 11, 10, 8, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(12, 20, 10, 16, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(12, 28, 8, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(106, 8, 10, 14, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(106, 28, 10, 16, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(116, 36, 8, SSD1306_WHITE);
+        break;
+        
+      // === BEAT 2 - TILT RIGHT (frames 24-28) ===
+      case 24: case 25: case 26: case 27: case 28:
+        displayManager.drawEyes(40, 30, 88, 30, 8);
+        displayManager.getDisplay().fillRoundRect(48, 52, 32, 8, 4, SSD1306_WHITE);
+        displayManager.getDisplay().fillTriangle(18, 8, 110, 3, 110, 11, SSD1306_WHITE);
+        displayManager.getDisplay().fillTriangle(18, 8, 18, 0, 110, 3, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(12, 8, 10, 14, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(12, 28, 10, 16, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(12, 36, 8, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(106, 11, 10, 8, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(106, 20, 10, 16, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(116, 28, 8, SSD1306_WHITE);
+        break;
+        
+      // === BEAT 3 - TILT LEFT (frames 29-33) ===
+      case 29: case 30: case 31: case 32: case 33:
+        displayManager.drawEyes(40, 30, 88, 30, 8);
+        displayManager.getDisplay().fillRoundRect(48, 52, 32, 8, 4, SSD1306_WHITE);
+        displayManager.getDisplay().fillTriangle(18, 3, 110, 8, 110, 0, SSD1306_WHITE);
+        displayManager.getDisplay().fillTriangle(18, 3, 18, 11, 110, 8, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(12, 11, 10, 8, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(12, 20, 10, 16, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(12, 28, 8, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(106, 8, 10, 14, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(106, 28, 10, 16, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(116, 36, 8, SSD1306_WHITE);
+        break;
+        
+      // === BEAT 3 - TILT RIGHT (frames 34-38) ===
+      case 34: case 35: case 36: case 37: case 38:
+        displayManager.drawEyes(40, 30, 88, 30, 8);
+        displayManager.getDisplay().fillRoundRect(48, 52, 32, 8, 4, SSD1306_WHITE);
+        displayManager.getDisplay().fillTriangle(18, 8, 110, 3, 110, 11, SSD1306_WHITE);
+        displayManager.getDisplay().fillTriangle(18, 8, 18, 0, 110, 3, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(12, 8, 10, 14, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(12, 28, 10, 16, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(12, 36, 8, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(106, 11, 10, 8, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(106, 20, 10, 16, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(116, 28, 8, SSD1306_WHITE);
+        break;
+        
+      // === CONTINUOUS BEAT (frames 39-50) ===
+      case 39: case 40: case 41:
+      case 45: case 46: case 47:
+        // Tilt left
+        displayManager.drawEyes(40, 30, 88, 30, 8);
+        displayManager.getDisplay().fillRoundRect(48, 52, 32, 8, 4, SSD1306_WHITE);
+        displayManager.getDisplay().fillTriangle(18, 3, 110, 8, 110, 0, SSD1306_WHITE);
+        displayManager.getDisplay().fillTriangle(18, 3, 18, 11, 110, 8, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(12, 11, 10, 8, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(12, 20, 10, 16, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(12, 28, 8, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(106, 8, 10, 14, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(106, 28, 10, 16, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(116, 36, 8, SSD1306_WHITE);
+        break;
+        
+      case 42: case 43: case 44:
+      case 48: case 49: case 50:
+        // Tilt right
+        displayManager.drawEyes(40, 30, 88, 30, 8);
+        displayManager.getDisplay().fillRoundRect(48, 52, 32, 8, 4, SSD1306_WHITE);
+        displayManager.getDisplay().fillTriangle(18, 8, 110, 3, 110, 11, SSD1306_WHITE);
+        displayManager.getDisplay().fillTriangle(18, 8, 18, 0, 110, 3, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(12, 8, 10, 14, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(12, 28, 10, 16, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(12, 36, 8, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(106, 11, 10, 8, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(106, 20, 10, 16, SSD1306_WHITE);
+        displayManager.getDisplay().fillCircle(116, 28, 8, SSD1306_WHITE);
+        break;
+    }
+    
+    displayManager.updateDisplay();
+    musicFrame = (musicFrame + 1) % 51;
+    lastMusicAnim = currentTime;
+  }
+}
+
