@@ -14,6 +14,7 @@ AnimationManager::AnimationManager()
     lastSadAnim(0),
     lastSurprisedAnim(0),
     lastMusicAnim(0),
+    lastDeadAnim(0),
     sleepyFrame(0),
     thinkFrame(0),
     exciteFrame(0),
@@ -23,7 +24,8 @@ AnimationManager::AnimationManager()
     angryFrame(0),
     sadFrame(0),
     surprisedFrame(0),
-    musicFrame(0) {
+    musicFrame(0),
+    deadFrame(0) {
 }
 
 // Reset animation frame to start smoothly from beginning
@@ -68,6 +70,10 @@ void AnimationManager::resetAnimation(EmotionState emotion) {
     case EMOTION_MUSIC:
       musicFrame = 0;
       lastMusicAnim = 0;
+      break;
+    case EMOTION_DEAD:
+      deadFrame = 0;
+      lastDeadAnim = 0;
       break;
     default:
       break;
@@ -1714,6 +1720,201 @@ void AnimationManager::animateMusic() {
     displayManager.updateDisplay();
     musicFrame = (musicFrame + 1) % 51;
     lastMusicAnim = currentTime;
+  }
+}
+
+// Animated dead state - X eyes with tongue sticking out
+void AnimationManager::animateDead() {
+  unsigned long currentTime = millis();
+  
+  if (currentTime - lastDeadAnim > 30) {
+    displayManager.clearDisplay();
+    
+    switch(deadFrame) {
+      // === INITIAL COLLAPSE (frames 0-8) ===
+      case 0:
+        // Normal eyes start to droop
+        displayManager.drawEyes(40, 28, 88, 28, 18);
+        displayManager.getDisplay().drawCircle(64, 50, 4, SSD1306_WHITE);
+        break;
+        
+      case 1: case 2:
+        // Eyes drooping
+        displayManager.drawEyes(40, 29, 88, 29, 16);
+        displayManager.getDisplay().drawCircle(64, 50, 4, SSD1306_WHITE);
+        break;
+        
+      case 3: case 4:
+        // Eyes closing more
+        displayManager.drawEyes(40, 30, 88, 30, 12);
+        displayManager.getDisplay().drawCircle(64, 50, 4, SSD1306_WHITE);
+        break;
+        
+      case 5: case 6:
+        // Eyes nearly closed
+        displayManager.drawEyes(40, 31, 88, 31, 8);
+        displayManager.getDisplay().drawCircle(64, 51, 5, SSD1306_WHITE);
+        break;
+        
+      case 7: case 8:
+        // Eyes transitioning to X - first diagonal lines appear
+        displayManager.getDisplay().fillRoundRect(38, 30, 18, 4, 2, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(86, 30, 18, 4, 2, SSD1306_WHITE);
+        displayManager.getDisplay().drawCircle(64, 51, 5, SSD1306_WHITE);
+        break;
+        
+      // === X EYES FORMING (frames 9-15) ===
+      case 9: case 10:
+        // X eyes starting to form - shifted upwards
+        // Left X eye - diagonal from top-left to bottom-right
+        for(int i = 0; i < 5; i++) {
+          displayManager.getDisplay().drawLine(32, 20 + i, 50, 36 + i, SSD1306_WHITE);
+          displayManager.getDisplay().drawLine(32, 36 + i, 50, 20 + i, SSD1306_WHITE);
+        }
+        // Right X eye - diagonal from top-left to bottom-right
+        for(int i = 0; i < 5; i++) {
+          displayManager.getDisplay().drawLine(78, 20 + i, 96, 36 + i, SSD1306_WHITE);
+          displayManager.getDisplay().drawLine(78, 36 + i, 96, 20 + i, SSD1306_WHITE);
+        }
+        displayManager.getDisplay().drawCircle(64, 50, 5, SSD1306_WHITE);
+        break;
+        
+      case 11: case 12: case 13: case 14: case 15:
+        // Full X eyes formed - thick and bold, shifted upwards
+        // Left X eye - very thick crossed lines (6 pixels thick)
+        for(int i = 0; i < 6; i++) {
+          displayManager.getDisplay().drawLine(32, 20 + i, 50, 36 + i, SSD1306_WHITE);
+          displayManager.getDisplay().drawLine(32, 36 + i, 50, 20 + i, SSD1306_WHITE);
+        }
+        // Right X eye - very thick crossed lines (6 pixels thick)
+        for(int i = 0; i < 6; i++) {
+          displayManager.getDisplay().drawLine(78, 20 + i, 96, 36 + i, SSD1306_WHITE);
+          displayManager.getDisplay().drawLine(78, 36 + i, 96, 20 + i, SSD1306_WHITE);
+        }
+        // Default mouth style (circle outline)
+        displayManager.getDisplay().drawCircle(64, 50, 6, SSD1306_WHITE);
+        break;
+        
+      // === TONGUE STARTING TO STICK OUT (frames 16-25) ===
+      case 16: case 17: case 18:
+        // X eyes stable - thick and shifted upwards
+        for(int i = 0; i < 6; i++) {
+          displayManager.getDisplay().drawLine(32, 20 + i, 50, 36 + i, SSD1306_WHITE);
+          displayManager.getDisplay().drawLine(32, 36 + i, 50, 20 + i, SSD1306_WHITE);
+        }
+        for(int i = 0; i < 6; i++) {
+          displayManager.getDisplay().drawLine(78, 20 + i, 96, 36 + i, SSD1306_WHITE);
+          displayManager.getDisplay().drawLine(78, 36 + i, 96, 20 + i, SSD1306_WHITE);
+        }
+        // Mouth open with default style, tongue tip appears
+        displayManager.getDisplay().fillRoundRect(56, 50, 16, 6, 3, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(62, 54, 4, 2, SSD1306_WHITE);
+        break;
+        
+      case 19: case 20: case 21:
+        // Tongue extending - X eyes shifted upwards
+        for(int i = 0; i < 6; i++) {
+          displayManager.getDisplay().drawLine(32, 20 + i, 50, 36 + i, SSD1306_WHITE);
+          displayManager.getDisplay().drawLine(32, 36 + i, 50, 20 + i, SSD1306_WHITE);
+        }
+        for(int i = 0; i < 6; i++) {
+          displayManager.getDisplay().drawLine(78, 20 + i, 96, 36 + i, SSD1306_WHITE);
+          displayManager.getDisplay().drawLine(78, 36 + i, 96, 20 + i, SSD1306_WHITE);
+        }
+        displayManager.getDisplay().fillRoundRect(56, 50, 16, 6, 3, SSD1306_WHITE);
+        // Tongue extending more
+        displayManager.getDisplay().fillRoundRect(61, 54, 6, 4, 2, SSD1306_WHITE);
+        break;
+        
+      case 22: case 23: case 24: case 25:
+        // Tongue fully extended - X eyes shifted upwards
+        for(int i = 0; i < 6; i++) {
+          displayManager.getDisplay().drawLine(32, 20 + i, 50, 36 + i, SSD1306_WHITE);
+          displayManager.getDisplay().drawLine(32, 36 + i, 50, 20 + i, SSD1306_WHITE);
+        }
+        for(int i = 0; i < 6; i++) {
+          displayManager.getDisplay().drawLine(78, 20 + i, 96, 36 + i, SSD1306_WHITE);
+          displayManager.getDisplay().drawLine(78, 36 + i, 96, 20 + i, SSD1306_WHITE);
+        }
+        displayManager.getDisplay().fillRoundRect(56, 50, 16, 6, 3, SSD1306_WHITE);
+        // Tongue sticking out fully
+        displayManager.getDisplay().fillRoundRect(60, 54, 8, 6, 3, SSD1306_WHITE);
+        break;
+        
+      // === HOLDING DEAD EXPRESSION (frames 26-40) ===
+      case 26: case 27: case 28: case 29: case 30:
+      case 31: case 32: case 33: case 34: case 35:
+      case 36: case 37: case 38: case 39: case 40:
+        // X eyes and tongue out - shifted upwards
+        for(int i = 0; i < 6; i++) {
+          displayManager.getDisplay().drawLine(32, 20 + i, 50, 36 + i, SSD1306_WHITE);
+          displayManager.getDisplay().drawLine(32, 36 + i, 50, 20 + i, SSD1306_WHITE);
+        }
+        for(int i = 0; i < 6; i++) {
+          displayManager.getDisplay().drawLine(78, 20 + i, 96, 36 + i, SSD1306_WHITE);
+          displayManager.getDisplay().drawLine(78, 36 + i, 96, 20 + i, SSD1306_WHITE);
+        }
+        displayManager.getDisplay().fillRoundRect(56, 50, 16, 6, 3, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(60, 54, 8, 6, 3, SSD1306_WHITE);
+        
+        // Add occasional "ghost" effect (alternating frames)
+        if (deadFrame % 8 < 4) {
+          // Small spirals near head
+          displayManager.getDisplay().drawCircle(20, 20, 3, SSD1306_WHITE);
+          displayManager.getDisplay().drawCircle(108, 20, 3, SSD1306_WHITE);
+        } else {
+          // Different spiral positions
+          displayManager.getDisplay().drawCircle(18, 24, 3, SSD1306_WHITE);
+          displayManager.getDisplay().drawCircle(110, 24, 3, SSD1306_WHITE);
+        }
+        break;
+        
+      // === TONGUE RETRACTING (frames 41-50) ===
+      case 41: case 42:
+        // Tongue starts retracting - X eyes shifted upwards
+        for(int i = 0; i < 6; i++) {
+          displayManager.getDisplay().drawLine(32, 20 + i, 50, 36 + i, SSD1306_WHITE);
+          displayManager.getDisplay().drawLine(32, 36 + i, 50, 20 + i, SSD1306_WHITE);
+        }
+        for(int i = 0; i < 6; i++) {
+          displayManager.getDisplay().drawLine(78, 20 + i, 96, 36 + i, SSD1306_WHITE);
+          displayManager.getDisplay().drawLine(78, 36 + i, 96, 20 + i, SSD1306_WHITE);
+        }
+        displayManager.getDisplay().fillRoundRect(56, 50, 16, 6, 3, SSD1306_WHITE);
+        displayManager.getDisplay().fillRoundRect(61, 54, 6, 4, 2, SSD1306_WHITE);
+        break;
+        
+      case 43: case 44:
+        // Tongue retracting more - X eyes shifted upwards
+        for(int i = 0; i < 6; i++) {
+          displayManager.getDisplay().drawLine(32, 20 + i, 50, 36 + i, SSD1306_WHITE);
+          displayManager.getDisplay().drawLine(32, 36 + i, 50, 20 + i, SSD1306_WHITE);
+        }
+        for(int i = 0; i < 6; i++) {
+          displayManager.getDisplay().drawLine(78, 20 + i, 96, 36 + i, SSD1306_WHITE);
+          displayManager.getDisplay().drawLine(78, 36 + i, 96, 20 + i, SSD1306_WHITE);
+        }
+        displayManager.getDisplay().fillRoundRect(56, 50, 16, 6, 3, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(62, 54, 4, 2, SSD1306_WHITE);
+        break;
+        
+      case 45: case 46: case 47: case 48: case 49: case 50:
+        // Tongue fully retracted, X eyes shifted upwards
+        for(int i = 0; i < 6; i++) {
+          displayManager.getDisplay().drawLine(32, 20 + i, 50, 36 + i, SSD1306_WHITE);
+          displayManager.getDisplay().drawLine(32, 36 + i, 50, 20 + i, SSD1306_WHITE);
+        }
+        for(int i = 0; i < 6; i++) {
+          displayManager.getDisplay().drawLine(78, 20 + i, 96, 36 + i, SSD1306_WHITE);
+          displayManager.getDisplay().drawLine(78, 36 + i, 96, 20 + i, SSD1306_WHITE);
+        }
+        displayManager.getDisplay().fillRoundRect(56, 50, 16, 6, 3, SSD1306_WHITE);
+        break;
+    }
+    
+    displayManager.updateDisplay();
+    deadFrame = (deadFrame + 1) % 51;
+    lastDeadAnim = currentTime;
   }
 }
 

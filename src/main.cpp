@@ -5,6 +5,7 @@
 #include "animations.h"
 #include "battery.h"
 #include "input.h"
+#include "network.h"
 
 // ===== GLOBAL STATE =====
 unsigned long bootTime = 0;
@@ -54,12 +55,36 @@ void setup() {
   inputManager.updateLastInteraction(bootTime);
   batteryManager.init();
 
+  // Initialize network (if enabled in config.h)
+#if ENABLE_MQTT
+  networkManager.init();
+#else
+  Serial.println("MQTT disabled - running in autonomous mode");
+#endif
+
   // Show boot screen
   displayManager.showBootScreen();
 
-  // Ensure final face is rendered
+#if DEBUG_MODE_ENABLED
+  Serial.println("=== DEBUG MODE ENABLED ===");
+  Serial.printf("Showing only: %s\n\n", 
+                DEBUG_MODE_EMOTION == EMOTION_DEAD ? "DEAD" :
+                DEBUG_MODE_EMOTION == EMOTION_HAPPY ? "HAPPY" :
+                DEBUG_MODE_EMOTION == EMOTION_SLEEPY ? "SLEEPY" :
+                DEBUG_MODE_EMOTION == EMOTION_EXCITED ? "EXCITED" :
+                DEBUG_MODE_EMOTION == EMOTION_CONFUSED ? "CONFUSED" :
+                DEBUG_MODE_EMOTION == EMOTION_THINKING ? "THINKING" :
+                DEBUG_MODE_EMOTION == EMOTION_LOVE ? "LOVE" :
+                DEBUG_MODE_EMOTION == EMOTION_ANGRY ? "ANGRY" :
+                DEBUG_MODE_EMOTION == EMOTION_SAD ? "SAD" :
+                DEBUG_MODE_EMOTION == EMOTION_SURPRISED ? "SURPRISED" :
+                DEBUG_MODE_EMOTION == EMOTION_MUSIC ? "MUSIC" : "IDLE");
+  emotionManager.setTargetEmotion(DEBUG_MODE_EMOTION);
+#else
+  // Ensure final face is rendered (only when not in debug mode)
   displayManager.drawEmotionFace(emotionManager.getCurrentEmotion());
   delay(1500);
+#endif
 
   Serial.println("=== SANGI Ready! (ANIMATION TEST MODE) ===");
   Serial.println("Cycling through all animations...\n");
@@ -71,6 +96,15 @@ void loop() {
   static int emotionIndex = 0;
   unsigned long currentTime = millis();
 
+  // Update network manager (handles MQTT if enabled)
+#if ENABLE_MQTT
+  networkManager.update();
+#endif
+
+  // Update emotion manager to process transitions
+  emotionManager.update(currentTime);
+
+#if !DEBUG_MODE_ENABLED
   // Array of all emotions to test (excluding BLINK and DEAD)
   static const EmotionState testEmotions[] = {
     EMOTION_IDLE,
@@ -83,11 +117,12 @@ void loop() {
     EMOTION_ANGRY,
     EMOTION_SAD,
     EMOTION_SURPRISED,
-    EMOTION_BATMAN,
     EMOTION_MUSIC
   };
-  static const int numEmotions = 12;
+  static const int numEmotions = 11;
 
+  // Autonomous emotion cycling (only when MQTT is disabled or disconnected)
+#if !ENABLE_MQTT
   // Cycle through test emotions at configured interval
   if (lastEmotionSwitch == 0 || currentTime - lastEmotionSwitch > EMOTION_CHANGE_INTERVAL) {
     EmotionState newEmotion = testEmotions[emotionIndex % numEmotions];
@@ -96,6 +131,19 @@ void loop() {
     emotionIndex = (emotionIndex + 1) % numEmotions;
     lastEmotionSwitch = currentTime;
   }
+#else
+  // Fallback to autonomous mode if network disconnected
+  if (!networkManager.isMQTTConnected()) {
+    if (lastEmotionSwitch == 0 || currentTime - lastEmotionSwitch > EMOTION_CHANGE_INTERVAL) {
+      EmotionState newEmotion = testEmotions[emotionIndex % numEmotions];
+      emotionManager.setTargetEmotion(newEmotion);
+      Serial.printf("[Autonomous] Setting emotion: %d\n", newEmotion);
+      emotionIndex = (emotionIndex + 1) % numEmotions;
+      lastEmotionSwitch = currentTime;
+    }
+  }
+#endif
+#endif // !DEBUG_MODE_ENABLED
 
   // // For focused testing, set a specific emotion once
   // static bool emotionSet = false;
@@ -145,6 +193,9 @@ void loop() {
       case EMOTION_MUSIC:
         animationManager.animateMusic();
         break;
+      case EMOTION_DEAD:
+        animationManager.animateDead();
+        break;
       default:
         // Static display for other emotions
         displayManager.drawEmotionFace(emotionManager.getCurrentEmotion());
@@ -158,8 +209,13 @@ void loop() {
   static unsigned long lastDebug = 0;
   if (millis() - lastDebug > 10000) {
     float voltage = batteryManager.readVoltage();
-    Serial.printf("Battery: %.2fV | Emotion: %d | Uptime: %lus\n",
+    Serial.printf("Battery: %.2fV | Emotion: %d | Uptime: %lus", 
                   voltage, emotionManager.getCurrentEmotion(), (millis() - bootTime) / 1000);
+#if ENABLE_MQTT
+    Serial.printf(" | MQTT: %s\n", networkManager.isMQTTConnected() ? "Connected" : "Disconnected");
+#else
+    Serial.println();
+#endif
     lastDebug = millis();
   }
 

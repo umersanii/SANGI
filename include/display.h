@@ -36,7 +36,6 @@ public:
   void drawFace_Thinking();
   void drawFace_Dead();
   void drawFace_Surprised();
-  void drawFace_Batman();
   
   // Emotion-based drawing
   void drawEmotionFace(EmotionState emotion);

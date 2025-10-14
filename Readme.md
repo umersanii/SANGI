@@ -22,7 +22,7 @@ This project creates a Dasai Mochi-style robot with cute animated facial express
 ## ✨ Features
 
 ### Animated Expressions
-The robot displays 11 different emotions:
+The robot displays 11 different emotions with smooth multi-frame animations:
 
 1. 😊 **Normal** - Calm resting face
 2. 😄 **Happy** - Slightly squinted eyes with smile
@@ -30,16 +30,35 @@ The robot displays 11 different emotions:
 4. 😢 **Sad** - Normal eyes with frown
 5. 😠 **Angry** - Narrowed eyes with angry eyebrows
 6. 😍 **Love** - Heart-shaped eyes with big smile
-7. 😴 **Sleepy** - Half-closed eyes with "Zzz"
-8. 🤩 **Excited** - Wide eyes with sparkles and big smile
-9. 🤔 **Thinking** - Eyes looking up with thought bubbles
+7. 😴 **Sleepy** - Half-closed eyes with "Zzz" animation (51 frames)
+8. 🤩 **Excited** - Wide eyes with sparkles and big smile (51 frames)
+9. 🤔 **Thinking** - Eyes looking up with thought bubbles (51 frames)
 10. 😕 **Confused** - Asymmetric eyes with wavy mouth
-11. 💀 **Dead/Exhausted** - X eyes with tongue out
+11. 💀 **Dead** - X eyes forming with tongue sticking out (51 frames)
+12. 🎵 **Music** - Musical note animation
 
 ### Animations
-- **Smooth Blinking** - Eyes gradually close and open
+- **Smooth Blinking** - Eyes gradually close and open (3-frame transition)
 - **Look Around** - Eyes shift left and right
-- **Natural Timing** - Realistic delays between expressions
+- **Complex Emotions** - Multi-frame sequences for sleepy, excited, thinking, and dead emotions
+- **X Eyes Formation** - Dead emotion features thick X eyes that form gradually (frames 9-15)
+- **Tongue Animation** - Tongue extends and retracts smoothly (frames 16-50)
+- **Ghost Effects** - Subtle floating particles during dead emotion hold phase
+- **Natural Timing** - Realistic delays between expressions (30ms per frame)
+
+### Debug Mode
+- **Isolated Testing** - Set `DEBUG_MODE_ENABLED true` in `config.h` to test specific emotions
+- **Quick Iteration** - Bypass state machine for rapid animation development
+- **Configurable Target** - Use `DEBUG_MODE_EMOTION` to select which emotion to display
+- **Serial Logging** - Detailed frame and state information via serial monitor
+
+### IoT & Remote Control (NEW!)
+- **MQTT Communication** - Remote emotion control via AWS IoT Core
+- **Cloud Telemetry** - Real-time battery, emotion, and status updates
+- **Autonomous Fallback** - Continues operation when network unavailable
+- **Secure Connection** - Certificate-based AWS authentication
+
+> 📡 See [MQTT_SETUP.md](MQTT_SETUP.md) for full setup guide or [MQTT_QUICKSTART.md](MQTT_QUICKSTART.md) for quick start.
 
 ## 📦 Dependencies
 
@@ -47,7 +66,11 @@ The robot displays 11 different emotions:
 lib_deps = 
     adafruit/Adafruit GFX Library@^1.11.3
     adafruit/Adafruit SSD1306@^2.5.7
+    knolleary/PubSubClient@^2.8        # MQTT client
+    bblanchon/ArduinoJson@^6.21.3      # JSON parsing
 ```
+
+> **Note**: MQTT libraries are optional. Set `ENABLE_MQTT false` in `config.h` to use autonomous mode only.
 
 ## 🚀 Quick Start
 
@@ -63,20 +86,37 @@ git clone https://github.com/umersanii/SANGI.git
 cd SANGI
 ```
 
-2. **Grant USB permissions** (Linux only):
+2. **Configure WiFi & MQTT** (optional):
+   - Copy `include/secrets.h.template` to `include/secrets.h`
+   - Add your WiFi credentials and AWS IoT certificates
+   - See [MQTT_SETUP.md](MQTT_SETUP.md) for detailed instructions
+   - Or set `ENABLE_MQTT false` in `config.h` for autonomous mode only
+
+3. **Grant USB permissions** (Linux only):
 ```bash
 sudo chmod 666 /dev/ttyUSB0
 ```
 
-3. **Build and Upload**:
+4. **Build and Upload**:
 ```bash
 platformio run --target upload
 ```
 
-4. **Monitor Serial Output** (optional):
+5. **Monitor Serial Output** (optional):
 ```bash
 platformio device monitor
 ```
+
+### Testing Specific Animations
+
+To test individual emotions during development:
+
+1. Open `include/config.h`
+2. Set `#define DEBUG_MODE_ENABLED true`
+3. Set `#define DEBUG_MODE_EMOTION EMOTION_DEAD` (or any emotion)
+4. Build and upload - the robot will display only that emotion
+
+Available emotions: `EMOTION_NORMAL`, `EMOTION_HAPPY`, `EMOTION_SURPRISED`, `EMOTION_SAD`, `EMOTION_ANGRY`, `EMOTION_LOVE`, `EMOTION_SLEEPY`, `EMOTION_EXCITED`, `EMOTION_THINKING`, `EMOTION_CONFUSED`, `EMOTION_DEAD`, `EMOTION_MUSIC`
 
 ### Hardware Wiring
 See [HARDWARE_WIRING.md](HARDWARE_WIRING.md) for detailed wiring instructions.
@@ -93,6 +133,7 @@ The codebase uses a clean, modular design with separate components for each func
 - **`animations.h/cpp`** - Complex animation engine with `AnimationManager` class
 - **`battery.h/cpp`** - Battery monitoring with `BatteryManager` class
 - **`input.h/cpp`** - Touch sensor handling with `InputManager` class
+- **`network.h/cpp`** - WiFi & MQTT communication with `NetworkManager` class
 - **`main.cpp`** - Clean orchestration layer (~150 lines)
 
 ### Benefits
@@ -106,13 +147,14 @@ The codebase uses a clean, modular design with separate components for each func
 
 ## 📐 Future Plans
 
+- [x] ~~Add Bluetooth/WiFi remote control~~ **COMPLETED: MQTT via AWS IoT Core**
 - [ ] Add motor control for movement
 - [ ] Implement line following sensors
-- [ ] Add Bluetooth/WiFi remote control
 - [ ] Battery monitoring with visual indicators
 - [ ] Sound/buzzer feedback
 - [ ] Touch sensor integration for interaction
 - [ ] 3D printed enclosure design
+- [ ] Home Assistant / Node-RED integration
 
 ## 🎨 Design Philosophy
 
@@ -128,18 +170,23 @@ SANGI/
 │   ├── display.cpp           # Display operations
 │   ├── animations.cpp        # Animation engine
 │   ├── battery.cpp           # Battery monitoring
-│   └── input.cpp             # Input handling
+│   ├── input.cpp             # Input handling
+│   └── network.cpp           # WiFi & MQTT communication
 ├── include/
 │   ├── config.h              # Hardware & timing configuration
 │   ├── emotion.h             # Emotion manager interface
 │   ├── display.h             # Display manager interface
 │   ├── animations.h          # Animation manager interface
 │   ├── battery.h             # Battery manager interface
-│   └── input.h               # Input manager interface
+│   ├── input.h               # Input manager interface
+│   ├── network.h             # Network manager interface
+│   └── secrets.h.template    # Template for AWS IoT credentials
 ├── lib/                      # Custom libraries
 ├── test/                     # Unit tests
 ├── platformio.ini            # PlatformIO configuration
 ├── HARDWARE_WIRING.md        # Detailed wiring guide
+├── MQTT_SETUP.md             # Complete MQTT/AWS IoT setup guide
+├── MQTT_QUICKSTART.md        # Quick MQTT setup reference
 ├── PHASE1_IMPLEMENTATION.md  # Development roadmap
 ├── REFACTORING_SUMMARY.md    # Module architecture details
 ├── COPILOT.md                # AI-assisted development log

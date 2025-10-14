@@ -40,4 +40,28 @@
 #define NEUTRAL_MOUTH_WIDTH 12
 #define NEUTRAL_MOUTH_HEIGHT 5
 
+// ===== NETWORK CONFIGURATION =====
+// MQTT Topics for AWS IoT Core
+#define MQTT_TOPIC_EMOTION_SET "sangi/emotion/set"        // Subscribe: receive emotion commands
+#define MQTT_TOPIC_STATUS "sangi/status"                  // Publish: device status
+#define MQTT_TOPIC_BATTERY "sangi/battery"                // Publish: battery voltage
+#define MQTT_TOPIC_UPTIME "sangi/uptime"                  // Publish: uptime in seconds
+
+// Network timing
+#define MQTT_RECONNECT_INTERVAL 5000      // 5 seconds between reconnection attempts
+#define STATUS_PUBLISH_INTERVAL 30000     // 30 seconds between status updates
+#define NETWORK_TIMEOUT 10000              // 10 seconds WiFi connection timeout
+
+// Time synchronization (NTP)
+#define NTP_SERVER "pool.ntp.org"
+#define GMT_OFFSET_SEC 0                   // Adjust for your timezone (e.g., -28800 for PST)
+#define DAYLIGHT_OFFSET_SEC 0              // Adjust for daylight saving
+
+// Mode selection
+#define ENABLE_MQTT false                  // Set to true to enable MQTT mode (requires secrets.h)
+
+// ===== DEBUG MODE =====
+#define DEBUG_MODE_ENABLED false            // Set to true to enable debug mode (shows only DEBUG_MODE_EMOTION)
+#define DEBUG_MODE_EMOTION EMOTION_DEAD    // Which emotion to show in debug mode
+
 #endif // CONFIG_H

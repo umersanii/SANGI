@@ -271,53 +271,6 @@ void DisplayManager::drawFace_Surprised() {
   display.display();
 }
 
-void DisplayManager::drawFace_Batman() {
-  display.clearDisplay();
-
-  // --- Draw full BLACK mask/cowl background ---
-  display.fillRect(0, 0, 128, 64, SSD1306_BLACK);
-
-  // --- Batman cowl shape (sharp pointed bat ears on top) ---
-  // Left ear - sharp and prominent
-  display.fillTriangle(28, 0, 36, 0, 32, 12, SSD1306_BLACK);
-  // Right ear - sharp and prominent
-  display.fillTriangle(92, 0, 100, 0, 96, 12, SSD1306_BLACK);
-
-  // --- Draw WHITE glowing eyes (using standard eye size, slightly smaller) ---
-  // Standard eyes are 20px wide, 20px tall at (40, 28) and (88, 28)
-  // Batman eyes: 18px wide, 16px tall (slightly smaller than normal)
-  int leftEyeX = 40;
-  int rightEyeX = 88;
-  int eyeY = 28;
-  int eyeWidth = 18;
-  int eyeHeight = 16;
-  
-  // Left eye - slightly smaller than normal with rounded corners (WHITE glow)
-  display.fillRoundRect(leftEyeX - eyeWidth/2, eyeY - eyeHeight/2, eyeWidth, eyeHeight, 4, SSD1306_WHITE);
-  
-  // Right eye - slightly smaller than normal with rounded corners (WHITE glow)
-  display.fillRoundRect(rightEyeX - eyeWidth/2, eyeY - eyeHeight/2, eyeWidth, eyeHeight, 4, SSD1306_WHITE);
-
-  // --- Angular cape/cowl extending down from ears ---
-  // Left cape - angular line from ear to shoulder
-  for(int i = 0; i < 6; i++) {
-    display.drawLine(20 + i, 12, 10 + i, 50, SSD1306_BLACK);
-  }
-  
-  // Right cape - angular line from ear to shoulder
-  for(int i = 0; i < 6; i++) {
-    display.drawLine(102 + i, 12, 112 + i, 50, SSD1306_BLACK);
-  }
-
-  // --- Small nose bridge (proportional) ---
-  display.fillRect(62, 36, 4, 6, SSD1306_BLACK);
-
-  // --- Stern mouth line (same size as other emotions ~20-24px wide) ---
-  display.fillRoundRect(54, 50, 20, 4, 2, SSD1306_BLACK);
-
-  display.display();
-}
-
 void DisplayManager::drawEmotionFace(EmotionState emotion) {
   switch(emotion) {
     case EMOTION_IDLE:
@@ -352,9 +305,6 @@ void DisplayManager::drawEmotionFace(EmotionState emotion) {
       break;
     case EMOTION_DEAD:
       drawFace_Dead();
-      break;
-    case EMOTION_BATMAN:
-      drawFace_Batman();
       break;
     default:
       drawFace_Normal();

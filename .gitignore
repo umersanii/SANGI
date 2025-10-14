@@ -77,3 +77,16 @@ dist/
 *.pio
 firmware.bin
 firmware.elf
+# Secrets and credentials (MQTT/AWS IoT)
+include/secrets.h
+*.pem
+*.key
+*.crt
+certs/
+
+# Secrets and credentials (MQTT/AWS IoT)
+include/secrets.h
+*.pem
+*.key
+*.crt
+certs/

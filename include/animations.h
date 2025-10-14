@@ -20,6 +20,7 @@ public:
   void animateSad();
   void animateSurprised();
   void animateMusic();
+  void animateDead();
   
   // Reset animation frames when switching emotions
   void resetAnimation(EmotionState emotion);
@@ -36,6 +37,7 @@ private:
   unsigned long lastSadAnim;
   unsigned long lastSurprisedAnim;
   unsigned long lastMusicAnim;
+  unsigned long lastDeadAnim;
   
   int sleepyFrame;
   int thinkFrame;
@@ -47,6 +49,7 @@ private:
   int sadFrame;
   int surprisedFrame;
   int musicFrame;
+  int deadFrame;
 };
 
 extern AnimationManager animationManager;

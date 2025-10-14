@@ -1,3 +1,103 @@
+<!-- SANGI: AI coding agent instructions (concise, actionable). -->
+# SANGI — Copilot / AI Agent Instructions
+
+These notes give an AI coding agent the concrete, repository-specific knowledge needed to be productive quickly.
+
+## Big picture
+- Single micro-controller project (ESP32-C3) implementing a pocket companion robot with OLED face animations.
+- Clear modular singleton manager pattern: each subsystem exposes a single global manager instance (e.g. `EmotionManager`, `DisplayManager`, `AnimationManager`, `BatteryManager`, `InputManager`). See `include/*.h` and `src/*.cpp` for implementations.
+- Responsibility boundaries:
+  - `emotion.*` (state machine & transitions) — `include/emotion.h`, `src/emotion.cpp`
+  - `display.*` (OLED primitives & draws) — `include/display.h`, `src/display.cpp`
+  - `animations.*` (multi-frame sequences) — `include/animations.h`, `src/animations.cpp`
+  - `battery.*` (ADC read & calibration) — `include/battery.h`, `src/battery.cpp`
+  - `input.*` (touch sensor handling) — `include/input.h`, `src/input.cpp`
+
+## Architecture rules the agent must follow
+- Never instantiate managers locally. Use the global instances (declared `extern` in headers). Example: `extern EmotionManager emotionManager;` (see `include/README`).
+- All hardware pin numbers and timing constants live in `include/config.h`. Do not hardcode pins or magic numbers — add new constants to `config.h`.
+- Transitions: `EmotionManager` drives transitions. Display/animation code must not manage emotion transition state directly — call `emotionManager.isTransitionActive()` when needed.
+
+## Project-specific conventions & patterns
+- Naming: headers in `include/` use snake-lowercase (e.g. `display.h`), implementations in `src/` match names (`display.cpp`).
+- Enums & public interfaces live in headers (e.g., `EmotionState` in `include/emotion.h`).
+- Animation loops use static locals for frame state and `millis()` timing. Example pattern in `animations.cpp`:
+
+  void AnimationManager::animateX() {
+    static unsigned long lastFrame = 0;
+    static int frameIndex = 0;
+    if (millis() - lastFrame > FRAME_DELAY) { ... }
+  }
+
+- Display updates follow: `displayManager.clearDisplay(); draw...; displayManager.updateDisplay();`
+- I2C/OLED: SSD1306 at `0x3C` (check `scanI2C()` when unsure). Screen is 128x64 monochrome.
+
+## Critical developer workflows
+- Build & upload (PlatformIO is the ONLY supported build system):
+
+  pio run --target upload
+
+  Serial monitor:
+
+  pio device monitor
+
+  On Linux you may need to allow USB access first:
+
+  sudo chmod 666 /dev/ttyUSB0
+
+- Testing animations: `main.cpp` supports two modes:
+  1. Animation test mode (cycles emotions every 10s) — fast visual iteration
+  2. Autonomous mode — production state machine using battery/time/touch
+  Switch by editing `src/main.cpp::loop()` (look for the comment near the top of `loop()`).
+
+## Integration points & hardware constraints
+- ESP32-C3 specifics:
+  - I2C only on GPIO6/7 (project assumes this)
+  - ADC1 used for battery; default uses GPIO2
+  - Deep sleep wake uses `gpio_wakeup_enable()` (not ext0)
+- OLED driver: `Adafruit_SSD1306` style calls are used; avoid calling `display.begin()` twice.
+- Battery reading requires calibration (voltage divider) — formula and constants live in `battery.cpp`/`include/config.h`.
+
+## Cross-component patterns
+- Emotion flow: EmotionManager sets target → Display checks `isTransitionActive()` → If transition active: 3-frame transition (current → blink → target) → otherwise either static face (drawFace_X) or call `animationManager.animateX()` for complex animations.
+- AnimationManager methods are fully responsible for multi-frame sequences; they must not touch emotion state directly.
+
+## Files to inspect for examples
+- `include/config.h` — hardware pins and timing constants (first stop for any magic numbers)
+- `src/main.cpp` — orchestration and mode switching (animation test vs autonomous)
+- `src/display.cpp` / `include/display.h` — drawing primitives and update pattern
+- `src/animations.cpp` — multi-frame animation examples
+- `src/emotion.cpp` — state machine & transitions
+
+## Quick tips for edits and PRs
+- Small, targeted changes: update `include/config.h` for any new hardware constants.
+- When adding an emotion:
+  1. Add enum value to `include/emotion.h`
+  2. For static faces: implement `drawFace_NewEmotion()` in `src/display.cpp`
+  3. For animated faces: implement `animateNewEmotion()` in `src/animations.cpp`
+  4. Wire in the `loop()` switch in `src/main.cpp`
+- Always build locally with `pio run` before opening a PR.
+
+## What not to change
+- Do not call `display.begin()` outside `DisplayManager::init()` (it can hang I2C).
+- Do not create additional global manager instances — follow singleton pattern.
+
+## Network/Communication (Planned: MQTT)
+- Future integration will use MQTT for remote emotion control and status reporting.
+- Architecture supports fallback to autonomous mode when network unavailable.
+- When implementing:
+  - Add MQTT broker config to `include/config.h` (broker URL, port, credentials)
+  - Create `network.h/cpp` module following singleton manager pattern
+  - Publish: battery status, current emotion, uptime
+  - Subscribe: emotion set commands (e.g., `sangi/emotion/set`)
+  - Keep autonomous behavior as default; MQTT overrides when connected
+
+## When something's missing
+- If hardware pin mapping or a timing constant is not in `include/config.h`, add it there and document usage with a short comment.
+- If you need to change startup/init order, search for `init()` calls in `src/main.cpp` to keep manager initialization centralized.
+
+---
+If any section is unclear or you'd like me to expand examples (e.g., show exact `config.h` constants or a sample animation implementation), tell me which file or behaviour and I'll update the instruction file.
 # SANGI Robot - AI Agent Instructions
 
 ## Project Context
