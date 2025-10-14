@@ -12,6 +12,7 @@ These notes give an AI coding agent the concrete, repository-specific knowledge 
   - `animations.*` (multi-frame sequences) — `include/animations.h`, `src/animations.cpp`
   - `battery.*` (ADC read & calibration) — `include/battery.h`, `src/battery.cpp`
   - `input.*` (touch sensor handling) — `include/input.h`, `src/input.cpp`
+  - `network.*` (WiFi & MQTT/AWS IoT) — `include/network.h`, `src/network.cpp`
 
 ## Architecture rules the agent must follow
 - Never instantiate managers locally. Use the global instances (declared `extern` in headers). Example: `extern EmotionManager emotionManager;` (see `include/README`).
@@ -82,15 +83,22 @@ These notes give an AI coding agent the concrete, repository-specific knowledge 
 - Do not call `display.begin()` outside `DisplayManager::init()` (it can hang I2C).
 - Do not create additional global manager instances — follow singleton pattern.
 
-## Network/Communication (Planned: MQTT)
-- Future integration will use MQTT for remote emotion control and status reporting.
-- Architecture supports fallback to autonomous mode when network unavailable.
-- When implementing:
-  - Add MQTT broker config to `include/config.h` (broker URL, port, credentials)
-  - Create `network.h/cpp` module following singleton manager pattern
-  - Publish: battery status, current emotion, uptime
-  - Subscribe: emotion set commands (e.g., `sangi/emotion/set`)
-  - Keep autonomous behavior as default; MQTT overrides when connected
+## Network/Communication ✅ MQTT OPERATIONAL (October 2025)
+- **Status**: Successfully deployed with AWS IoT Core integration
+- **Implementation**: `network.h/cpp` module following singleton manager pattern
+- **Configuration**: WiFi & MQTT settings in `include/secrets.h` (gitignored)
+- **Topics**:
+  - Subscribe: `sangi/emotion/set` - Remote emotion control
+  - Publish: `sangi/status` - Connection status updates
+  - Publish: `sangi/battery` - Battery telemetry (every 30s)
+  - Publish: `sangi/emotion/current` - Current emotion state (every 30s)
+- **Features**:
+  - Certificate-based AWS IoT Core authentication (TLS 1.2)
+  - Automatic fallback to autonomous mode when network unavailable
+  - NTP time synchronization for accurate timestamps
+  - Reconnection logic with 5s interval
+- **Setup**: See `docs/MQTT_SETUP.md` for complete configuration guide
+- **Enable/Disable**: Set `ENABLE_MQTT` in `include/config.h`
 
 ## When something's missing
 - If hardware pin mapping or a timing constant is not in `include/config.h`, add it there and document usage with a short comment.
@@ -113,6 +121,7 @@ extern DisplayManager displayManager;    // OLED rendering & I2C
 extern AnimationManager animationManager; // Complex multi-frame animations
 extern BatteryManager batteryManager;    // ADC voltage monitoring
 extern InputManager inputManager;        // Touch sensor handling
+extern NetworkManager networkManager;    // WiFi & MQTT communication (AWS IoT Core)
 ```
 
 **Rule**: Never instantiate managers locally. Always use the global instance. Initialization happens in `main.cpp::setup()`, usage in `main.cpp::loop()`.
@@ -217,6 +226,8 @@ Architecture designed for HTTP/MQTT integration:
 - Fallback to autonomous mode when network unavailable
 - See `.github/copilot.md` "Feature Tier 2" for full spec
 
+**UPDATE (Oct 2025)**: MQTT via AWS IoT Core is now fully operational. See `network.h/cpp` and `docs/MQTT_SETUP.md`.
+
 ## Common Pitfalls
 
 1. **Don't call `display.begin()` twice** - Causes I2C hang. Only in `DisplayManager::init()`
@@ -267,4 +278,6 @@ Serial.printf("Battery: %.2fV | Emotion: %d | Uptime: %lus\n",
 **Check if animating**: `emotionManager.isTransitionActive()`  
 **Read battery**: `batteryManager.readVoltage()`  
 **Detect touch**: `inputManager.handleTouchInteraction()`  
-**Clear screen**: `displayManager.clearDisplay(); displayManager.updateDisplay();`
+**Clear screen**: `displayManager.clearDisplay(); displayManager.updateDisplay();`  
+**Check MQTT status**: `networkManager.isConnected()`  
+**Send MQTT message**: Publish to `sangi/emotion/set` with JSON `{"emotion": 1}`

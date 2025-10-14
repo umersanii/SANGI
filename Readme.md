@@ -52,13 +52,20 @@ The robot displays 11 different emotions with smooth multi-frame animations:
 - **Configurable Target** - Use `DEBUG_MODE_EMOTION` to select which emotion to display
 - **Serial Logging** - Detailed frame and state information via serial monitor
 
-### IoT & Remote Control (NEW!)
+### IoT & Remote Control ✅ OPERATIONAL
 - **MQTT Communication** - Remote emotion control via AWS IoT Core
 - **Cloud Telemetry** - Real-time battery, emotion, and status updates
 - **Autonomous Fallback** - Continues operation when network unavailable
-- **Secure Connection** - Certificate-based AWS authentication
+- **Secure Connection** - Certificate-based AWS authentication (TLS 1.2)
+- **Status**: Successfully deployed and tested (October 2025)
 
-> 📡 See [MQTT_SETUP.md](MQTT_SETUP.md) for full setup guide or [MQTT_QUICKSTART.md](MQTT_QUICKSTART.md) for quick start.
+**MQTT Topics**:
+- 📥 Subscribe: `sangi/emotion/set` - Remote emotion commands
+- 📤 Publish: `sangi/status` - Connection status
+- 📤 Publish: `sangi/battery` - Battery telemetry (every 30s)
+- 📤 Publish: `sangi/emotion/current` - Current emotion state (every 30s)
+
+> 📡 See [MQTT_SETUP.md](docs/MQTT_SETUP.md) for full setup guide or [MQTT_QUICKSTART.md](docs/MQTT_QUICKSTART.md) for quick start.
 
 ## 📦 Dependencies
 
@@ -89,8 +96,14 @@ cd SANGI
 2. **Configure WiFi & MQTT** (optional):
    - Copy `include/secrets.h.template` to `include/secrets.h`
    - Add your WiFi credentials and AWS IoT certificates
-   - See [MQTT_SETUP.md](MQTT_SETUP.md) for detailed instructions
+   - See [docs/MQTT_SETUP.md](docs/MQTT_SETUP.md) for detailed instructions
    - Or set `ENABLE_MQTT false` in `config.h` for autonomous mode only
+
+   **Quick MQTT Test** (after setup):
+   ```bash
+   # In AWS IoT MQTT test client, publish to: sangi/emotion/set
+   {"emotion": 1}  # Makes SANGI happy! 😊
+   ```
 
 3. **Grant USB permissions** (Linux only):
 ```bash
@@ -147,14 +160,17 @@ The codebase uses a clean, modular design with separate components for each func
 
 ## 📐 Future Plans
 
-- [x] ~~Add Bluetooth/WiFi remote control~~ **COMPLETED: MQTT via AWS IoT Core**
+- [x] ~~Add Bluetooth/WiFi remote control~~ **✅ COMPLETED: MQTT via AWS IoT Core (Oct 2025)**
+- [x] ~~Implement cloud telemetry~~ **✅ COMPLETED: Real-time battery & emotion updates**
 - [ ] Add motor control for movement
 - [ ] Implement line following sensors
-- [ ] Battery monitoring with visual indicators
+- [x] ~~Battery monitoring with visual indicators~~ **✅ COMPLETED: Published via MQTT**
 - [ ] Sound/buzzer feedback
 - [ ] Touch sensor integration for interaction
 - [ ] 3D printed enclosure design
 - [ ] Home Assistant / Node-RED integration
+- [ ] Web dashboard for MQTT control
+- [ ] Multi-device support (control multiple SANGIs)
 
 ## 🎨 Design Philosophy
 
@@ -215,3 +231,12 @@ This project is open source and available for personal and educational use.
 **Created**: October 2025  
 **Platform**: PlatformIO + ESP32-C3  
 **Framework**: Arduino
+
+
+---
+
+```lsof /dev/ttyUSB1 2>/dev/null | grep -v COMMAND```
+to check where the port is active
+``` kill <port>```
+
+```~/.platformio/penv/bin/platformio device monitor --port /dev/ttyUSB1 --baud 115200```

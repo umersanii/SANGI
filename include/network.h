@@ -49,6 +49,10 @@ public:
   NetworkState getState() const { return currentState; }
   unsigned long getLastReconnectAttempt() const { return lastReconnectAttempt; }
   
+  // Network diagnostics
+  bool pingEndpoint(const char* hostname);
+  void testConnectivity();
+  
   // Callback for MQTT messages
   static void messageCallback(char* topic, byte* payload, unsigned int length);
   

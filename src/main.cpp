@@ -39,8 +39,18 @@ void checkSleepConditions() {
 // ===== SETUP =====
 void setup() {
   Serial.begin(115200);
-  delay(1000);
-  Serial.println("\n=== SANGI Robot Initializing ===");
+  delay(2000);  // Longer delay for USB-Serial to stabilize
+  
+  Serial.println();
+  Serial.println();
+  Serial.println(">>> ESP32 BOOT SUCCESSFUL <<<");
+  Serial.flush();
+  delay(100);
+  Serial.println(">>> Serial communication working! <<<");
+  Serial.flush();
+  delay(100);
+  Serial.println("=== SANGI Robot Initializing ===");
+  Serial.flush();
 
   bootTime = millis();
 
@@ -58,6 +68,11 @@ void setup() {
   // Initialize network (if enabled in config.h)
 #if ENABLE_MQTT
   networkManager.init();
+  
+  // Run connectivity test
+  Serial.println("\n>>> Running Network Diagnostics <<<");
+  delay(500);
+  networkManager.testConnectivity();
 #else
   Serial.println("MQTT disabled - running in autonomous mode");
 #endif

@@ -320,11 +320,115 @@ bool NetworkManager::isWiFiConnected() const {
 }
 
 bool NetworkManager::isMQTTConnected() const {
- // return mqttClient.connected();
+#if ENABLE_MQTT
+  return const_cast<PubSubClient&>(mqttClient).connected();
+#else
+  return false;
+#endif
 }
 
 void NetworkManager::mqttLoop() {
 #if ENABLE_MQTT
   mqttClient.loop();
 #endif
+}
+
+// ===== NETWORK DIAGNOSTICS =====
+bool NetworkManager::pingEndpoint(const char* hostname) {
+  Serial.print("\n=== Pinging ");
+  Serial.print(hostname);
+  Serial.println(" ===");
+  
+  if (!isWiFiConnected()) {
+    Serial.println("ERROR: WiFi not connected!");
+    return false;
+  }
+  
+  // Resolve hostname to IP
+  IPAddress serverIP;
+  if (!WiFi.hostByName(hostname, serverIP)) {
+    Serial.println("ERROR: DNS lookup failed!");
+    return false;
+  }
+  
+  Serial.print("Resolved to IP: ");
+  Serial.println(serverIP);
+  
+  // Test TCP connection on port 8883 (AWS IoT MQTT)
+  WiFiClient testClient;
+  Serial.print("Attempting TCP connection on port 8883... ");
+  
+  if (testClient.connect(serverIP, 8883, 5000)) {  // 5 second timeout
+    Serial.println("SUCCESS!");
+    Serial.print("Connected to: ");
+    Serial.println(serverIP);
+    testClient.stop();
+    return true;
+  } else {
+    Serial.println("FAILED!");
+    Serial.println("Could not establish TCP connection");
+    return false;
+  }
+}
+
+void NetworkManager::testConnectivity() {
+  Serial.println("\n╔════════════════════════════════════╗");
+  Serial.println("║   NETWORK CONNECTIVITY TEST        ║");
+  Serial.println("╚════════════════════════════════════╝");
+  
+  // WiFi Status
+  Serial.print("\n[1] WiFi Status: ");
+  if (isWiFiConnected()) {
+    Serial.println("CONNECTED ✓");
+    Serial.print("    SSID: ");
+    Serial.println(WiFi.SSID());
+    Serial.print("    IP Address: ");
+    Serial.println(WiFi.localIP());
+    Serial.print("    Signal Strength: ");
+    Serial.print(WiFi.RSSI());
+    Serial.println(" dBm");
+  } else {
+    Serial.println("DISCONNECTED ✗");
+    return;
+  }
+  
+#if ENABLE_MQTT
+  // DNS Resolution Test
+  Serial.print("\n[2] DNS Resolution Test: ");
+  IPAddress testIP;
+  if (WiFi.hostByName(AWS_IOT_ENDPOINT, testIP)) {
+    Serial.println("SUCCESS ✓");
+    Serial.print("    ");
+    Serial.print(AWS_IOT_ENDPOINT);
+    Serial.print(" → ");
+    Serial.println(testIP);
+  } else {
+    Serial.println("FAILED ✗");
+  }
+  
+  // Ping AWS IoT Endpoint
+  Serial.print("\n[3] AWS IoT Endpoint Connectivity: ");
+  bool pingSuccess = pingEndpoint(AWS_IOT_ENDPOINT);
+  if (pingSuccess) {
+    Serial.println("    ✓ Port 8883 is reachable");
+  } else {
+    Serial.println("    ✗ Cannot reach endpoint");
+  }
+  
+  // MQTT Status
+  Serial.print("\n[4] MQTT Status: ");
+  if (isMQTTConnected()) {
+    Serial.println("CONNECTED ✓");
+    Serial.print("    Thing Name: ");
+    Serial.println(THINGNAME);
+  } else {
+    Serial.println("DISCONNECTED ✗");
+    Serial.print("    Last error code: ");
+    Serial.println(mqttClient.state());
+  }
+#else
+  Serial.println("\n[2] MQTT: DISABLED in config.h");
+#endif
+  
+  Serial.println("\n════════════════════════════════════\n");
 }

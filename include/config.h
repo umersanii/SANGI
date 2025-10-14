@@ -58,7 +58,7 @@
 #define DAYLIGHT_OFFSET_SEC 0              // Adjust for daylight saving
 
 // Mode selection
-#define ENABLE_MQTT false                  // Set to true to enable MQTT mode (requires secrets.h)
+#define ENABLE_MQTT true                   // Set to true to enable MQTT mode (requires secrets.h)
 
 // ===== DEBUG MODE =====
 #define DEBUG_MODE_ENABLED false            // Set to true to enable debug mode (shows only DEBUG_MODE_EMOTION)

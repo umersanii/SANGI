@@ -77,16 +77,41 @@ dist/
 *.pio
 firmware.bin
 firmware.elf
-# Secrets and credentials (MQTT/AWS IoT)
-include/secrets.h
-*.pem
-*.key
-*.crt
-certs/
 
-# Secrets and credentials (MQTT/AWS IoT)
+# ===== SECRETS AND CREDENTIALS =====
+# WiFi & AWS IoT credentials
 include/secrets.h
+secrets.h
+
+# AWS IoT Core certificates and keys
 *.pem
+*.pem.crt
 *.key
+*.private.key
+*.public.key
 *.crt
+*.cert
+*.cert.pem
+AmazonRootCA*.pem
 certs/
+certificates/
+
+# AWS IoT policy documents
+*-Policy
+*.policy.json
+
+# Connection packages
+connect_device_package.zip
+*_device_package.zip
+
+# Environment files
+.env
+.env.local
+.env.production
+*.local
+
+# Temporary credential files
+*.credentials
+*.token
+auth_token.txt
+*.pem.1
