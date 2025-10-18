@@ -72,6 +72,12 @@ void drawFace_Surprised();
 void drawFace_Confused();
 void drawFace_Dead();
 void drawFace_Blink();
+void drawFace_Notification(const char* title, const char* message);
+
+// Transitions
+void performTransition();
+void performSleepyTransition(int transitionFrame, EmotionState targetEmotion);
+void performNotificationTransition(int transitionFrame, EmotionState currentEmotion);
 
 // Special
 void displayBatmanLogo();
@@ -84,10 +90,18 @@ displayManager.clearDisplay();
 displayManager.drawFace_Happy();
 displayManager.updateDisplay();
 
+// Notification face (content box only, no peeking eyes)
+displayManager.drawFace_Notification("Title", "Message text");
+
 // Direct drawing (Adafruit GFX)
 displayManager.display.fillCircle(x, y, radius, WHITE);
 displayManager.display.drawLine(x1, y1, x2, y2, WHITE);
 ```
+
+**Notes**:
+- `drawFace_Notification()` displays only the content box (no peeking eyes)
+- Peeking eyes appear only during `animateNotification()` full animation sequence
+- Text content is automatically truncated to fit within double border with padding
 
 ### AnimationManager
 
@@ -200,10 +214,28 @@ Notification (`sangi/notification/push`):
 ```json
 {
   "type": "discord",
-  "title": "New Message",
-  "message": "Hello from friend",
+  "title": "username",
+  "message": "new message",
   "timestamp": 1729180800
 }
+```
+
+**Notification Types**:
+- `discord` - Discord messages (simplified format: username + "new message")
+- `system` - System notifications
+- `generic` - General alerts
+
+**Discord Notification Format**:
+Discord notifications use a simplified format to avoid clutter:
+- **Title**: Username (extracted from notification summary)
+- **Message**: Always "new message"
+
+Example: When "friend_username" sends a Discord message, SANGI displays:
+```
+┌────────────────────┐
+│ friend_username    │
+│ new message        │
+└────────────────────┘
 ```
 
 ### BatteryManager
@@ -397,6 +429,56 @@ extern ClassName instanceName;
 
 ## Common Patterns
 
+### Emotion Transitions
+
+**Standard Transition** (most emotions):
+```cpp
+// 7-frame blink transition sequence
+// Frame 0: Current emotion
+// Frame 1-3: Eyes closing
+// Frame 4-6: Eyes opening to target emotion
+emotionManager.setTargetEmotion(EMOTION_HAPPY);
+```
+
+**Sleepy Transition** (special handling):
+```cpp
+// Uses round mouth throughout transition
+// Eyes lower gradually during closing/opening
+emotionManager.setTargetEmotion(EMOTION_SLEEPY);
+```
+
+**Notification Transition** (animated sequence):
+```cpp
+// 7-frame surprise reaction sequence:
+// Frame 0: Current emotion (idle)
+// Frame 1: Eyes start widening (alert!)
+// Frame 2: Eyes WIDE (startled!)
+// Frame 3: Eyes squinting (preparing to run)
+// Frame 4-5: Move right (running away)
+// Frame 6: Notification appears
+emotionManager.setTargetEmotion(EMOTION_NOTIFICATION);
+
+// Note: Transition FROM notification uses standard blink
+// Static drawFace_Notification() shows content box only (no peeking eyes)
+// Peeking eyes only appear in animateNotification() full animation
+```
+
+**Implementation**:
+```cpp
+// In display.cpp - performTransition()
+if (targetEmotion == EMOTION_NOTIFICATION) {
+  performNotificationTransition(transitionFrame, currentEmotion);
+  return;
+}
+
+if (currentEmotion == EMOTION_SLEEPY || targetEmotion == EMOTION_SLEEPY) {
+  performSleepyTransition(transitionFrame, targetEmotion);
+  return;
+}
+
+// Standard blink transition for all others
+```
+
 ### Overflow-Safe Timing
 
 ```cpp
@@ -525,6 +607,55 @@ python3 workspace_monitor.py
 - Build failure → CONFUSED/ANGRY
 - Audio playing → MUSIC
 - Idle >10min → SLEEPY
+
+### Notification Detector
+
+**Module**: `PC-setup/lib/notification_detector.py`
+
+The notification detector uses D-Bus to capture desktop notifications and forward them to SANGI via MQTT.
+
+**Supported Sources**:
+- Discord (simplified format)
+- System notifications
+- Generic alerts
+
+**Discord Format**:
+Discord notifications are automatically simplified:
+- Extracts username from notification summary
+- Sets message to "new message"
+- Removes message content for privacy/simplicity
+
+**Usage in workspace_monitor.py**:
+```python
+from lib import NotificationDetector
+
+# Initialize with callback
+notification_detector = NotificationDetector(
+    logger=self.logger,
+    callback=self._on_notification
+)
+
+# Callback handles MQTT publishing
+def _on_notification(self, notif_type, title, message):
+    payload = json.dumps({
+        'type': notif_type,
+        'title': title,
+        'message': message,
+        'timestamp': int(time.time())
+    })
+    self.mqtt_client.publish('sangi/notification/push', payload, 1)
+```
+
+**Testing Notifications**:
+```bash
+cd PC-setup
+python3 test_notifications.py
+```
+
+Test script sends sample notifications:
+- Discord (2 different usernames)
+- System notification
+- Generic alert
 
 ## Common Issues
 

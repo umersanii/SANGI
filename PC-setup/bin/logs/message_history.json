@@ -6407,5 +6407,39 @@
         "idle_minutes": 0.1
       }
     }
+  },
+  {
+    "timestamp": "2025-10-18T16:56:36.358744",
+    "topic": "sangi/emotion/set",
+    "payload": {
+      "emotion": 1,
+      "emotion_name": "happy",
+      "source": "workspace_monitor",
+      "hostname": "sani-pc",
+      "timestamp": 1760788596,
+      "stats": {
+        "changes_per_min": 2.8,
+        "commands_per_min": 0.0,
+        "error_rate": 0.0,
+        "idle_minutes": 0.4
+      }
+    }
+  },
+  {
+    "timestamp": "2025-10-18T16:56:41.703115",
+    "topic": "sangi/emotion/set",
+    "payload": {
+      "emotion": 8,
+      "emotion_name": "excited",
+      "source": "workspace_monitor",
+      "hostname": "sani-pc",
+      "timestamp": 1760788601,
+      "stats": {
+        "changes_per_min": 4.8,
+        "commands_per_min": 0.0,
+        "error_rate": 0.0,
+        "idle_minutes": 0.1
+      }
+    }
   }
 ]

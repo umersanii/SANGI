@@ -96,13 +96,23 @@ class NotificationDetector:
                 self.logger.debug(f"Ignored: {app_name} - {summary}")
                 return
             
+            # Format Discord notifications simply
+            formatted_title = summary
+            formatted_message = body[:60]  # Truncate long messages
+            
+            if notif_type == 'discord':
+                # Extract username from summary if it follows typical Discord format
+                # Discord typically shows "Username" or "Username - DirectMessage" etc.
+                formatted_title = summary.split('-')[0].strip() if summary else "Discord"
+                formatted_message = "new message"
+            
             # Store in history
             notification = {
                 'timestamp': datetime.now().isoformat(),
                 'type': notif_type,
                 'app': app_name,
-                'title': summary,
-                'message': body[:60],  # Truncate long messages
+                'title': formatted_title,
+                'message': formatted_message,
             }
             self.notification_history.append(notification)
             
@@ -112,9 +122,9 @@ class NotificationDetector:
             
             # Call callback if registered
             if self.callback:
-                self.callback(notif_type, summary, body[:60])
+                self.callback(notif_type, formatted_title, formatted_message)
                 
-            self.logger.info(f"🔔 [{notif_type}] {summary}")
+            self.logger.info(f"🔔 [{notif_type}] {formatted_title}")
             
         except Exception as e:
             self.logger.error(f"Error processing notification: {e}")

@@ -282,64 +282,55 @@ void DisplayManager::drawFace_Surprised() {
 void DisplayManager::drawFace_Notification(const char* title, const char* message) {
   display.clearDisplay();
 
-  // ===== PEEKING EYES (Above the Box) =====
-  // Both normal-sized eyes (20px × 20px), but only render portion above box
+  // ===== NOTIFICATION BOX ONLY (No peeking eyes) =====
+  // The peeking eyes only appear during the animateNotification() animation
+  // This static face just shows the notification content box
   
-  int eyeSize = 20;
-  int leftEyeX = 40;   // Left eye center (same as normal emotions)
-  int rightEyeX = 88;  // Right eye center (same as normal emotions)
-  int eyeY = 24;       // Eye center position
-  
-  int boxTopY = 20;    // Where the box starts (this defines the "table edge")
-  
-  // Calculate visible portion of eyes (only above the box)
-  int eyeTopY = eyeY - 10;           // Top of eye (eyeY - radius)
-  int visibleHeight = boxTopY - eyeTopY;  // Height of eye above box = 20 - 14 = 6px
-  
-  // Only draw the portion of eyes above the box top edge
-  if (visibleHeight > 0) {
-    // Left eye - only top portion
-    display.fillRoundRect(leftEyeX - 10, eyeTopY, 20, visibleHeight, 5, SSD1306_WHITE);
-    
-    // Right eye - only top portion  
-    display.fillRoundRect(rightEyeX - 10, eyeTopY, 20, visibleHeight, 5, SSD1306_WHITE);
-  }
-
-  // ===== NOTIFICATION BOX (Slightly smaller) =====
   int boxX = 6;
-  int boxY = boxTopY;  // Starts at y=20
-  int boxWidth = 116;  // Slightly smaller width
-  int boxHeight = 42;  // Slightly smaller height
+  int boxY = 10;  // Centered vertically on 64px screen
+  int boxWidth = 116;  // Fits in 128px screen with margin
+  int boxHeight = 44;  // Taller box for better content display
 
   // Draw double border for emphasis
   display.drawRect(boxX, boxY, boxWidth, boxHeight, SSD1306_WHITE);
   display.drawRect(boxX + 1, boxY + 1, boxWidth - 2, boxHeight - 2, SSD1306_WHITE);
 
-  // ===== TEXT CONTENT =====
+  // ===== TEXT CONTENT (WITH PROPER PADDING) =====
   display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
 
+  // Calculate safe text area (inside double border with padding)
+  int textX = boxX + 6;  // 6px from left edge (beyond double border + padding)
+  int textY_title = boxY + 8;  // 8px from top edge
+  int textY_message = boxY + 22;  // Below title with spacing
+  int maxTextWidth = boxWidth - 12;  // Leave 6px padding on each side
+
+  // Calculate max characters (6px per char in size 1 font)
+  int maxChars = (maxTextWidth - 2) / 6;  // Subtract 2px for bold effect
+
   // Title (bold effect by double printing) - bounds check
   if (title && strlen(title) > 0) {
-    // Truncate title if too long (max 18 chars for size 1 text in 116px width)
-    char truncTitle[19];
-    strncpy(truncTitle, title, 18);
-    truncTitle[18] = '\0';
+    // Truncate title if too long (reserve space for null terminator)
+    char truncTitle[20];
+    int copyLen = (strlen(title) < maxChars) ? strlen(title) : maxChars;
+    strncpy(truncTitle, title, copyLen);
+    truncTitle[copyLen] = '\0';
     
-    display.setCursor(10, 26);
+    display.setCursor(textX, textY_title);
     display.print(truncTitle);
-    display.setCursor(11, 26);
+    display.setCursor(textX + 1, textY_title);  // Bold effect
     display.print(truncTitle);
   }
 
   // Message text - bounds check
   if (message && strlen(message) > 0) {
-    // Truncate message if too long (max 18 chars for size 1 text)
-    char truncMessage[19];
-    strncpy(truncMessage, message, 18);
-    truncMessage[18] = '\0';
+    // Truncate message if too long (reserve space for null terminator)
+    char truncMessage[20];
+    int copyLen = (strlen(message) < maxChars) ? strlen(message) : maxChars;
+    strncpy(truncMessage, message, copyLen);
+    truncMessage[copyLen] = '\0';
     
-    display.setCursor(10, 38);
+    display.setCursor(textX, textY_message);
     display.print(truncMessage);
   }
 
@@ -400,6 +391,13 @@ void DisplayManager::performTransition() {
   // Special handling for sleepy transitions
   if (currentEmotion == EMOTION_SLEEPY || targetEmotion == EMOTION_SLEEPY) {
     performSleepyTransition(transitionFrame, targetEmotion);
+    return;
+  }
+  
+  // Special handling ONLY when transitioning TO notification (surprise → run away → notification appears)
+  // When transitioning FROM notification to other emotions, use standard transition
+  if (targetEmotion == EMOTION_NOTIFICATION && currentEmotion != EMOTION_NOTIFICATION) {
+    performNotificationTransition(transitionFrame, currentEmotion);
     return;
   }
   
@@ -529,6 +527,78 @@ void DisplayManager::performSleepyTransition(int transitionFrame, EmotionState t
     case 6:
       // Frame 7: Target emotion fully revealed
       drawEmotionFace(targetEmotion);
+      delay(200);
+      emotionManager.completeTransition();
+      break;
+  }
+}
+
+// Special transition handler for notification emotion (surprise → run away → notification appears)
+void DisplayManager::performNotificationTransition(int transitionFrame, EmotionState currentEmotion) {
+  switch(transitionFrame) {
+    case 0:
+      // Frame 1: Current emotion (normal idle state)
+      drawEmotionFace(currentEmotion);
+      delay(150);
+      emotionManager.advanceTransition();
+      break;
+      
+    case 1:
+      // Frame 2: Eyes start widening (notification alert!)
+      display.clearDisplay();
+      drawEyes(40, 27, 88, 27, 22);
+      display.fillCircle(40, 27, 2, SSD1306_BLACK);
+      display.fillCircle(88, 27, 2, SSD1306_BLACK);
+      display.drawCircle(64, 48, 6, SSD1306_WHITE);
+      display.display();
+      delay(100);
+      emotionManager.advanceTransition();
+      break;
+      
+    case 2:
+      // Frame 3: Eyes WIDE (startled!)
+      display.clearDisplay();
+      drawEyes(40, 26, 88, 26, 26);
+      display.fillCircle(40, 26, 3, SSD1306_BLACK);
+      display.fillCircle(88, 26, 3, SSD1306_BLACK);
+      display.fillCircle(64, 50, 8, SSD1306_WHITE);
+      display.display();
+      delay(150);
+      emotionManager.advanceTransition();
+      break;
+      
+    case 3:
+      // Frame 4: Eyes squinting (preparing to run!)
+      display.clearDisplay();
+      drawEyes(40, 28, 88, 28, 12);
+      display.drawLine(52, 50, 76, 50, SSD1306_WHITE);
+      display.display();
+      delay(100);
+      emotionManager.advanceTransition();
+      break;
+      
+    case 4:
+      // Frame 5: Start moving right (running away)
+      display.clearDisplay();
+      drawEyes(60, 28, 108, 28, 14);
+      display.drawLine(72, 50, 96, 50, SSD1306_WHITE);
+      display.display();
+      delay(100);
+      emotionManager.advanceTransition();
+      break;
+      
+    case 5:
+      // Frame 6: Almost off-screen
+      display.clearDisplay();
+      drawEyes(85, 28, 133, 28, 14);  // Partially off-screen
+      display.display();
+      delay(100);
+      emotionManager.advanceTransition();
+      break;
+      
+    case 6:
+      // Frame 7: Notification appears (target emotion fully revealed)
+      drawEmotionFace(EMOTION_NOTIFICATION);
       delay(200);
       emotionManager.completeTransition();
       break;

@@ -45,7 +45,8 @@ def main():
     
     # Initialize MQTT client
     print("📡 Connecting to AWS IoT Core...")
-    client = AWSIoTMQTTClient(config['client_id'] + '_notif_test')
+    # Use base client ID (same as workspace monitor)
+    client = AWSIoTMQTTClient(config['client_id'])
     client.configureEndpoint(config['endpoint'], 8883)
     client.configureCredentials(
         config['root_ca_path'],
@@ -56,8 +57,8 @@ def main():
     client.configureAutoReconnectBackoffTime(1, 32, 20)
     client.configureOfflinePublishQueueing(-1)
     client.configureDrainingFrequency(2)
-    client.configureConnectDisconnectTimeout(10)
-    client.configureMQTTOperationTimeout(5)
+    client.configureConnectDisconnectTimeout(30)
+    client.configureMQTTOperationTimeout(10)
     
     try:
         client.connect()
@@ -72,13 +73,10 @@ def main():
         print("\nSee docs/MQTT_SETUP.md for setup instructions")
         sys.exit(1)
     
-    # Test different notification types
+    # Test different notification types (only ones you actually use)
     test_notifications = [
-        ('discord', 'Discord', 'New message from @friend'),
-        ('slack', 'Slack', 'Meeting in 5 minutes'),
-        ('email', 'Email', '3 unread messages'),
-        ('github', 'GitHub', 'PR #42 needs review'),
-        ('calendar', 'Calendar', 'Event: Team Standup at 3pm'),
+        ('discord', 'friend_username', 'new message'),
+        ('discord', 'another_user', 'new message'),
         ('system', 'System', 'Update available'),
         ('generic', 'Alert', 'Something happened!')
     ]
@@ -87,8 +85,8 @@ def main():
     
     for notif_type, title, message in test_notifications:
         send_notification(client, notif_type, title, message)
-        print(f"⏳ Waiting 5 seconds before next notification...\n")
-        time.sleep(5)
+        print(f"⏳ Waiting 3 seconds before next notification...\n")
+        time.sleep(3)
     
     print("✅ All test notifications sent!")
     print("👀 Check SANGI's display for the notification animations")

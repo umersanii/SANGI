@@ -5,6 +5,27 @@ All notable changes to the SANGI robot project.
 ## [Unreleased]
 
 ### Changed
+- **Discord Notification Simplification** (2025-10-18)
+  - Discord notifications now use simplified format for clarity
+  - Title: Username only (extracted from notification summary)
+  - Message: Always displays "new message"
+  - Removes message content for privacy and OLED space optimization
+  - Automatic username extraction from D-Bus notification data
+  - Applied to both test notifications and live workspace monitor
+
+- **Notification System Integration** (2025-10-18)
+  - Integrated NotificationDetector into main workspace_monitor.py
+  - Added automatic MQTT publishing callback for notifications
+  - Enhanced notification_detector.py with Discord-specific formatting
+  - Updated test_notifications.py to focus on relevant notification types
+
+- **Notification Transition System** (2025-10-18)
+  - Removed peeking eyes from static notification display
+  - Added dedicated notification transition animation (surprise → run away → notification appears)
+  - Fixed transition FROM notification to use standard blink (no peeking eyes)
+  - Improved text content padding - now stays within double border outline
+  - Notification box repositioned for better screen centering
+
 - **Music Animation Overhaul** (2025-10-18)
   - Removed headphones design - replaced with closed eyes
   - Added smooth left-to-right swaying/humming motion
@@ -14,6 +35,8 @@ All notable changes to the SANGI robot project.
   - Full animation cycle: 51 frames (~1.5 seconds)
 
 ### Planned
+- WhatsApp notifications support (D-Bus desktop notifications)
+- GitHub notifications support (desktop app or API polling)
 - Motor control for movement
 - Line following sensors
 - Sound/buzzer feedback

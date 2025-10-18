@@ -247,6 +247,53 @@ void setup() {
 - Audio playing → MUSIC
 - Idle >10min → SLEEPY
 
+### Notification System
+
+**Module Architecture** (`PC-setup/lib/`):
+```
+workspace_monitor.py (orchestrator)
+    ├── activity_tracker.py (event counting)
+    ├── audio_detector.py (audio playback)
+    ├── emotion_mapper.py (emotion logic)
+    └── notification_detector.py (D-Bus notifications) ← NEW
+```
+
+**Notification Detector** (`notification_detector.py`):
+- Uses D-Bus FreeDesktop notification spec
+- Captures desktop notifications automatically
+- Categorizes by source (Discord, System, etc.)
+- Formats and publishes to MQTT
+
+**Discord Notification Simplification**:
+Discord messages are automatically simplified for clarity:
+- **Input**: "friend_username - Direct Message" + "Hey, how are you?"
+- **Output**: title="friend_username", message="new message"
+- **Reason**: Privacy + OLED space constraints
+
+**Notification Flow**:
+```
+Discord Desktop App
+    ↓ (sends notification)
+Linux D-Bus System
+    ↓ (captures)
+NotificationDetector
+    ↓ (formats: username + "new message")
+workspace_monitor._on_notification()
+    ↓ (publishes)
+MQTT → AWS IoT Core
+    ↓ (subscribes)
+NetworkManager.addNotification()
+    ↓ (triggers)
+EmotionManager.setTargetEmotion(EMOTION_NOTIFICATION)
+    ↓ (animates)
+SANGI displays notification with peeking animation
+```
+
+**Supported Notification Types**:
+- `discord` - Simplified format (username only)
+- `system` - System notifications
+- `generic` - Fallback for unknown sources
+
 ## Critical Rules
 
 1. **Never instantiate managers locally** - Use global instances only

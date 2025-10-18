@@ -24,7 +24,7 @@ from watchdog.events import FileSystemEventHandler
 from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
 
 # Import modular library components
-from lib import ActivityTracker, AudioDetector, EmotionMapper, EMOTIONS
+from lib import ActivityTracker, AudioDetector, EmotionMapper, NotificationDetector, EMOTIONS
 
 # Try to import pynput for keyboard/mouse tracking (optional)
 try:
@@ -78,6 +78,10 @@ class WorkspaceMonitor:
         self.activity_tracker = ActivityTracker()
         self.audio_detector = AudioDetector(logger=self.logger)
         self.emotion_mapper = EmotionMapper(logger=self.logger)
+        self.notification_detector = NotificationDetector(
+            logger=self.logger,
+            callback=self._on_notification
+        )
         
         # Monitor state
         self.current_emotion = 'idle'
@@ -188,6 +192,21 @@ class WorkspaceMonitor:
         except Exception as e:
             self.logger.error(f"❌ MQTT connection failed: {e}")
             raise
+    
+    def _on_notification(self, notif_type, title, message):
+        """Callback for when a notification is detected"""
+        try:
+            payload = json.dumps({
+                'type': notif_type,
+                'title': title,
+                'message': message,
+                'timestamp': int(time.time())
+            })
+            
+            self.mqtt_client.publish('sangi/notification/push', payload, 1)
+            self.logger.info(f"📬 Notification sent: [{notif_type}] {title}")
+        except Exception as e:
+            self.logger.error(f"Failed to send notification: {e}")
     
     def check_clipboard_activity(self):
         """Check for clipboard changes (copy/paste activity)"""

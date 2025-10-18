@@ -46,6 +46,7 @@ public:
   
   // Helper functions for special transitions
   void performSleepyTransition(int transitionFrame, EmotionState targetEmotion);
+  void performNotificationTransition(int transitionFrame, EmotionState currentEmotion);
   
   Adafruit_SSD1306& getDisplay() { return display; }
   
