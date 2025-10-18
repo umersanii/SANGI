@@ -21,11 +21,19 @@ void EmotionManager::init(unsigned long currentTime) {
 }
 
 void EmotionManager::setTargetEmotion(EmotionState newEmotion) {
+  // Validate emotion state is within valid range
+  if (newEmotion < EMOTION_IDLE || newEmotion > EMOTION_NOTIFICATION) {
+    Serial.printf("ERROR: Invalid emotion state %d\n", newEmotion);
+    return;
+  }
+  
   if (currentEmotion != newEmotion) {
     previousEmotion = currentEmotion;
     targetEmotion = newEmotion;
     isTransitioning = true;
     transitionFrame = 0;
+    
+    Serial.printf("Emotion transition: %d → %d\n", currentEmotion, newEmotion);
   }
 }
 

@@ -35,16 +35,18 @@ The robot displays 11 different emotions with smooth multi-frame animations:
 9. 🤔 **Thinking** - Eyes looking up with thought bubbles (51 frames)
 10. 😕 **Confused** - Asymmetric eyes with wavy mouth
 11. 💀 **Dead** - X eyes forming with tongue sticking out (51 frames)
-12. 🎵 **Music** - Musical note animation
+12. 🎵 **Music** - Closed eyes with smooth swaying motion and floating music notes (51 frames)
 
 ### Animations
 - **Smooth Blinking** - Eyes gradually close and open (3-frame transition)
 - **Look Around** - Eyes shift left and right
-- **Complex Emotions** - Multi-frame sequences for sleepy, excited, thinking, and dead emotions
+- **Complex Emotions** - Multi-frame sequences for sleepy, excited, thinking, music, and dead emotions
+- **Music Swaying** - Slow left-to-right humming motion with closed eyes (full cycle: 51 frames)
+- **Floating Music Notes** - Dispersed notes moving to top-left and top-right corners
 - **X Eyes Formation** - Dead emotion features thick X eyes that form gradually (frames 9-15)
 - **Tongue Animation** - Tongue extends and retracts smoothly (frames 16-50)
 - **Ghost Effects** - Subtle floating particles during dead emotion hold phase
-- **Natural Timing** - Realistic delays between expressions (30ms per frame)
+- **Natural Timing** - Consistent 30ms frame delay (~20 FPS) across all animations
 
 ### Debug Mode
 - **Isolated Testing** - Set `DEBUG_MODE_ENABLED true` in `config.h` to test specific emotions

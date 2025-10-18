@@ -1,0 +1,34 @@
+{
+  "endpoint": "your-endpoint.iot.us-east-1.amazonaws.com",
+  "client_id": "sangi-pc-monitor",
+  "certificate_path": "/path/to/SANGI.cert.pem",
+  "private_key_path": "/path/to/SANGI.private.key",
+  "root_ca_path": "/path/to/AmazonRootCA1.pem",
+  "watch_paths": [
+    "~/workspace",
+    "~/projects",
+    "~/coding"
+  ],
+  "monitoring": {
+    "update_interval_seconds": 5,
+    "stats_publish_interval_seconds": 30,
+    "idle_timeout_minutes": 10,
+    "high_activity_threshold": 3,
+    "build_check_enabled": true
+  },
+  "code_extensions": [
+    ".py",
+    ".cpp",
+    ".c",
+    ".h",
+    ".js",
+    ".ts",
+    ".jsx",
+    ".tsx",
+    ".java",
+    ".go",
+    ".rs",
+    ".rb",
+    ".php"
+  ]
+}

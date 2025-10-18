@@ -212,10 +212,14 @@ void DisplayManager::drawFace_Sleepy() {
   drawEyes(40, 30, 88, 30, 8);
   display.drawCircle(64, 48, 6, SSD1306_WHITE);
   display.setTextSize(1);
-  display.setCursor(105, 12);
+  display.setCursor(98, 20);
   display.print("z");
-  display.setCursor(108, 8);
+  display.setCursor(105, 14);
+  display.print("z");
+  display.setCursor(112, 10);
   display.print("Z");
+  display.setCursor(118, 6);
+  display.print("z");
   display.display();
 }
 
@@ -234,6 +238,10 @@ void DisplayManager::drawFace_Confused() {
   display.fillRoundRect(78, 26, 20, 12, 5, SSD1306_WHITE);
   // Simple filled mouth (24px wide, matches other emotions)
   display.fillRoundRect(52, 48, 24, 5, 2, SSD1306_WHITE);
+  // Question mark to show confusion
+  display.setTextSize(2);
+  display.setCursor(108, 20);
+  display.print("?");
   display.display();
 }
 
@@ -271,6 +279,73 @@ void DisplayManager::drawFace_Surprised() {
   display.display();
 }
 
+void DisplayManager::drawFace_Notification(const char* title, const char* message) {
+  display.clearDisplay();
+
+  // ===== PEEKING EYES (Above the Box) =====
+  // Both normal-sized eyes (20px × 20px), but only render portion above box
+  
+  int eyeSize = 20;
+  int leftEyeX = 40;   // Left eye center (same as normal emotions)
+  int rightEyeX = 88;  // Right eye center (same as normal emotions)
+  int eyeY = 24;       // Eye center position
+  
+  int boxTopY = 20;    // Where the box starts (this defines the "table edge")
+  
+  // Calculate visible portion of eyes (only above the box)
+  int eyeTopY = eyeY - 10;           // Top of eye (eyeY - radius)
+  int visibleHeight = boxTopY - eyeTopY;  // Height of eye above box = 20 - 14 = 6px
+  
+  // Only draw the portion of eyes above the box top edge
+  if (visibleHeight > 0) {
+    // Left eye - only top portion
+    display.fillRoundRect(leftEyeX - 10, eyeTopY, 20, visibleHeight, 5, SSD1306_WHITE);
+    
+    // Right eye - only top portion  
+    display.fillRoundRect(rightEyeX - 10, eyeTopY, 20, visibleHeight, 5, SSD1306_WHITE);
+  }
+
+  // ===== NOTIFICATION BOX (Slightly smaller) =====
+  int boxX = 6;
+  int boxY = boxTopY;  // Starts at y=20
+  int boxWidth = 116;  // Slightly smaller width
+  int boxHeight = 42;  // Slightly smaller height
+
+  // Draw double border for emphasis
+  display.drawRect(boxX, boxY, boxWidth, boxHeight, SSD1306_WHITE);
+  display.drawRect(boxX + 1, boxY + 1, boxWidth - 2, boxHeight - 2, SSD1306_WHITE);
+
+  // ===== TEXT CONTENT =====
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+
+  // Title (bold effect by double printing) - bounds check
+  if (title && strlen(title) > 0) {
+    // Truncate title if too long (max 18 chars for size 1 text in 116px width)
+    char truncTitle[19];
+    strncpy(truncTitle, title, 18);
+    truncTitle[18] = '\0';
+    
+    display.setCursor(10, 26);
+    display.print(truncTitle);
+    display.setCursor(11, 26);
+    display.print(truncTitle);
+  }
+
+  // Message text - bounds check
+  if (message && strlen(message) > 0) {
+    // Truncate message if too long (max 18 chars for size 1 text)
+    char truncMessage[19];
+    strncpy(truncMessage, message, 18);
+    truncMessage[18] = '\0';
+    
+    display.setCursor(10, 38);
+    display.print(truncMessage);
+  }
+
+  display.display();
+}
+
 void DisplayManager::drawEmotionFace(EmotionState emotion) {
   switch(emotion) {
     case EMOTION_IDLE:
@@ -305,6 +380,9 @@ void DisplayManager::drawEmotionFace(EmotionState emotion) {
       break;
     case EMOTION_DEAD:
       drawFace_Dead();
+      break;
+    case EMOTION_NOTIFICATION:
+      drawFace_Notification("", "");  // Default empty notification
       break;
     default:
       drawFace_Normal();

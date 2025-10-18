@@ -78,7 +78,7 @@ void setup() {
 #endif
 
   // Show boot screen
-  displayManager.showBootScreen();
+//  displayManager.showBootScreen();
 
 #if DEBUG_MODE_ENABLED
   Serial.println("=== DEBUG MODE ENABLED ===");
@@ -156,6 +156,9 @@ void loop() {
       emotionIndex = (emotionIndex + 1) % numEmotions;
       lastEmotionSwitch = currentTime;
     }
+  } else {
+    // MQTT connected - reset autonomous timer to prevent interference
+    lastEmotionSwitch = currentTime;
   }
 #endif
 #endif // !DEBUG_MODE_ENABLED
@@ -211,6 +214,33 @@ void loop() {
       case EMOTION_DEAD:
         animationManager.animateDead();
         break;
+      case EMOTION_NOTIFICATION:
+        {
+          // Check for queued notifications
+          Notification* notif = networkManager.getCurrentNotification();
+          if (notif != nullptr) {
+            // Show notification with actual data
+            animationManager.animateNotification(notif->title, notif->message);
+            
+            // After animation completes one cycle, clear it and check for next
+            static unsigned long notifStartTime = 0;
+            unsigned long currentMillis = millis();
+            
+            // Handle millis() overflow (occurs every ~49 days)
+            bool overflow = currentMillis < notifStartTime;
+            
+            if (notifStartTime == 0) {
+              notifStartTime = currentMillis;
+            } else if (overflow || (currentMillis - notifStartTime > 3300)) {  // 66 frames * 50ms = 3.3s
+              networkManager.clearCurrentNotification();
+              notifStartTime = 0;
+            }
+          } else {
+            // Fallback if no notification data available
+            animationManager.animateNotification("Alert!", "New Message");
+          }
+        }
+        break;
       default:
         // Static display for other emotions
         displayManager.drawEmotionFace(emotionManager.getCurrentEmotion());
@@ -222,16 +252,28 @@ void loop() {
 
   // Debug output
   static unsigned long lastDebug = 0;
-  if (millis() - lastDebug > 10000) {
+  unsigned long currentMillis = millis();
+  
+  // Handle millis() overflow
+  bool debugOverflow = currentMillis < lastDebug;
+  
+  if (debugOverflow || (currentMillis - lastDebug > 10000)) {
     float voltage = batteryManager.readVoltage();
+    unsigned long uptimeSeconds = (currentMillis - bootTime) / 1000;
+    
+    // Handle uptime overflow
+    if (currentMillis < bootTime) {
+      uptimeSeconds = currentMillis / 1000;  // Reset after overflow
+    }
+    
     Serial.printf("Battery: %.2fV | Emotion: %d | Uptime: %lus", 
-                  voltage, emotionManager.getCurrentEmotion(), (millis() - bootTime) / 1000);
+                  voltage, emotionManager.getCurrentEmotion(), uptimeSeconds);
 #if ENABLE_MQTT
     Serial.printf(" | MQTT: %s\n", networkManager.isMQTTConnected() ? "Connected" : "Disconnected");
 #else
     Serial.println();
 #endif
-    lastDebug = millis();
+    lastDebug = currentMillis;
   }
 
   delay(50);

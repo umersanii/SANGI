@@ -1,0 +1,27 @@
+[Unit]
+Description=SANGI Workspace Activity Monitor - Modular Edition
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=%i
+Group=%i
+WorkingDirectory=/home/%i/sangi-workspace-monitor
+ExecStart=/usr/bin/python3 /home/%i/sangi-workspace-monitor/workspace_monitor.py
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=sangi-monitor
+
+# Environment variables
+Environment="PYTHONUNBUFFERED=1"
+Environment="PYTHONPATH=/home/%i/sangi-workspace-monitor"
+
+# Optional: For apps requiring display access
+# Environment="DISPLAY=:0"
+# Environment="XAUTHORITY=/home/%i/.Xauthority"
+
+[Install]
+WantedBy=multi-user.target

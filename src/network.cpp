@@ -15,7 +15,20 @@ NetworkManager::NetworkManager()
   : mqttClient(wifiClient),
     currentState(NET_DISCONNECTED),
     lastReconnectAttempt(0),
-    lastStatusPublish(0) {
+    lastStatusPublish(0),
+    pcActivityScore(0),
+    piActivityScore(0),
+    combinedActivityScore(0),
+    lastPcActivity(0),
+    lastPiActivity(0),
+    pcOnline(false),
+    piOnline(false),
+    notificationCount(0),
+    currentNotificationIndex(0) {
+  // Initialize notification queue
+  for (int i = 0; i < MAX_NOTIFICATION_QUEUE; i++) {
+    notificationQueue[i].active = false;
+  }
 }
 
 // ===== INITIALIZATION =====
@@ -34,6 +47,7 @@ bool NetworkManager::init() {
   // Setup MQTT client
   mqttClient.setServer(AWS_IOT_ENDPOINT, 8883);
   mqttClient.setCallback(NetworkManager::messageCallback);
+  mqttClient.setBufferSize(1024);  // Increase from default 256 to 1024 for AWS IoT
   mqttClient.setKeepAlive(60);
   mqttClient.setSocketTimeout(30);
   
@@ -123,8 +137,15 @@ bool NetworkManager::connectMQTT() {
       Serial.println("Failed to subscribe to emotion topic");
     }
     
-    // Publish initial status
-    publishStatus("connected");
+    // Subscribe to notification topic
+    if (mqttClient.subscribe("sangi/notification/push")) {
+      Serial.println("Subscribed to: sangi/notification/push");
+    } else {
+      Serial.println("Failed to subscribe to notification topic");
+    }
+    
+    // Don't publish immediately - causes disconnects
+    // Will publish on first status update
     
     return true;
   } else {
@@ -169,16 +190,26 @@ void NetworkManager::update() {
   
   // Check WiFi status
   if (!isWiFiConnected()) {
-    Serial.println("WiFi disconnected - attempting reconnect");
+    // Only log once to avoid spam
+    static bool wifiDisconnectLogged = false;
+    if (!wifiDisconnectLogged) {
+      Serial.println("WiFi disconnected - attempting reconnect");
+      wifiDisconnectLogged = true;
+    }
+    
     if (connectWiFi()) {
       connectMQTT();
+      wifiDisconnectLogged = false;
     }
     return;
   }
   
   // Check MQTT status and reconnect if needed
   if (!isMQTTConnected()) {
-    if (currentTime - lastReconnectAttempt > MQTT_RECONNECT_INTERVAL) {
+    // Handle millis() overflow
+    bool overflow = currentTime < lastReconnectAttempt;
+    
+    if (overflow || (currentTime - lastReconnectAttempt > MQTT_RECONNECT_INTERVAL)) {
       Serial.println("MQTT disconnected - attempting reconnect");
       lastReconnectAttempt = currentTime;
       connectMQTT();
@@ -186,11 +217,14 @@ void NetworkManager::update() {
     return;
   }
   
-  // Process MQTT messages
+  // Process MQTT messages - THIS IS CRITICAL!
   mqttClient.loop();
   
-  // Periodic status publishing
-  if (currentTime - lastStatusPublish > STATUS_PUBLISH_INTERVAL) {
+  // Handle publish timing overflow
+  bool publishOverflow = currentTime < lastStatusPublish;
+  
+  // Periodic status publishing (reduced frequency)
+  if (publishOverflow || (currentTime - lastStatusPublish > STATUS_PUBLISH_INTERVAL * 3)) {  // Every 90 seconds
     float voltage = batteryManager.readVoltage();
     publishBattery(voltage);
     publishEmotionChange(emotionManager.getCurrentEmotion());
@@ -283,8 +317,14 @@ void NetworkManager::messageCallback(char* topic, byte* payload, unsigned int le
 
 // ===== MESSAGE HANDLER =====
 void NetworkManager::handleIncomingMessage(const char* topic, const char* payload) {
-  // Parse JSON payload
-  StaticJsonDocument<200> doc;
+  // Validate inputs
+  if (!topic || !payload) {
+    Serial.println("ERROR: Null topic or payload");
+    return;
+  }
+  
+  // Parse JSON payload with larger buffer
+  StaticJsonDocument<512> doc;
   DeserializationError error = deserializeJson(doc, payload);
   
   if (error) {
@@ -298,18 +338,133 @@ void NetworkManager::handleIncomingMessage(const char* topic, const char* payloa
     if (doc.containsKey("emotion")) {
       int emotionValue = doc["emotion"];
       
-      // Validate emotion range
-      if (emotionValue >= EMOTION_IDLE && emotionValue <= EMOTION_MUSIC) {
-        Serial.print("Setting emotion via MQTT: ");
-        Serial.println(emotionValue);
-        
+      Serial.printf(">>> MQTT EMOTION: %d <<<\n", emotionValue);
+      
+      // Validate emotion range (0-13) - matches EmotionState enum
+      if (emotionValue >= EMOTION_IDLE && emotionValue <= EMOTION_NOTIFICATION) {
         emotionManager.setTargetEmotion((EmotionState)emotionValue);
-        publishStatus("emotion_updated");
+        Serial.printf("✓ Emotion set to: %d\n", emotionValue);
       } else {
-        Serial.print("Invalid emotion value: ");
-        Serial.println(emotionValue);
-        publishStatus("invalid_emotion");
+        Serial.printf("✗ Invalid emotion: %d (valid range: 0-13)\n", emotionValue);
       }
+    } else {
+      Serial.println("✗ Missing 'emotion' field in JSON");
+    }
+  }
+  // Handle notification push
+  else if (strcmp(topic, "sangi/notification/push") == 0) {
+    NotificationType notifType = NOTIFY_GENERIC;
+    const char* title = "";
+    const char* message = "";
+    
+    // Parse notification type
+    if (doc.containsKey("type")) {
+      const char* typeStr = doc["type"];
+      if (strcmp(typeStr, "discord") == 0) notifType = NOTIFY_DISCORD;
+      else if (strcmp(typeStr, "slack") == 0) notifType = NOTIFY_SLACK;
+      else if (strcmp(typeStr, "email") == 0) notifType = NOTIFY_EMAIL;
+      else if (strcmp(typeStr, "github") == 0) notifType = NOTIFY_GITHUB;
+      else if (strcmp(typeStr, "calendar") == 0) notifType = NOTIFY_CALENDAR;
+      else if (strcmp(typeStr, "system") == 0) notifType = NOTIFY_SYSTEM;
+    }
+    
+    if (doc.containsKey("title")) {
+      title = doc["title"];
+    }
+    
+    if (doc.containsKey("message")) {
+      message = doc["message"];
+    }
+    
+    // Add to notification queue
+    if (addNotification(notifType, title, message)) {
+      Serial.printf("📩 Notification queued: [%d] %s - %s\n", notifType, title, message);
+      
+      // Trigger notification emotion if not already showing one
+      if (emotionManager.getCurrentEmotion() != EMOTION_NOTIFICATION) {
+        emotionManager.setTargetEmotion(EMOTION_NOTIFICATION);
+      }
+    } else {
+      Serial.println("⚠️  Notification queue full - dropped");
+    }
+  } else {
+    Serial.printf("Unknown topic: %s\n", topic);
+  }
+}
+
+// ===== NOTIFICATION QUEUE MANAGEMENT =====
+bool NetworkManager::addNotification(NotificationType type, const char* title, const char* message) {
+  if (notificationCount >= MAX_NOTIFICATION_QUEUE) {
+    return false;  // Queue full
+  }
+  
+  // Validate input parameters
+  if (!title) title = "";
+  if (!message) message = "";
+  
+  // Find next available slot
+  for (int i = 0; i < MAX_NOTIFICATION_QUEUE; i++) {
+    if (!notificationQueue[i].active) {
+      notificationQueue[i].type = type;
+      
+      // Safe string copy with explicit null termination
+      strncpy(notificationQueue[i].title, title, 31);
+      notificationQueue[i].title[31] = '\0';
+      
+      strncpy(notificationQueue[i].message, message, 63);
+      notificationQueue[i].message[63] = '\0';
+      
+      notificationQueue[i].timestamp = millis();
+      notificationQueue[i].active = true;
+      notificationCount++;
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+Notification* NetworkManager::getCurrentNotification() {
+  if (notificationCount == 0) {
+    return nullptr;
+  }
+  
+  // Find first active notification sequentially
+  for (int i = 0; i < MAX_NOTIFICATION_QUEUE; i++) {
+    if (notificationQueue[i].active) {
+      currentNotificationIndex = i;
+      return &notificationQueue[i];
+    }
+  }
+  
+  // Inconsistency detected: count says we have notifications but none found
+  Serial.println("WARNING: Notification count mismatch - resetting");
+  notificationCount = 0;
+  return nullptr;
+}
+
+void NetworkManager::clearCurrentNotification() {
+  if (currentNotificationIndex >= MAX_NOTIFICATION_QUEUE) {
+    Serial.println("ERROR: Invalid notification index");
+    return;
+  }
+  
+  if (currentNotificationIndex < MAX_NOTIFICATION_QUEUE && 
+      notificationQueue[currentNotificationIndex].active) {
+    notificationQueue[currentNotificationIndex].active = false;
+    
+    // Prevent underflow
+    if (notificationCount > 0) {
+      notificationCount--;
+    } else {
+      Serial.println("WARNING: Notification count already at 0");
+    }
+    
+    Serial.printf("✓ Notification cleared. Queue: %d remaining\n", notificationCount);
+    
+    // If no more notifications, return to previous emotion
+    if (notificationCount == 0 && emotionManager.getCurrentEmotion() == EMOTION_NOTIFICATION) {
+      emotionManager.setTargetEmotion(EMOTION_IDLE);
     }
   }
 }

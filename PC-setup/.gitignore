@@ -1,0 +1,29 @@
+# AWS IoT Certificates (SENSITIVE - DO NOT COMMIT)
+certs/*.pem
+certs/*.key
+certs/*.crt
+*.pem
+*.key
+*.crt
+
+# Configuration with secrets
+config.json
+
+# Logs
+logs/*.log
+logs/*.log.*
+*.log
+*.log.*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+
+# Temporary files
+*.tmp
+*.swp
+.DS_Store

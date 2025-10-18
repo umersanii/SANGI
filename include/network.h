@@ -11,6 +11,29 @@
 // Forward declaration for callback
 class NetworkManager;
 
+// ===== NOTIFICATION TYPES =====
+enum NotificationType {
+  NOTIFY_GENERIC,
+  NOTIFY_DISCORD,
+  NOTIFY_SLACK,
+  NOTIFY_EMAIL,
+  NOTIFY_GITHUB,
+  NOTIFY_CALENDAR,
+  NOTIFY_SYSTEM
+};
+
+// ===== NOTIFICATION STRUCTURE =====
+struct Notification {
+  NotificationType type;
+  char title[32];
+  char message[64];
+  unsigned long timestamp;
+  bool active;
+};
+
+// Maximum notifications in queue
+#define MAX_NOTIFICATION_QUEUE 5
+
 // ===== NETWORK STATE =====
 enum NetworkState {
   NET_DISCONNECTED,
@@ -56,12 +79,37 @@ public:
   // Callback for MQTT messages
   static void messageCallback(char* topic, byte* payload, unsigned int length);
   
+  // Workspace activity tracking
+  void handleWorkspaceActivity(const char* device, int activityScore);
+  int getCombinedActivityScore() const { return combinedActivityScore; }
+  
+  // Notification queue management
+  bool addNotification(NotificationType type, const char* title, const char* message);
+  bool hasNotifications() const { return notificationCount > 0; }
+  Notification* getCurrentNotification();
+  void clearCurrentNotification();
+  int getNotificationCount() const { return notificationCount; }
+  
 private:
   WiFiClientSecure wifiClient;
   PubSubClient mqttClient;
   NetworkState currentState;
   unsigned long lastReconnectAttempt;
   unsigned long lastStatusPublish;
+  
+  // Workspace activity state
+  int pcActivityScore;
+  int piActivityScore;
+  int combinedActivityScore;
+  unsigned long lastPcActivity;
+  unsigned long lastPiActivity;
+  bool pcOnline;
+  bool piOnline;
+  
+  // Notification queue
+  Notification notificationQueue[MAX_NOTIFICATION_QUEUE];
+  int notificationCount;
+  int currentNotificationIndex;
   
   void setupTime();
   void handleIncomingMessage(const char* topic, const char* payload);

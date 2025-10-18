@@ -1,0 +1,26 @@
+[Unit]
+Description=SANGI PC Workspace Monitor - Modular Edition
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=%i
+WorkingDirectory=/media/sani/work/Coding/SANGI/PC-setup
+ExecStart=/usr/bin/python3 /media/sani/work/Coding/SANGI/PC-setup/workspace_monitor.py
+
+# Restart on failure
+Restart=on-failure
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=sangi-monitor
+
+# Environment
+Environment="PYTHONUNBUFFERED=1"
+Environment="PYTHONPATH=/media/sani/work/Coding/SANGI/PC-setup"
+
+[Install]
+WantedBy=multi-user.target

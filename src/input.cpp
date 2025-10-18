@@ -17,9 +17,13 @@ bool InputManager::isTouched() {
 
 void InputManager::handleTouchInteraction() {
   if (isTouched()) {
-    lastInteraction = millis();
+    unsigned long currentTime = millis();
+    lastInteraction = currentTime;
     
-    if (random(0, 2) == 0) {
+    // Random emotion selection with better distribution
+    int randomChoice = random(0, 100);
+    
+    if (randomChoice < 50) {
       emotionManager.setTargetEmotion(EMOTION_EXCITED);
     } else {
       emotionManager.setTargetEmotion(EMOTION_SURPRISED);

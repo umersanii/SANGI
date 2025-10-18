@@ -13,7 +13,21 @@ void BatteryManager::init() {
 
 float BatteryManager::readVoltage() {
   int rawValue = analogRead(BATTERY_PIN);
+  
+  // ESP32-C3 ADC is 12-bit (0-4095) with 3.3V reference
+  // Add bounds checking for safety
+  if (rawValue < 0) rawValue = 0;
+  if (rawValue > 4095) rawValue = 4095;
+  
   float voltage = (rawValue / 4095.0) * 3.3;
+  
+  // Sanity check: voltage should be between 0V and 5V
+  if (voltage < 0.0f) voltage = 0.0f;
+  if (voltage > 5.0f) {
+    Serial.printf("WARNING: Voltage reading %f V exceeds expected range\n", voltage);
+    voltage = 3.3f;  // Default to safe value
+  }
+  
   return voltage;
 }
 
