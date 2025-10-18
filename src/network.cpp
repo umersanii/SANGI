@@ -24,11 +24,16 @@ NetworkManager::NetworkManager()
     pcOnline(false),
     piOnline(false),
     notificationCount(0),
-    currentNotificationIndex(0) {
+    currentNotificationIndex(0),
+    workspaceMode(false),
+    lastMQTTMessageTime(0) {
   // Initialize notification queue
   for (int i = 0; i < MAX_NOTIFICATION_QUEUE; i++) {
     notificationQueue[i].active = false;
   }
+  
+  // Initialize SSID storage
+  memset(connectedSSID, 0, sizeof(connectedSSID));
 }
 
 // ===== INITIALIZATION =====
@@ -105,6 +110,14 @@ bool NetworkManager::connectWiFi() {
   currentState = NET_WIFI_CONNECTED;
   Serial.print("WiFi connected! IP: ");
   Serial.println(WiFi.localIP());
+  
+  // Store connected SSID for validation
+  String ssid = WiFi.SSID();
+  strncpy(connectedSSID, ssid.c_str(), 32);
+  connectedSSID[32] = '\0';
+  Serial.print("Connected SSID: ");
+  Serial.println(connectedSSID);
+  
   return true;
 #endif
 }
@@ -315,6 +328,23 @@ void NetworkManager::messageCallback(char* topic, byte* payload, unsigned int le
   networkManager.handleIncomingMessage(topic, message);
 }
 
+// ===== SSID VALIDATION =====
+bool NetworkManager::validateSSID(const char* receivedSSID) {
+  if (!receivedSSID || strlen(receivedSSID) == 0) {
+    return false;  // No SSID in message - might be from different source
+  }
+  
+  bool matches = (strcmp(connectedSSID, receivedSSID) == 0);
+  
+  if (matches) {
+    Serial.printf("✅ SSID validated: %s\n", receivedSSID);
+  } else {
+    Serial.printf("⚠️  SSID mismatch: expected '%s', got '%s'\n", connectedSSID, receivedSSID);
+  }
+  
+  return matches;
+}
+
 // ===== MESSAGE HANDLER =====
 void NetworkManager::handleIncomingMessage(const char* topic, const char* payload) {
   // Validate inputs
@@ -331,6 +361,18 @@ void NetworkManager::handleIncomingMessage(const char* topic, const char* payloa
     Serial.print("JSON parse failed: ");
     Serial.println(error.c_str());
     return;
+  }
+  
+  // Validate SSID if present in message
+  if (doc.containsKey("ssid")) {
+    const char* receivedSSID = doc["ssid"];
+    if (!validateSSID(receivedSSID)) {
+      Serial.println("🚫 SSID validation failed - message ignored");
+      workspaceMode = false;
+      return;
+    }
+    workspaceMode = true;
+    lastMQTTMessageTime = millis();
   }
   
   // Handle emotion set command

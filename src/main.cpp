@@ -53,6 +53,10 @@ void setup() {
   Serial.flush();
 
   bootTime = millis();
+  
+  
+  // Initialize random seed for offline mode
+  randomSeed(analogRead(0) + millis());
 
   // Initialize all modules
   if (!displayManager.init()) {
@@ -64,7 +68,7 @@ void setup() {
   inputManager.init();
   inputManager.updateLastInteraction(bootTime);
   batteryManager.init();
-
+  displayManager.showBootScreen();
   // Initialize network (if enabled in config.h)
 #if ENABLE_MQTT
   networkManager.init();
@@ -147,17 +151,58 @@ void loop() {
     lastEmotionSwitch = currentTime;
   }
 #else
-  // Fallback to autonomous mode if network disconnected
-  if (!networkManager.isMQTTConnected()) {
-    if (lastEmotionSwitch == 0 || currentTime - lastEmotionSwitch > EMOTION_CHANGE_INTERVAL) {
-      EmotionState newEmotion = testEmotions[emotionIndex % numEmotions];
+  // Check if in workspace mode based on recent MQTT messages
+  bool inWorkspaceMode = networkManager.isInWorkspaceMode();
+  unsigned long lastMQTTTime = networkManager.getLastMQTTMessageTime();
+  unsigned long timeSinceLastMQTT = 0;
+  
+  // Calculate time since last MQTT message
+  if (lastMQTTTime > 0) {
+    // Handle millis() overflow
+    if (currentTime >= lastMQTTTime) {
+      timeSinceLastMQTT = currentTime - lastMQTTTime;
+    } else {
+      timeSinceLastMQTT = 0;  // Reset on overflow
+    }
+  }
+  
+  // Enter offline mode if:
+  // 1. MQTT never connected (lastMQTTTime == 0), OR
+  // 2. MQTT not currently connected, OR
+  // 3. Timeout exceeded since last valid message
+  bool offlineMode = (lastMQTTTime == 0) || 
+                     !networkManager.isMQTTConnected() || 
+                     (lastMQTTTime > 0 && timeSinceLastMQTT > MQTT_TIMEOUT_THRESHOLD);
+  
+  if (offlineMode) {
+    // Offline autonomous mode - randomly pick emotions
+    if (lastEmotionSwitch == 0 || currentTime - lastEmotionSwitch > OFFLINE_EMOTION_INTERVAL) {
+      // Pick random emotion
+      int randomIndex = random(0, numEmotions);
+      EmotionState newEmotion = testEmotions[randomIndex];
       emotionManager.setTargetEmotion(newEmotion);
-      Serial.printf("[Autonomous] Setting emotion: %d\n", newEmotion);
-      emotionIndex = (emotionIndex + 1) % numEmotions;
+      
+      static bool offlineMsgShown = false;
+      if (!offlineMsgShown) {
+        Serial.println("📴 Offline mode - autonomous emotion cycling");
+        offlineMsgShown = true;
+      }
+      
+      Serial.printf("[Offline] Emotion: %d (random)\n", newEmotion);
       lastEmotionSwitch = currentTime;
     }
   } else {
-    // MQTT connected - reset autonomous timer to prevent interference
+    // Workspace mode active - MQTT controls emotions
+    static bool workspaceMsgShown = false;
+    static bool offlineMsgReset = false;
+    
+    if (inWorkspaceMode && !workspaceMsgShown) {
+      Serial.println("💼 Workspace mode active");
+      workspaceMsgShown = true;
+      offlineMsgReset = false;  // Allow offline message to show again
+    }
+    
+    // Reset autonomous timer to prevent interference
     lastEmotionSwitch = currentTime;
   }
 #endif

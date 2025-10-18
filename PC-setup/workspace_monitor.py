@@ -196,10 +196,12 @@ class WorkspaceMonitor:
     def _on_notification(self, notif_type, title, message):
         """Callback for when a notification is detected"""
         try:
+            ssid = self.get_wifi_ssid()
             payload = json.dumps({
                 'type': notif_type,
                 'title': title,
                 'message': message,
+                'ssid': ssid if ssid else '',
                 'timestamp': int(time.time())
             })
             
@@ -294,13 +296,36 @@ class WorkspaceMonitor:
                 pass
         return False
     
+    def get_wifi_ssid(self):
+        """Get current WiFi SSID"""
+        try:
+            # Try nmcli first (most common on Linux)
+            result = subprocess.run(['nmcli', '-t', '-f', 'active,ssid', 'dev', 'wifi'],
+                                  capture_output=True, text=True, timeout=2)
+            for line in result.stdout.split('\n'):
+                if line.startswith('yes:'):
+                    return line.split(':', 1)[1].strip()
+            
+            # Fallback to iwgetid
+            result = subprocess.run(['iwgetid', '-r'], 
+                                  capture_output=True, text=True, timeout=2)
+            ssid = result.stdout.strip()
+            if ssid:
+                return ssid
+        except (subprocess.TimeoutExpired, FileNotFoundError, Exception) as e:
+            self.logger.debug(f"Could not detect WiFi SSID: {e}")
+        
+        return None
+    
     def publish_emotion(self, emotion):
         """Publish emotion to SANGI via MQTT"""
         stats = self.activity_tracker.get_stats()
+        ssid = self.get_wifi_ssid()
         
         payload = json.dumps({
             'emotion': EMOTIONS[emotion],
             'source': 'pc',
+            'ssid': ssid if ssid else '',
             'timestamp': int(time.time())
         })
         

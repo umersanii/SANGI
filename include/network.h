@@ -90,6 +90,10 @@ public:
   void clearCurrentNotification();
   int getNotificationCount() const { return notificationCount; }
   
+  // Offline mode detection
+  bool isInWorkspaceMode() const { return workspaceMode; }
+  unsigned long getLastMQTTMessageTime() const { return lastMQTTMessageTime; }
+  
 private:
   WiFiClientSecure wifiClient;
   PubSubClient mqttClient;
@@ -111,8 +115,14 @@ private:
   int notificationCount;
   int currentNotificationIndex;
   
+  // Offline mode detection
+  bool workspaceMode;
+  unsigned long lastMQTTMessageTime;
+  char connectedSSID[33];  // Current WiFi SSID (max 32 chars + null terminator)
+  
   void setupTime();
   void handleIncomingMessage(const char* topic, const char* payload);
+  bool validateSSID(const char* receivedSSID);
 };
 
 extern NetworkManager networkManager;

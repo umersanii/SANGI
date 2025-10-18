@@ -66,13 +66,29 @@ void drawFace_X();  // X = emotion name
 - MUSIC: Headphones, head bobbing
 
 ### NetworkManager (`network.h/cpp`)
-**Responsibility**: WiFi and AWS IoT MQTT
+**Responsibility**: WiFi and AWS IoT MQTT with offline mode
 
 - Certificate-based TLS 1.2 authentication
 - NTP time synchronization
 - Notification queue (max 5)
 - Automatic reconnection (5s interval)
-- Autonomous fallback when offline
+- **SSID validation** for cross-network isolation
+- **Offline mode**: Autonomous emotion cycling when MQTT unavailable
+
+**Operating Modes**:
+1. **Workspace Mode**: MQTT connected + valid SSID → workspace-driven emotions
+2. **Offline Mode**: No MQTT or SSID mismatch → autonomous emotion cycling (20s intervals)
+
+**SSID Validation**:
+- Workspace monitor includes WiFi SSID in all MQTT messages
+- ESP32 validates SSID matches its connected network
+- Prevents neighbor's SANGI from responding to your messages
+- Failed validation triggers offline mode
+
+**Offline Detection**:
+- MQTT disconnected, OR
+- >60 seconds without valid MQTT message
+- Automatically switches to autonomous emotion cycling
 
 **Topics**:
 - Subscribe: `sangi/emotion/set`, `sangi/notification/push`
@@ -83,6 +99,8 @@ void drawFace_X();  // X = emotion name
 void init();
 void update();
 bool isConnected();
+bool isInWorkspaceMode();
+unsigned long getLastMQTTMessageTime();
 bool addNotification(type, title, message);
 bool hasNotifications();
 ```

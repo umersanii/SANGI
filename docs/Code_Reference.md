@@ -182,6 +182,10 @@ Notification* getCurrentNotification();
 void clearCurrentNotification();
 bool hasNotifications();
 int getNotificationCount();
+
+// Offline mode
+bool isInWorkspaceMode();
+unsigned long getLastMQTTMessageTime();
 ```
 
 **Usage**:
@@ -197,7 +201,23 @@ if (networkManager.hasNotifications()) {
   // Display notification...
   networkManager.clearCurrentNotification();
 }
+
+// Check workspace mode status
+if (networkManager.isInWorkspaceMode()) {
+  // MQTT active with valid SSID
+}
 ```
+
+**Offline Mode Behavior**:
+
+SANGI operates in two modes:
+1. **Workspace Mode**: MQTT connected with valid SSID - emotions controlled by workspace monitor
+2. **Offline Mode**: No MQTT or SSID mismatch - autonomous emotion cycling
+
+Offline mode triggers when:
+- MQTT not connected, OR
+- No valid MQTT message received for > 60 seconds (configurable: `MQTT_TIMEOUT_THRESHOLD`)
+- SSID in message doesn't match current WiFi network
 
 **MQTT Message Formats**:
 
@@ -206,6 +226,7 @@ Emotion control (`sangi/emotion/set`):
 {
   "emotion": 1,
   "source": "pc",
+  "ssid": "YourWiFiNetwork",
   "timestamp": 1729180800
 }
 ```
@@ -216,9 +237,16 @@ Notification (`sangi/notification/push`):
   "type": "discord",
   "title": "username",
   "message": "new message",
+  "ssid": "YourWiFiNetwork",
   "timestamp": 1729180800
 }
 ```
+
+**SSID Validation**:
+- All MQTT messages from workspace monitor include the WiFi SSID
+- ESP32 validates incoming SSID matches its connected network
+- Prevents cross-network interference (e.g., neighbor's SANGI responding)
+- Failed validation triggers offline mode
 
 **Notification Types**:
 - `discord` - Discord messages (simplified format: username + "new message")
@@ -344,6 +372,12 @@ enum EmotionState {
 #define MQTT_TOPIC_STATUS "sangi/status"
 #define MQTT_TOPIC_BATTERY "sangi/battery"
 #define MQTT_TOPIC_NOTIF "sangi/notification/push"
+```
+
+**Offline Mode**:
+```cpp
+#define MQTT_TIMEOUT_THRESHOLD 60000      // 60s without MQTT triggers offline mode
+#define OFFLINE_EMOTION_INTERVAL 20000    // 20s between emotions in offline mode
 ```
 
 ## Secrets Configuration

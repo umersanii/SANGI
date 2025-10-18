@@ -4,6 +4,19 @@ All notable changes to the SANGI robot project.
 
 ## [Unreleased]
 
+### Added
+- **Offline Mode with SSID Validation** (2025-10-18)
+  - SANGI now operates in two modes: Workspace Mode and Offline Mode
+  - **Workspace Mode**: MQTT connected with valid SSID - emotions controlled by workspace monitor
+  - **Offline Mode**: No MQTT or SSID mismatch - autonomous emotion cycling (20s intervals)
+  - SSID validation prevents cross-network interference (e.g., neighbor's SANGI)
+  - Workspace monitor now includes WiFi SSID in all MQTT messages
+  - ESP32 validates incoming SSID matches current WiFi network
+  - Automatic fallback to offline mode after 60s without valid MQTT messages
+  - Offline mode cycles through all emotions as a primitive emotion cycler
+  - Random emotion selection with 20-second display time for natural feel
+  - Configuration: `MQTT_TIMEOUT_THRESHOLD` (60s), `OFFLINE_EMOTION_INTERVAL` (20s)
+
 ### Changed
 - **Discord Notification Simplification** (2025-10-18)
   - Discord notifications now use simplified format for clarity
