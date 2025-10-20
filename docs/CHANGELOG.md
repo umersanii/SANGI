@@ -4,6 +4,24 @@ All notable changes to the SANGI robot project.
 
 ## [Unreleased]
 
+### Changed
+- **Enhanced Notification Animation** (2025-10-21)
+  - Extended notification display time from 1.6s to **2.6s** (52 frames vs 32)
+  - Notification content phase is now the longest in the sequence
+  - Changed ending: SANGI returns to **calm idle state** instead of angry expression
+  - Animation now plays as **single sequence** (holds on final idle frame, no loop)
+  - Total animation increased from 66 frames (3.3s) to **86 frames (4.3s)**
+  - **Improved text readability**:
+    - Title: Large font (`setTextSize(2)`) for prominence
+    - Message: Normal font (`setTextSize(1)`) for details
+  - Updated phases:
+    - Phase 1: Surprise (frames 0-5)
+    - Phase 2: Run away (frames 6-12)
+    - Phase 3: Board slides in (frames 13-18)
+    - Phase 4: Display content (frames 19-70) ⭐ **52 frames**
+    - Phase 5: Board slides out (frames 71-76)
+    - Phase 6: Return calm to idle (frames 77-85)
+
 ### Added
 - **CRITICAL FIX: Speaker GPIO Change** (2025-10-20)
   - **MOVED SPEAKER FROM GPIO9 → GPIO10** to fix display shutdown issue

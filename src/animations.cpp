@@ -2000,11 +2000,12 @@ void AnimationManager::animateDead() {
   }
 }
 
-// Animated notification - SANGI reacts, runs away, notification appears, then SANGI returns angry
+// Animated notification - SANGI reacts, runs away, notification appears (2.6s display), then returns calm to idle
+// 86 frames @ 50ms = 4.3s total (extended content display for readability)
 void AnimationManager::animateNotification(const char* title, const char* message) {
   unsigned long currentTime = millis();
   
-  // Slower animation for dramatic effect - 50ms per frame
+  // Slower animation for dramatic effect - 50ms per frame (4.3s total)
   if (currentTime - lastNotificationAnim > 50) {
     displayManager.clearDisplay();
     
@@ -2097,7 +2098,7 @@ void AnimationManager::animateNotification(const char* title, const char* messag
         displayManager.getDisplay().drawRect(5, 9, 118, 50, SSD1306_WHITE);
         break;
         
-      // ===== PHASE 4: DISPLAY NOTIFICATION (frames 19-50) =====
+      // ===== PHASE 4: DISPLAY NOTIFICATION (frames 19-70) - Extended for readability =====
       case 19:
       case 20:
       case 21:
@@ -2130,111 +2131,115 @@ void AnimationManager::animateNotification(const char* title, const char* messag
       case 48:
       case 49:
       case 50:
-        // Show notification content (full screen board)
-        displayManager.getDisplay().drawRect(4, 8, 120, 52, SSD1306_WHITE);
-        displayManager.getDisplay().drawRect(5, 9, 118, 50, SSD1306_WHITE);
-        
-        // Display text content
-        displayManager.getDisplay().setTextSize(1);
-        displayManager.getDisplay().setTextColor(SSD1306_WHITE);
-        
-        if (title && strlen(title) > 0) {
-          displayManager.getDisplay().setCursor(10, 18);
-          displayManager.getDisplay().print(title);
-          displayManager.getDisplay().setCursor(11, 18); // Bold effect
-          displayManager.getDisplay().print(title);
-        }
-        
-        if (message && strlen(message) > 0) {
-          displayManager.getDisplay().setCursor(10, 32);
-          displayManager.getDisplay().print(message);
-        }
-        break;
-        
-      // ===== PHASE 5: BOARD SLIDES OUT (frames 51-56) =====
       case 51:
-        // Board starts sliding out to right
-        displayManager.getDisplay().drawRect(8, 8, 116, 52, SSD1306_WHITE);
-        displayManager.getDisplay().drawRect(9, 9, 114, 50, SSD1306_WHITE);
-        break;
-        
       case 52:
-        // Board sliding out more
-        displayManager.getDisplay().drawRect(20, 8, 100, 50, SSD1306_WHITE);
-        displayManager.getDisplay().drawRect(21, 9, 98, 48, SSD1306_WHITE);
-        break;
-        
       case 53:
-        // Board halfway out
-        displayManager.getDisplay().drawRect(50, 8, 70, 50, SSD1306_WHITE);
-        displayManager.getDisplay().drawRect(51, 9, 68, 48, SSD1306_WHITE);
-        break;
-        
       case 54:
-        // Board almost gone
-        displayManager.getDisplay().drawRect(90, 8, 34, 50, SSD1306_WHITE);
-        displayManager.getDisplay().drawRect(91, 9, 32, 48, SSD1306_WHITE);
-        break;
-        
       case 55:
       case 56:
-        // Board completely off-screen
-        break;
-        
-      // ===== PHASE 6: SANGI RETURNS ANGRY (frames 57-65) =====
       case 57:
-        // Angry eyes appear from left, narrowed
-        displayManager.drawEyes(10, 32, 58, 32, 10);
-        // Angry eyebrows
-        for(int i = 0; i < 4; i++) {
-          displayManager.getDisplay().drawLine(-8, 21 + i, 22, 28 + i, SSD1306_WHITE);
-          displayManager.getDisplay().drawLine(28, 28 + i, 68, 21 + i, SSD1306_WHITE);
-        }
-        displayManager.getDisplay().fillRoundRect(24, 52, 20, 4, 2, SSD1306_WHITE);
-        break;
-        
       case 58:
-        // Angry face moving more into view
-        displayManager.drawEyes(25, 32, 73, 32, 10);
-        for(int i = 0; i < 5; i++) {
-          displayManager.getDisplay().drawLine(7, 20 + i, 37, 27 + i, SSD1306_WHITE);
-          displayManager.getDisplay().drawLine(43, 27 + i, 83, 20 + i, SSD1306_WHITE);
-        }
-        displayManager.getDisplay().fillRoundRect(39, 52, 22, 4, 2, SSD1306_WHITE);
-        break;
-        
       case 59:
       case 60:
-        // Angry face almost centered
-        displayManager.drawEyes(35, 32, 83, 32, 11);
-        for(int i = 0; i < 5; i++) {
-          displayManager.getDisplay().drawLine(17, 19 + i, 47, 24 + i, SSD1306_WHITE);
-          displayManager.getDisplay().drawLine(53, 24 + i, 93, 19 + i, SSD1306_WHITE);
-        }
-        displayManager.getDisplay().fillRoundRect(47, 52, 24, 5, 2, SSD1306_WHITE);
-        break;
-        
       case 61:
       case 62:
       case 63:
       case 64:
       case 65:
-        // Angry face fully centered and stable
-        displayManager.drawEyes(40, 32, 88, 32, 12);
-        // Thick angled eyebrows (angry expression)
-        for(int i = 0; i < 5; i++) {
-          displayManager.getDisplay().drawLine(22, 16 + i, 52, 22 + i, SSD1306_WHITE);
+      case 66:
+      case 67:
+      case 68:
+      case 69:
+      case 70:
+        // Show notification content (full screen board)
+        displayManager.getDisplay().drawRect(4, 8, 120, 52, SSD1306_WHITE);
+        displayManager.getDisplay().drawRect(5, 9, 118, 50, SSD1306_WHITE);
+        
+        // Display text content with larger font
+        displayManager.getDisplay().setTextSize(2);  // Larger font for better readability
+        displayManager.getDisplay().setTextColor(SSD1306_WHITE);
+        
+        if (title && strlen(title) > 0) {
+          displayManager.getDisplay().setCursor(10, 15);
+          displayManager.getDisplay().print(title);
         }
-        for(int i = 0; i < 5; i++) {
-          displayManager.getDisplay().drawLine(76, 22 + i, 106, 16 + i, SSD1306_WHITE);
+        
+        displayManager.getDisplay().setTextSize(1);  // Smaller font for message
+        if (message && strlen(message) > 0) {
+          displayManager.getDisplay().setCursor(10, 38);
+          displayManager.getDisplay().print(message);
         }
-        // Small angry frown
-        displayManager.getDisplay().fillRoundRect(52, 50, 24, 5, 2, SSD1306_WHITE);
+        break;
+        
+      // ===== PHASE 5: BOARD SLIDES OUT (frames 71-76) =====
+      case 71:
+        // Board starts sliding out to right
+        displayManager.getDisplay().drawRect(8, 8, 116, 52, SSD1306_WHITE);
+        displayManager.getDisplay().drawRect(9, 9, 114, 50, SSD1306_WHITE);
+        break;
+        
+      case 72:
+        // Board sliding out more
+        displayManager.getDisplay().drawRect(20, 8, 100, 50, SSD1306_WHITE);
+        displayManager.getDisplay().drawRect(21, 9, 98, 48, SSD1306_WHITE);
+        break;
+        
+      case 73:
+        // Board halfway out
+        displayManager.getDisplay().drawRect(50, 8, 70, 50, SSD1306_WHITE);
+        displayManager.getDisplay().drawRect(51, 9, 68, 48, SSD1306_WHITE);
+        break;
+        
+      case 74:
+        // Board almost gone
+        displayManager.getDisplay().drawRect(90, 8, 34, 50, SSD1306_WHITE);
+        displayManager.getDisplay().drawRect(91, 9, 32, 48, SSD1306_WHITE);
+        break;
+        
+      case 75:
+      case 76:
+        // Board completely off-screen
+        break;
+        
+      // ===== PHASE 6: SANGI RETURNS CALM (frames 77-85) =====
+      case 77:
+        // Eyes appear from left
+        displayManager.drawEyes(10, 28, 58, 28, 14);
+        displayManager.getDisplay().drawCircle(34, 48, 4, SSD1306_WHITE);
+        break;
+        
+      case 78:
+        // Moving to center
+        displayManager.drawEyes(20, 28, 68, 28, 16);
+        displayManager.getDisplay().drawCircle(44, 48, 4, SSD1306_WHITE);
+        break;
+        
+      case 79:
+      case 80:
+        // Almost centered
+        displayManager.drawEyes(30, 28, 78, 28, 17);
+        displayManager.getDisplay().drawCircle(54, 48, 5, SSD1306_WHITE);
+        break;
+        
+      case 81:
+      case 82:
+      case 83:
+      case 84:
+      case 85:
+        // Fully centered - return to idle state
+        displayManager.drawEyes(40, 28, 88, 28, 18);
+        displayManager.getDisplay().drawCircle(64, 48, 5, SSD1306_WHITE);
         break;
     }
     
     displayManager.updateDisplay();
-    notificationFrame = (notificationFrame + 1) % 66;  // Complete sequence then loop
+    
+    // Play animation as single sequence, hold on final frame (idle state)
+    if (notificationFrame < 85) {
+      notificationFrame++;
+    }
+    // If frame is 85, hold there (don't loop back to 0)
+    
     lastNotificationAnim = currentTime;
   }
 }

@@ -115,3 +115,5 @@ connect_device_package.zip
 *.token
 auth_token.txt
 *.pem.1
+
+message_history.json

@@ -328,7 +328,7 @@ void loop() {
             
             if (notifStartTime == 0) {
               notifStartTime = currentMillis;
-            } else if (overflow || (currentMillis - notifStartTime > 3300)) {  // 66 frames * 50ms = 3.3s
+            } else if (overflow || (currentMillis - notifStartTime > 4300)) {  // 86 frames * 50ms = 4.3s
               networkManager.clearCurrentNotification();
               notifStartTime = 0;
             }

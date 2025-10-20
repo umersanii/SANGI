@@ -52,7 +52,7 @@ void drawFace_X();  // X = emotion name
 
 - 51-frame sequences for 8 emotions
 - 30ms frame delay (~20 FPS)
-- 66-frame notification animation
+- 86-frame notification animation (50ms delay, 4.3s total)
 - Static frame state with millis() timing
 
 **Animated Emotions**:
@@ -64,6 +64,20 @@ void drawFace_X();  // X = emotion name
 - ANGRY: Shaking, furrowed brows
 - SAD: Tears falling, droopy expression
 - MUSIC: Headphones, head bobbing
+- NOTIFICATION: 86-frame cinematic sequence (see below)
+
+**Notification Animation Sequence** (86 frames @ 50ms = 4.3s):
+- **Phase 1**: Surprise reaction (frames 0-5)
+- **Phase 2**: SANGI runs off screen (frames 6-12)
+- **Phase 3**: Notification board slides in (frames 13-18)
+- **Phase 4**: Display content (frames 19-70, **52 frames = 2.6s**) - longest phase
+- **Phase 5**: Board slides out (frames 71-76)
+- **Phase 6**: SANGI returns calm to idle (frames 77-85)
+
+**Notification Display Formatting**:
+- Title: `setTextSize(2)` - large, prominent font
+- Message: `setTextSize(1)` - smaller, readable font
+- Animation plays once, holds on final idle frame (no loop)
 
 ### NetworkManager (`network.h/cpp`)
 **Responsibility**: WiFi and AWS IoT MQTT with offline mode

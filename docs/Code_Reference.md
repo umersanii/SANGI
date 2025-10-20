@@ -120,9 +120,24 @@ void animateAngry();
 void animateSad();
 void animateSurprised();
 void animateMusic();
-void animateNotification();
+void animateNotification(const char* title = "", const char* message = "");
 void resetAnimationState();
 ```
+
+**Notification Animation Details**:
+- **Total duration**: 4.3 seconds (86 frames @ 50ms/frame)
+- **Longest phase**: Content display (52 frames = 2.6 seconds)
+- **Title font**: Size 2 (large, prominent)
+- **Message font**: Size 1 (smaller, readable)
+- **Behavior**: Plays once, holds on final idle frame (no loop)
+
+**Animation Sequence**:
+1. Surprise reaction (6 frames)
+2. Run off screen (7 frames)
+3. Board slides in (6 frames)
+4. Display notification content (52 frames) ⭐ longest
+5. Board slides out (6 frames)
+6. Return to calm idle state (9 frames)
 
 **Usage**:
 ```cpp
@@ -586,7 +601,10 @@ emotionManager.setTargetEmotion(EMOTION_NOTIFICATION);
 
 // Note: Transition FROM notification uses standard blink
 // Static drawFace_Notification() shows content box only (no peeking eyes)
-// Peeking eyes only appear in animateNotification() full animation
+// Full animateNotification() plays 86-frame cinematic sequence:
+//   - Surprise → run away → board slides in → content (2.6s) → board out → calm return
+//   - Title: large font (size 2), Message: normal font (size 1)
+//   - Plays once, holds on final idle frame
 ```
 
 **Implementation**:
