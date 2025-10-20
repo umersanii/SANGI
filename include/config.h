@@ -28,6 +28,9 @@
 #define SPEAKER_RESOLUTION 8   // 8-bit resolution (0-255)
 #define SPEAKER_BASE_FREQ 2000 // Base frequency in Hz
 
+// Emotion change beep configuration
+#define ENABLE_EMOTION_BEEP true  // Set to false to disable beep on emotion change
+
 // ===== TIMING CONFIGURATION =====
 #define EMOTION_CHANGE_INTERVAL 30000  // 30 seconds
 #define BLINK_INTERVAL 3000  // 3 seconds

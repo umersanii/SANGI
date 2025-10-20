@@ -321,6 +321,34 @@ void handleTouchInteraction();
 inputManager.handleTouchInteraction();
 ```
 
+### Speaker Functions
+
+**Header**: `include/speaker.h`  
+**Source**: `src/main.cpp`
+
+**Public Functions**:
+```cpp
+void playEmotionChangeBeep();  // Plays double beep on emotion change
+```
+
+**Usage**:
+```cpp
+// Automatically called when emotion changes (if ENABLE_EMOTION_BEEP is true)
+// Manual call:
+playEmotionChangeBeep();
+```
+
+**Behavior**:
+- Quick double beep (1200Hz → 1000Hz)
+- Total duration: ~200ms (80ms + 40ms + 80ms)
+- Triggered automatically in `EmotionManager::setTargetEmotion()`
+- Can be disabled by setting `ENABLE_EMOTION_BEEP false` in `config.h`
+
+**Hardware**:
+- Speaker connected to GPIO 9 (SPEAKER_PIN)
+- Uses PWM channel 0 (SPEAKER_CHANNEL)
+- Supports any passive speaker (8Ω or higher recommended)
+
 ## Emotion States
 
 **Enum** (`include/emotion.h`):
@@ -357,6 +385,7 @@ enum EmotionState {
 #define I2C_SCL 7           // Fixed on ESP32-C3
 #define BATTERY_PIN 2       // ADC1 channel
 #define TOUCH_PIN 3         // Touch sensor
+#define SPEAKER_PIN 9       // PWM audio output
 ```
 
 **Display**:
@@ -379,6 +408,7 @@ enum EmotionState {
 #define ENABLE_MQTT true
 #define DEBUG_MODE_ENABLED false
 #define DEBUG_MODE_EMOTION EMOTION_IDLE
+#define ENABLE_EMOTION_BEEP true  // Beep sound on emotion change
 ```
 
 **MQTT**:

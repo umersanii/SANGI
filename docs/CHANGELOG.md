@@ -5,6 +5,15 @@ All notable changes to the SANGI robot project.
 ## [Unreleased]
 
 ### Added
+- **Emotion Change Beep** (2025-10-20)
+  - SANGI now plays a quick double beep whenever the emotion changes
+  - Sound pattern: 1200Hz (80ms) → silence (40ms) → 1000Hz (80ms)
+  - Total duration: ~200ms for non-intrusive feedback
+  - Automatically triggered in `EmotionManager::setTargetEmotion()`
+  - Can be disabled via `ENABLE_EMOTION_BEEP` in `config.h`
+  - Uses existing speaker on GPIO 9 (SPEAKER_PIN)
+  - New header: `include/speaker.h` for audio control functions
+
 - **Offline Notification System** (2025-10-20)
   - EMOTION_NOTIFICATION now cycles in offline autonomous mode
   - Random notification content generator for offline mode

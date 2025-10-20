@@ -53,6 +53,17 @@ void playTone(int frequency, int duration) {
   ledcWrite(SPEAKER_CHANNEL, 0); // Silence
 }
 
+void playEmotionChangeBeep() {
+  // Quick double beep to indicate emotion change
+  ledcWriteTone(SPEAKER_CHANNEL, 1200); // Higher pitch first beep
+  delay(80);
+  ledcWrite(SPEAKER_CHANNEL, 0);
+  delay(40);
+  ledcWriteTone(SPEAKER_CHANNEL, 1000); // Lower pitch second beep
+  delay(80);
+  ledcWrite(SPEAKER_CHANNEL, 0);
+}
+
 void testSpeaker() {
   Serial.println("\n🎵 === SPEAKER TEST - CONTINUOUS BEEPING ===");
   Serial.println("Speaker will beep continuously for 10 seconds...");

@@ -1,5 +1,6 @@
 #include "emotion.h"
 #include "animations.h"
+#include "speaker.h"
 
 EmotionManager emotionManager;
 
@@ -34,6 +35,11 @@ void EmotionManager::setTargetEmotion(EmotionState newEmotion) {
     transitionFrame = 0;
     
     Serial.printf("Emotion transition: %d → %d\n", currentEmotion, newEmotion);
+    
+    // Play beep sound when emotion changes
+#if ENABLE_EMOTION_BEEP
+    playEmotionChangeBeep();
+#endif
   }
 }
 
