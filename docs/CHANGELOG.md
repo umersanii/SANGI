@@ -5,6 +5,17 @@ All notable changes to the SANGI robot project.
 ## [Unreleased]
 
 ### Added
+- **Offline Notification System** (2025-10-20)
+  - EMOTION_NOTIFICATION now cycles in offline autonomous mode
+  - Random notification content generator for offline mode
+  - Displays battery status (voltage and percentage) or system uptime
+  - 50/50 random selection between battery and uptime messages
+  - Format: Battery → "Battery Status / 3.85V (75%)"
+  - Format: Uptime → "System Uptime / 2h 15m 43s"
+  - Full emotion coverage: All 13 emotions now cycle including DEAD and NOTIFICATION
+  - Autonomous cycling array: IDLE, HAPPY, SLEEPY, EXCITED, SAD, ANGRY, CONFUSED, THINKING, LOVE, SURPRISED, DEAD, MUSIC, NOTIFICATION
+  - BLINK excluded from cycling (triggered separately by blink interval system)
+
 - **Offline Mode with SSID Validation** (2025-10-18)
   - SANGI now operates in two modes: Workspace Mode and Offline Mode
   - **Workspace Mode**: MQTT connected with valid SSID - emotions controlled by workspace monitor

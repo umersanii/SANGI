@@ -73,7 +73,7 @@ void drawFace_X();  // X = emotion name
 - Notification queue (max 5)
 - Automatic reconnection (5s interval)
 - **SSID validation** for cross-network isolation
-- **Offline mode**: Autonomous emotion cycling when MQTT unavailable
+- **Offline mode**: Autonomous emotion cycling when MQTT unavailable with notification generation
 
 **Operating Modes**:
 1. **Workspace Mode**: MQTT connected + valid SSID → workspace-driven emotions
@@ -89,6 +89,15 @@ void drawFace_X();  // X = emotion name
 - MQTT disconnected, OR
 - >60 seconds without valid MQTT message
 - Automatically switches to autonomous emotion cycling
+
+**Offline Emotion Cycling**:
+- Random emotion selection every 20 seconds from full emotion set
+- 13 emotions cycle: IDLE, HAPPY, SLEEPY, EXCITED, SAD, ANGRY, CONFUSED, THINKING, LOVE, SURPRISED, DEAD, MUSIC, NOTIFICATION
+- BLINK excluded (handled by separate interval system)
+- When NOTIFICATION selected → generates random system info notification:
+  - Battery status: voltage + percentage
+  - System uptime: hours/minutes/seconds
+  - Content displayed via `animateNotification()` with offline data
 
 **Topics**:
 - Subscribe: `sangi/emotion/set`, `sangi/notification/push`
@@ -311,6 +320,51 @@ SANGI displays notification with peeking animation
 - `discord` - Simplified format (username only)
 - `system` - System notifications
 - `generic` - Fallback for unknown sources
+
+### Offline Notification Generation
+
+When SANGI is in **offline mode** (no MQTT connection), it still displays notifications with auto-generated content:
+
+**Offline Notification Generator** (`main.cpp`):
+```cpp
+void generateOfflineNotification() {
+  // 50/50 random between battery status or uptime
+  // Populates: offlineNotifTitle[32] and offlineNotifMessage[64]
+}
+```
+
+**Generated Content**:
+1. **Battery Status** (50% chance):
+   - Title: "Battery Status"
+   - Message: "3.85V (75%)" - voltage + percentage calculated from ADC
+   
+2. **System Uptime** (50% chance):
+   - Title: "System Uptime"
+   - Message: "2h 15m 43s" - formatted uptime since boot
+
+**Trigger Logic**:
+- Offline mode cycles through all 13 emotions randomly every 20 seconds
+- When `EMOTION_NOTIFICATION` is randomly selected:
+  1. `generateOfflineNotification()` creates random battery or uptime message
+  2. Notification data stored in static globals (`offlineNotifTitle`, `offlineNotifMessage`)
+  3. `animateNotification()` displays the generated content
+  4. Next cycle picks different random emotion
+
+**Implementation Flow**:
+```
+Offline Mode Active
+    ↓ (20s interval)
+Random emotion picker → EMOTION_NOTIFICATION selected
+    ↓
+generateOfflineNotification() → Random(battery status OR uptime)
+    ↓
+offlineNotifTitle = "Battery Status" or "System Uptime"
+offlineNotifMessage = "3.85V (75%)" or "2h 15m 43s"
+    ↓
+animateNotification(offlineNotifTitle, offlineNotifMessage)
+    ↓
+SANGI displays system info as notification
+```
 
 ## Critical Rules
 

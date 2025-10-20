@@ -1,4 +1,4 @@
-# SANGI - Custom Mochi Robot
+# SANGI - Square Animated Networked Gizmo Interface
 
 A custom square-based Mochi robot with animated OLED expressions, built with ESP32-C3.
 
@@ -164,15 +164,11 @@ The codebase uses a clean, modular design with separate components for each func
 
 - [x] ~~Add Bluetooth/WiFi remote control~~ **✅ COMPLETED: MQTT via AWS IoT Core (Oct 2025)**
 - [x] ~~Implement cloud telemetry~~ **✅ COMPLETED: Real-time battery & emotion updates**
-- [ ] Add motor control for movement
-- [ ] Implement line following sensors
 - [x] ~~Battery monitoring with visual indicators~~ **✅ COMPLETED: Published via MQTT**
 - [ ] Sound/buzzer feedback
 - [ ] Touch sensor integration for interaction
-- [ ] 3D printed enclosure design
 - [ ] Home Assistant / Node-RED integration
 - [ ] Web dashboard for MQTT control
-- [ ] Multi-device support (control multiple SANGIs)
 
 ## 🎨 Design Philosophy
 

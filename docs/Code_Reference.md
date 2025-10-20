@@ -212,12 +212,27 @@ if (networkManager.isInWorkspaceMode()) {
 
 SANGI operates in two modes:
 1. **Workspace Mode**: MQTT connected with valid SSID - emotions controlled by workspace monitor
-2. **Offline Mode**: No MQTT or SSID mismatch - autonomous emotion cycling
+2. **Offline Mode**: No MQTT or SSID mismatch - autonomous emotion cycling with all 13 emotions
 
 Offline mode triggers when:
 - MQTT not connected, OR
 - No valid MQTT message received for > 60 seconds (configurable: `MQTT_TIMEOUT_THRESHOLD`)
 - SSID in message doesn't match current WiFi network
+
+**Offline Emotion Cycling**:
+- Random selection from all emotions every 20 seconds (`OFFLINE_EMOTION_INTERVAL`)
+- Includes: IDLE, HAPPY, SLEEPY, EXCITED, SAD, ANGRY, CONFUSED, THINKING, LOVE, SURPRISED, DEAD, MUSIC, NOTIFICATION
+- Excludes: BLINK (handled separately by blink interval system)
+- When EMOTION_NOTIFICATION is randomly selected, displays random system info:
+  - Battery status: "Battery Status / 3.85V (75%)"
+  - System uptime: "System Uptime / 2h 15m 43s"
+  - 50/50 random selection between battery and uptime
+
+**Offline Notification Generator**:
+```cpp
+void generateOfflineNotification();  // Called in main.cpp when offline mode picks NOTIFICATION
+// Populates: offlineNotifTitle[32] and offlineNotifMessage[64]
+```
 
 **MQTT Message Formats**:
 

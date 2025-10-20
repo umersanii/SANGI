@@ -1,3 +1,4 @@
+#ifndef OLED_TEST_MAIN
 #include <Arduino.h>
 #include "config.h"
 #include "emotion.h"
@@ -9,34 +10,6 @@
 
 // ===== GLOBAL STATE =====
 unsigned long bootTime = 0;
-
-// ===== OFFLINE NOTIFICATION GENERATOR =====
-// Stores generated notification data for offline mode
-static char offlineNotifTitle[32] = "";
-static char offlineNotifMessage[64] = "";
-
-void generateOfflineNotification() {
-  // Randomly pick between battery status and uptime
-  if (random(0, 2) == 0) {
-    // Battery status notification
-    float voltage = batteryManager.readVoltage();
-    int percentage = (int)((voltage - BATTERY_MIN_VOLTAGE) / (BATTERY_MAX_VOLTAGE - BATTERY_MIN_VOLTAGE) * 100);
-    if (percentage > 100) percentage = 100;
-    if (percentage < 0) percentage = 0;
-    
-    snprintf(offlineNotifTitle, sizeof(offlineNotifTitle), "Battery Status");
-    snprintf(offlineNotifMessage, sizeof(offlineNotifMessage), "%.2fV (%d%%)", voltage, percentage);
-  } else {
-    // Uptime notification
-    unsigned long uptimeSeconds = (millis() - bootTime) / 1000;
-    unsigned long hours = uptimeSeconds / 3600;
-    unsigned long minutes = (uptimeSeconds % 3600) / 60;
-    unsigned long seconds = uptimeSeconds % 60;
-    
-    snprintf(offlineNotifTitle, sizeof(offlineNotifTitle), "System Uptime");
-    snprintf(offlineNotifMessage, sizeof(offlineNotifMessage), "%luh %lum %lus", hours, minutes, seconds);
-  }
-}
 
 // ===== SPEAKER TEST FUNCTIONS =====
 void setupSpeaker() {
@@ -188,7 +161,7 @@ void setup() {
   
   // Run speaker test on boot
   delay(1000);
-  //testSpeaker();
+  testSpeaker();
 }
 
 // ===== MAIN LOOP =====
@@ -206,23 +179,21 @@ void loop() {
   emotionManager.update(currentTime);
 
 #if !DEBUG_MODE_ENABLED
-  // Array of all emotions to test (excluding BLINK only)
+  // Array of all emotions to test (excluding BLINK and DEAD)
   static const EmotionState testEmotions[] = {
     EMOTION_IDLE,
     EMOTION_HAPPY,
     EMOTION_SLEEPY,
     EMOTION_EXCITED,
-    EMOTION_SAD,
-    EMOTION_ANGRY,
     EMOTION_CONFUSED,
     EMOTION_THINKING,
     EMOTION_LOVE,
+    EMOTION_ANGRY,
+    EMOTION_SAD,
     EMOTION_SURPRISED,
-    EMOTION_DEAD,
-    EMOTION_MUSIC,
-    EMOTION_NOTIFICATION
+    EMOTION_MUSIC
   };
-  static const int numEmotions = sizeof(testEmotions) / sizeof(testEmotions[0]);
+  static const int numEmotions = 11;
 
   // Autonomous emotion cycling (only when MQTT is disabled or disconnected)
 #if !ENABLE_MQTT
@@ -264,13 +235,6 @@ void loop() {
       // Pick random emotion
       int randomIndex = random(0, numEmotions);
       EmotionState newEmotion = testEmotions[randomIndex];
-      
-      // If notification emotion selected, generate offline notification content
-      if (newEmotion == EMOTION_NOTIFICATION) {
-        generateOfflineNotification();
-        Serial.printf("[Offline] Generated notification: %s - %s\n", offlineNotifTitle, offlineNotifMessage);
-      }
-      
       emotionManager.setTargetEmotion(newEmotion);
       
       static bool offlineMsgShown = false;
@@ -291,10 +255,10 @@ void loop() {
       Serial.println("💼 Workspace mode active");
       workspaceMsgShown = true;
       offlineMsgReset = false;  // Allow offline message to show again
-      
-      // Reset autonomous timer ONCE when entering workspace mode to prevent interference
-      lastEmotionSwitch = currentTime;
     }
+    
+    // Reset autonomous timer to prevent interference
+    lastEmotionSwitch = currentTime;
   }
 #endif
 #endif // !DEBUG_MODE_ENABLED
@@ -352,10 +316,10 @@ void loop() {
         break;
       case EMOTION_NOTIFICATION:
         {
-          // Check for queued notifications from MQTT
+          // Check for queued notifications
           Notification* notif = networkManager.getCurrentNotification();
           if (notif != nullptr) {
-            // Show MQTT notification with actual data
+            // Show notification with actual data
             animationManager.animateNotification(notif->title, notif->message);
             
             // After animation completes one cycle, clear it and check for next
@@ -371,9 +335,6 @@ void loop() {
               networkManager.clearCurrentNotification();
               notifStartTime = 0;
             }
-          } else if (offlineNotifTitle[0] != '\0') {
-            // Offline mode: show generated battery/uptime notification
-            animationManager.animateNotification(offlineNotifTitle, offlineNotifMessage);
           } else {
             // Fallback if no notification data available
             animationManager.animateNotification("Alert!", "New Message");
@@ -417,3 +378,5 @@ void loop() {
 
   delay(50);
 }
+
+#endif // !OLED_TEST_MAIN

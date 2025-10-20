@@ -22,6 +22,12 @@
 #define TOUCH_PIN 3  // GPIO3 - adjust if needed
 #define TOUCH_THRESHOLD 40
 
+// Speaker configuration
+#define SPEAKER_PIN 9          // GPIO9 for PWM audio output
+#define SPEAKER_CHANNEL 0      // PWM channel (0-7 available)
+#define SPEAKER_RESOLUTION 8   // 8-bit resolution (0-255)
+#define SPEAKER_BASE_FREQ 2000 // Base frequency in Hz
+
 // ===== TIMING CONFIGURATION =====
 #define EMOTION_CHANGE_INTERVAL 30000  // 30 seconds
 #define BLINK_INTERVAL 3000  // 3 seconds
@@ -68,7 +74,7 @@
 #define DAYLIGHT_OFFSET_SEC 0              // Adjust for daylight saving
 
 // Mode selection
-#define ENABLE_MQTT true                   // Set to true to enable MQTT mode (requires secrets.h)
+#define ENABLE_MQTT false                   // Set to true to enable MQTT mode (requires secrets.h)
 
 // ===== OFFLINE MODE CONFIGURATION =====
 #define MQTT_TIMEOUT_THRESHOLD 60000       // ms without valid MQTT message before switching to offline mode (60s)
