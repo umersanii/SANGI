@@ -22,6 +22,7 @@ public:
   void animateMusic();
   void animateDead();
   void animateNotification(const char* title = "", const char* message = "");
+  void animateCoding();
   
   // Reset animation frames when switching emotions
   void resetAnimation(EmotionState emotion);
@@ -40,6 +41,7 @@ private:
   unsigned long lastMusicAnim;
   unsigned long lastDeadAnim;
   unsigned long lastNotificationAnim;
+  unsigned long lastCodingAnim;
   
   int sleepyFrame;
   int thinkFrame;
@@ -53,6 +55,7 @@ private:
   int musicFrame;
   int deadFrame;
   int notificationFrame;
+  int codingFrame;
 };
 
 extern AnimationManager animationManager;

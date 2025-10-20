@@ -382,12 +382,12 @@ void NetworkManager::handleIncomingMessage(const char* topic, const char* payloa
       
       Serial.printf(">>> MQTT EMOTION: %d <<<\n", emotionValue);
       
-      // Validate emotion range (0-13) - matches EmotionState enum
-      if (emotionValue >= EMOTION_IDLE && emotionValue <= EMOTION_NOTIFICATION) {
+      // Validate emotion range (0-14) - matches EmotionState enum
+      if (emotionValue >= EMOTION_IDLE && emotionValue <= EMOTION_CODING) {
         emotionManager.setTargetEmotion((EmotionState)emotionValue);
         Serial.printf("✓ Emotion set to: %d\n", emotionValue);
       } else {
-        Serial.printf("✗ Invalid emotion: %d (valid range: 0-13)\n", emotionValue);
+        Serial.printf("✗ Invalid emotion: %d (valid range: 0-14)\n", emotionValue);
       }
     } else {
       Serial.println("✗ Missing 'emotion' field in JSON");

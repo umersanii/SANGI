@@ -117,3 +117,4 @@ auth_token.txt
 *.pem.1
 
 message_history.json
+PC-setup/bin/logs/message_history.json

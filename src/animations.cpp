@@ -16,6 +16,7 @@ AnimationManager::AnimationManager()
     lastMusicAnim(0),
     lastDeadAnim(0),
     lastNotificationAnim(0),
+    lastCodingAnim(0),
     sleepyFrame(0),
     thinkFrame(0),
     exciteFrame(0),
@@ -27,7 +28,8 @@ AnimationManager::AnimationManager()
     surprisedFrame(0),
     musicFrame(0),
     deadFrame(0),
-    notificationFrame(0) {
+    notificationFrame(0),
+    codingFrame(0) {
 }
 
 // Reset animation frame to start smoothly from beginning
@@ -80,6 +82,10 @@ void AnimationManager::resetAnimation(EmotionState emotion) {
     case EMOTION_NOTIFICATION:
       notificationFrame = 0;
       lastNotificationAnim = 0;
+      break;
+    case EMOTION_CODING:
+      codingFrame = 0;
+      lastCodingAnim = 0;
       break;
     default:
       break;
@@ -2241,6 +2247,148 @@ void AnimationManager::animateNotification(const char* title, const char* messag
     // If frame is 85, hold there (don't loop back to 0)
     
     lastNotificationAnim = currentTime;
+  }
+}
+
+// Matrix-inspired coding animation - focused face with glasses and falling binary digits
+void AnimationManager::animateCoding() {
+  unsigned long currentTime = millis();
+  
+  if (currentTime - lastCodingAnim > 100) {  // 100ms per frame for smooth binary fall
+    displayManager.clearDisplay();
+    
+    // Face position (centered, matching standard emotions)
+    int leftEyeX = 40, leftEyeY = 28;
+    int rightEyeX = 88, rightEyeY = 28;
+    int eyeHeight = 14;  // Squinted for focused look
+    
+    // FIRST: Draw the face with glasses based on current frame
+    switch(codingFrame % 25) {  // 25-frame loop (faster cycle)
+      // === NORMAL FOCUSED STATE (frames 0-10) ===
+      case 0: case 1: case 2: case 3: case 4:
+      case 5: case 6: case 7: case 8: case 9: case 10:
+        // Draw squinted eyes (focused)
+        displayManager.drawEyes(leftEyeX, leftEyeY, rightEyeX, rightEyeY, eyeHeight);
+        
+        // Draw THICKER and LARGER glasses - 3 layers for thickness
+        // Left lens - LARGER: 28x24 (was 24x20)
+        displayManager.getDisplay().drawRoundRect(leftEyeX - 14, leftEyeY - 12, 28, 24, 4, SSD1306_WHITE);
+        displayManager.getDisplay().drawRoundRect(leftEyeX - 13, leftEyeY - 11, 26, 22, 4, SSD1306_WHITE);
+        displayManager.getDisplay().drawRoundRect(leftEyeX - 12, leftEyeY - 10, 24, 20, 3, SSD1306_WHITE);
+        
+        // Right lens - LARGER: 28x24 (was 24x20)
+        displayManager.getDisplay().drawRoundRect(rightEyeX - 14, rightEyeY - 12, 28, 24, 4, SSD1306_WHITE);
+        displayManager.getDisplay().drawRoundRect(rightEyeX - 13, rightEyeY - 11, 26, 22, 4, SSD1306_WHITE);
+        displayManager.getDisplay().drawRoundRect(rightEyeX - 12, rightEyeY - 10, 24, 20, 3, SSD1306_WHITE);
+        
+        // Thicker bridge connecting lenses
+        displayManager.getDisplay().fillRect(52, leftEyeY - 2, 24, 3, SSD1306_WHITE);
+        
+        // Standard mouth (28x8 to match other emotions)
+        displayManager.getDisplay().fillRoundRect(50, 48, 28, 8, 4, SSD1306_WHITE);
+        break;
+        
+      // === QUICK BLINK 1 (frame 11 only) - VERY FAST ===
+      case 11:
+        // Eyes closed - single frame blink like surprised
+        displayManager.drawEyes(leftEyeX, leftEyeY + 5, rightEyeX, rightEyeY + 5, 3);
+        
+        // Thicker and larger glasses
+        displayManager.getDisplay().drawRoundRect(leftEyeX - 14, leftEyeY - 12, 28, 24, 4, SSD1306_WHITE);
+        displayManager.getDisplay().drawRoundRect(leftEyeX - 13, leftEyeY - 11, 26, 22, 4, SSD1306_WHITE);
+        displayManager.getDisplay().drawRoundRect(leftEyeX - 12, leftEyeY - 10, 24, 20, 3, SSD1306_WHITE);
+        displayManager.getDisplay().drawRoundRect(rightEyeX - 14, rightEyeY - 12, 28, 24, 4, SSD1306_WHITE);
+        displayManager.getDisplay().drawRoundRect(rightEyeX - 13, rightEyeY - 11, 26, 22, 4, SSD1306_WHITE);
+        displayManager.getDisplay().drawRoundRect(rightEyeX - 12, rightEyeY - 10, 24, 20, 3, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(52, leftEyeY - 2, 24, 3, SSD1306_WHITE);
+        
+        displayManager.getDisplay().fillRoundRect(50, 48, 28, 8, 4, SSD1306_WHITE);
+        break;
+        
+      // === NORMAL FOCUSED STATE (frames 12-16) ===
+      case 12: case 13: case 14: case 15: case 16:
+        displayManager.drawEyes(leftEyeX, leftEyeY, rightEyeX, rightEyeY, eyeHeight);
+        
+        // Thicker and larger glasses
+        displayManager.getDisplay().drawRoundRect(leftEyeX - 14, leftEyeY - 12, 28, 24, 4, SSD1306_WHITE);
+        displayManager.getDisplay().drawRoundRect(leftEyeX - 13, leftEyeY - 11, 26, 22, 4, SSD1306_WHITE);
+        displayManager.getDisplay().drawRoundRect(leftEyeX - 12, leftEyeY - 10, 24, 20, 3, SSD1306_WHITE);
+        displayManager.getDisplay().drawRoundRect(rightEyeX - 14, rightEyeY - 12, 28, 24, 4, SSD1306_WHITE);
+        displayManager.getDisplay().drawRoundRect(rightEyeX - 13, rightEyeY - 11, 26, 22, 4, SSD1306_WHITE);
+        displayManager.getDisplay().drawRoundRect(rightEyeX - 12, rightEyeY - 10, 24, 20, 3, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(52, leftEyeY - 2, 24, 3, SSD1306_WHITE);
+        
+        displayManager.getDisplay().fillRoundRect(50, 48, 28, 8, 4, SSD1306_WHITE);
+        break;
+        
+      // === QUICK BLINK 2 (frame 17 only) - VERY FAST ===
+      case 17:
+        // Eyes closed - single frame blink
+        displayManager.drawEyes(leftEyeX, leftEyeY + 5, rightEyeX, rightEyeY + 5, 3);
+        
+        // Thicker and larger glasses
+        displayManager.getDisplay().drawRoundRect(leftEyeX - 14, leftEyeY - 12, 28, 24, 4, SSD1306_WHITE);
+        displayManager.getDisplay().drawRoundRect(leftEyeX - 13, leftEyeY - 11, 26, 22, 4, SSD1306_WHITE);
+        displayManager.getDisplay().drawRoundRect(leftEyeX - 12, leftEyeY - 10, 24, 20, 3, SSD1306_WHITE);
+        displayManager.getDisplay().drawRoundRect(rightEyeX - 14, rightEyeY - 12, 28, 24, 4, SSD1306_WHITE);
+        displayManager.getDisplay().drawRoundRect(rightEyeX - 13, rightEyeY - 11, 26, 22, 4, SSD1306_WHITE);
+        displayManager.getDisplay().drawRoundRect(rightEyeX - 12, rightEyeY - 10, 24, 20, 3, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(52, leftEyeY - 2, 24, 3, SSD1306_WHITE);
+        
+        displayManager.getDisplay().fillRoundRect(50, 48, 28, 8, 4, SSD1306_WHITE);
+        break;
+        
+      case 18:
+      default:
+        // Back to focused for remaining frames
+        displayManager.drawEyes(leftEyeX, leftEyeY, rightEyeX, rightEyeY, eyeHeight);
+        
+        // Thicker and larger glasses
+        displayManager.getDisplay().drawRoundRect(leftEyeX - 14, leftEyeY - 12, 28, 24, 4, SSD1306_WHITE);
+        displayManager.getDisplay().drawRoundRect(leftEyeX - 13, leftEyeY - 11, 26, 22, 4, SSD1306_WHITE);
+        displayManager.getDisplay().drawRoundRect(leftEyeX - 12, leftEyeY - 10, 24, 20, 3, SSD1306_WHITE);
+        displayManager.getDisplay().drawRoundRect(rightEyeX - 14, rightEyeY - 12, 28, 24, 4, SSD1306_WHITE);
+        displayManager.getDisplay().drawRoundRect(rightEyeX - 13, rightEyeY - 11, 26, 22, 4, SSD1306_WHITE);
+        displayManager.getDisplay().drawRoundRect(rightEyeX - 12, rightEyeY - 10, 24, 20, 3, SSD1306_WHITE);
+        displayManager.getDisplay().fillRect(52, leftEyeY - 2, 24, 3, SSD1306_WHITE);
+        
+        displayManager.getDisplay().fillRoundRect(50, 48, 28, 8, 4, SSD1306_WHITE);
+        break;
+    }
+    
+    // SECOND: Draw falling binary digits AFTER the face (so they appear on top)
+    // 6 columns of falling 0s and 1s
+    static int binaryY[6] = {0, 10, 20, 5, 15, 25};  // Different starting Y positions for each column
+    
+    // Column X positions (avoiding center face area)
+    int colX[6] = {5, 25, 45, 83, 103, 118};
+    
+    // Draw falling binary in columns
+    displayManager.getDisplay().setTextSize(1);
+    displayManager.getDisplay().setTextColor(SSD1306_WHITE);
+    
+    for (int col = 0; col < 6; col++) {
+      // Draw 3 digits per column for trail effect
+      for (int trail = 0; trail < 3; trail++) {
+        int y = (binaryY[col] + trail * 15) % 70;
+        if (y < 64) {
+          displayManager.getDisplay().setCursor(colX[col], y);
+          // Alternate 0 and 1 based on column and trail
+          if ((col + trail + codingFrame) % 2 == 0) {
+            displayManager.getDisplay().print("0");
+          } else {
+            displayManager.getDisplay().print("1");
+          }
+        }
+      }
+      // Move each column down
+      binaryY[col] = (binaryY[col] + 2) % 70;
+    }
+    
+    displayManager.updateDisplay();
+    
+    codingFrame++;
+    lastCodingAnim = currentTime;
   }
 }
 

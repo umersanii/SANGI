@@ -25,7 +25,7 @@ void generateOfflineNotification() {
     if (percentage > 100) percentage = 100;
     if (percentage < 0) percentage = 0;
     
-    snprintf(offlineNotifTitle, sizeof(offlineNotifTitle), "Battery Status");
+    snprintf(offlineNotifTitle, sizeof(offlineNotifTitle), "Battery");
     snprintf(offlineNotifMessage, sizeof(offlineNotifMessage), "%.2fV (%d%%)", voltage, percentage);
   } else {
     // Uptime notification
@@ -34,7 +34,7 @@ void generateOfflineNotification() {
     unsigned long minutes = (uptimeSeconds % 3600) / 60;
     unsigned long seconds = uptimeSeconds % 60;
     
-    snprintf(offlineNotifTitle, sizeof(offlineNotifTitle), "System Uptime");
+    snprintf(offlineNotifTitle, sizeof(offlineNotifTitle), "Uptime");
     snprintf(offlineNotifMessage, sizeof(offlineNotifMessage), "%luh %lum %lus", hours, minutes, seconds);
   }
 }
@@ -133,7 +133,9 @@ void setup() {
                 DEBUG_MODE_EMOTION == EMOTION_ANGRY ? "ANGRY" :
                 DEBUG_MODE_EMOTION == EMOTION_SAD ? "SAD" :
                 DEBUG_MODE_EMOTION == EMOTION_SURPRISED ? "SURPRISED" :
-                DEBUG_MODE_EMOTION == EMOTION_MUSIC ? "MUSIC" : "IDLE");
+                DEBUG_MODE_EMOTION == EMOTION_MUSIC ? "MUSIC" :
+                DEBUG_MODE_EMOTION == EMOTION_NOTIFICATION ? "NOTIFICATION" :
+                DEBUG_MODE_EMOTION == EMOTION_CODING ? "CODING" : "IDLE");
   emotionManager.setTargetEmotion(DEBUG_MODE_EMOTION);
 #else
   // Ensure final face is rendered (only when not in debug mode)
@@ -225,6 +227,12 @@ void loop() {
       // Pick random emotion
       int randomIndex = random(0, numEmotions);
       EmotionState newEmotion = testEmotions[randomIndex];
+      
+      // Clear previous offline notification when changing emotions
+      if (emotionManager.getCurrentEmotion() == EMOTION_NOTIFICATION && newEmotion != EMOTION_NOTIFICATION) {
+        offlineNotifTitle[0] = '\0';
+        offlineNotifMessage[0] = '\0';
+      }
       
       // If notification emotion selected, generate offline notification content
       if (newEmotion == EMOTION_NOTIFICATION) {
@@ -336,10 +344,14 @@ void loop() {
             // Offline mode: show generated battery/uptime notification
             animationManager.animateNotification(offlineNotifTitle, offlineNotifMessage);
           } else {
-            // Fallback if no notification data available
-            animationManager.animateNotification("Alert!", "New Message");
+            // Fallback: Generate offline notification if none exists
+            generateOfflineNotification();
+            animationManager.animateNotification(offlineNotifTitle, offlineNotifMessage);
           }
         }
+        break;
+      case EMOTION_CODING:
+        animationManager.animateCoding();
         break;
       default:
         // Static display for other emotions

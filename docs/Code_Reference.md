@@ -121,6 +121,7 @@ void animateSad();
 void animateSurprised();
 void animateMusic();
 void animateNotification(const char* title = "", const char* message = "");
+void animateCoding();
 void resetAnimationState();
 ```
 
@@ -139,10 +140,27 @@ void resetAnimationState();
 5. Board slides out (6 frames)
 6. Return to calm idle state (9 frames)
 
+**Coding Animation Details** (Matrix-inspired):
+- **Theme**: Focused coding/hacker aesthetic with Matrix falling binary
+- **Update rate**: 80ms per frame (slower for Matrix effect)
+- **Visual elements**: 
+  - Rectangular glasses on focused face
+  - 6 streams of falling binary digits (0s and 1s)
+  - Concentrated expression with furrowed eyebrows
+  - Neutral/focused mouth
+  - Occasional blink every 40 frames for realism
+- **Binary streams**: 
+  - 4 full-length streams (left/right edges)
+  - 2 shorter streams (near face)
+  - Speed: 2 pixels per frame
+  - Auto-reset when off-screen
+- **Behavior**: Continuous loop, streams perpetually fall
+
 **Usage**:
 ```cpp
 // Call continuously in loop
 animationManager.animateMusic();
+animationManager.animateCoding();
 
 // Reset when changing emotions
 animationManager.resetAnimationState();
@@ -386,6 +404,7 @@ Each emotion has a unique sound signature:
 - **DEAD**: Dramatic descent 800→600→400→200Hz - game over
 - **MUSIC**: Musical notes 523→659→784→1047Hz (C-E-G-C)
 - **NOTIFICATION**: Triple beep 1200→1200→1500Hz - alert
+- **CODING**: Keyboard taps 1000→1100→950→1050→1000Hz + compile success 1300→1500Hz
 
 **Behavior**:
 - **Configurable volume** via `SPEAKER_VOLUME` (0-255, default 64 for stability)
@@ -418,13 +437,14 @@ enum EmotionState {
   EMOTION_DEAD = 10,
   EMOTION_MUSIC = 11,
   EMOTION_BLINK = 12,
-  EMOTION_NOTIFICATION = 13
+  EMOTION_NOTIFICATION = 13,
+  EMOTION_CODING = 14
 };
 ```
 
 **Static vs Animated**:
 - Static: IDLE, SAD, ANGRY, SURPRISED, CONFUSED, DEAD, BLINK
-- Animated: SLEEPY, THINKING, EXCITED, HAPPY, LOVE, MUSIC, NOTIFICATION
+- Animated: SLEEPY, THINKING, EXCITED, HAPPY, LOVE, MUSIC, NOTIFICATION, CODING
 
 ## Configuration
 

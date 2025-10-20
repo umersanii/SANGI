@@ -96,6 +96,16 @@ static const BeepTone PATTERN_NOTIFICATION[] = {
   {1500, 150}
 };
 
+static const BeepTone PATTERN_CODING[] = {
+  {1000, 40}, {0, 30},   // Keyboard tap 1
+  {1100, 40}, {0, 30},   // Keyboard tap 2
+  {950, 40}, {0, 30},    // Keyboard tap 3
+  {1050, 40}, {0, 30},   // Keyboard tap 4
+  {1000, 40}, {0, 100},  // Keyboard tap 5 + pause
+  {1300, 60}, {0, 40},   // Compile beep 1
+  {1500, 80}             // Compile beep 2 (success!)
+};
+
 // ===== BEEP MANAGER IMPLEMENTATION =====
 
 BeepManager::BeepManager()
@@ -220,6 +230,10 @@ void BeepManager::queueEmotionBeep(EmotionState emotion) {
     case EMOTION_NOTIFICATION:
       pattern = PATTERN_NOTIFICATION;
       length = sizeof(PATTERN_NOTIFICATION) / sizeof(BeepTone);
+      break;
+    case EMOTION_CODING:
+      pattern = PATTERN_CODING;
+      length = sizeof(PATTERN_CODING) / sizeof(BeepTone);
       break;
     case EMOTION_BLINK:
       // No sound for blink

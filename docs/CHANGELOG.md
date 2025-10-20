@@ -4,6 +4,19 @@ All notable changes to the SANGI robot project.
 
 ## [Unreleased]
 
+### Added
+- **NEW: EMOTION_CODING - Matrix-Inspired Coding Animation** (2025-10-21)
+  - Focused coder face with thick rectangular glasses (28×24px lenses, 3-layer thickness)
+  - Squinted eyes (height 14) for concentrated expression
+  - Quick single-frame blinks at frames 11 and 17 (like SURPRISED) for intense focus
+  - Falling binary digits (0s and 1s) in 6 columns with Matrix-style trail effect
+  - Binary streams avoid center face area, creating depth effect
+  - Standard mouth proportions (28×8) matching other emotions
+  - **Beep Pattern**: Keyboard typing sounds (5 rapid taps) + compile success beeps
+    - Pattern: 1000→1100→950→1050→1000Hz (typing) + 1300→1500Hz (compile success)
+  - 100ms frame rate for smooth binary animation, 25-frame loop cycle
+  - Trigger via MQTT: `{"emotion": "CODING"}` or `emotionManager.setTargetEmotion(EMOTION_CODING)`
+
 ### Changed
 - **Enhanced Notification Animation** (2025-10-21)
   - Extended notification display time from 1.6s to **2.6s** (52 frames vs 32)

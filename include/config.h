@@ -88,6 +88,6 @@
 
 // ===== DEBUG MODE =====
 #define DEBUG_MODE_ENABLED false            // Set to true to enable debug mode (shows only DEBUG_MODE_EMOTION)
-#define DEBUG_MODE_EMOTION EMOTION_MUSIC   // Which emotion to show in debug mode
+#define DEBUG_MODE_EMOTION EMOTION_CODING  // Which emotion to show in debug mode
 
 #endif // CONFIG_H

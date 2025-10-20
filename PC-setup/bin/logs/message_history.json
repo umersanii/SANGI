@@ -1,294 +1,5 @@
 [
   {
-    "timestamp": "2025-10-17T16:11:05.537441",
-    "topic": "sangi/emotion/set",
-    "payload": {
-      "emotion": 8,
-      "emotion_name": "excited",
-      "source": "workspace_monitor",
-      "hostname": "sani-pc",
-      "timestamp": 1760699465,
-      "stats": {
-        "changes_per_min": 4.2,
-        "commands_per_min": 0.0,
-        "error_rate": 0.0,
-        "idle_minutes": 0.1
-      }
-    }
-  },
-  {
-    "timestamp": "2025-10-17T16:15:55.380829",
-    "topic": "sangi/emotion/set",
-    "payload": {
-      "emotion": 1,
-      "emotion_name": "happy",
-      "source": "workspace_monitor",
-      "hostname": "sani-pc",
-      "timestamp": 1760699755,
-      "stats": {
-        "changes_per_min": 2.4,
-        "commands_per_min": 0.0,
-        "error_rate": 0.0,
-        "idle_minutes": 4.8
-      }
-    }
-  },
-  {
-    "timestamp": "2025-10-17T16:16:10.985141",
-    "topic": "sangi/emotion/set",
-    "payload": {
-      "emotion": 0,
-      "emotion_name": "idle",
-      "source": "workspace_monitor",
-      "hostname": "sani-pc",
-      "timestamp": 1760699770,
-      "stats": {
-        "changes_per_min": 1.4,
-        "commands_per_min": 0.0,
-        "error_rate": 0.0,
-        "idle_minutes": 0.3
-      }
-    }
-  },
-  {
-    "timestamp": "2025-10-17T16:16:16.430986",
-    "topic": "sangi/emotion/set",
-    "payload": {
-      "emotion": 1,
-      "emotion_name": "happy",
-      "source": "workspace_monitor",
-      "hostname": "sani-pc",
-      "timestamp": 1760699775,
-      "stats": {
-        "changes_per_min": 3.0,
-        "commands_per_min": 0.0,
-        "error_rate": 0.0,
-        "idle_minutes": 0.1
-      }
-    }
-  },
-  {
-    "timestamp": "2025-10-17T16:16:21.947272",
-    "topic": "sangi/emotion/set",
-    "payload": {
-      "emotion": 8,
-      "emotion_name": "excited",
-      "source": "workspace_monitor",
-      "hostname": "sani-pc",
-      "timestamp": 1760699781,
-      "stats": {
-        "changes_per_min": 4.6,
-        "commands_per_min": 0.0,
-        "error_rate": 0.0,
-        "idle_minutes": 0.1
-      }
-    }
-  },
-  {
-    "timestamp": "2025-10-17T16:21:15.629817",
-    "topic": "sangi/emotion/set",
-    "payload": {
-      "emotion": 1,
-      "emotion_name": "happy",
-      "source": "workspace_monitor",
-      "hostname": "sani-pc",
-      "timestamp": 1760700075,
-      "stats": {
-        "changes_per_min": 3.0,
-        "commands_per_min": 0.0,
-        "error_rate": 0.0,
-        "idle_minutes": 4.9
-      }
-    }
-  },
-  {
-    "timestamp": "2025-10-17T16:26:18.025497",
-    "topic": "sangi/emotion/set",
-    "payload": {
-      "emotion": 0,
-      "emotion_name": "idle",
-      "source": "workspace_monitor",
-      "hostname": "sani-pc",
-      "timestamp": 1760700377,
-      "stats": {
-        "changes_per_min": 0.0,
-        "commands_per_min": 0.0,
-        "error_rate": 0,
-        "idle_minutes": 5.0
-      }
-    }
-  },
-  {
-    "timestamp": "2025-10-17T16:26:23.307670",
-    "topic": "sangi/emotion/set",
-    "payload": {
-      "emotion": 1,
-      "emotion_name": "happy",
-      "source": "workspace_monitor",
-      "hostname": "sani-pc",
-      "timestamp": 1760700383,
-      "stats": {
-        "changes_per_min": 1.6,
-        "commands_per_min": 0.0,
-        "error_rate": 0.0,
-        "idle_minutes": 0.1
-      }
-    }
-  },
-  {
-    "timestamp": "2025-10-17T16:26:28.567435",
-    "topic": "sangi/emotion/set",
-    "payload": {
-      "emotion": 8,
-      "emotion_name": "excited",
-      "source": "workspace_monitor",
-      "hostname": "sani-pc",
-      "timestamp": 1760700388,
-      "stats": {
-        "changes_per_min": 3.2,
-        "commands_per_min": 0.0,
-        "error_rate": 0.0,
-        "idle_minutes": 0.1
-      }
-    }
-  },
-  {
-    "timestamp": "2025-10-17T16:31:25.956543",
-    "topic": "sangi/emotion/set",
-    "payload": {
-      "emotion": 1,
-      "emotion_name": "happy",
-      "source": "workspace_monitor",
-      "hostname": "sani-pc",
-      "timestamp": 1760700685,
-      "stats": {
-        "changes_per_min": 1.6,
-        "commands_per_min": 0.0,
-        "error_rate": 0.0,
-        "idle_minutes": 5.0
-      }
-    }
-  },
-  {
-    "timestamp": "2025-10-17T16:37:18.973748",
-    "topic": "sangi/emotion/set",
-    "payload": {
-      "emotion": 1,
-      "emotion_name": "happy",
-      "source": "workspace_monitor",
-      "hostname": "sani-pc",
-      "timestamp": 1760701038,
-      "stats": {
-        "changes_per_min": 3.0,
-        "commands_per_min": 0.0,
-        "error_rate": 0.0,
-        "idle_minutes": 4.0
-      }
-    }
-  },
-  {
-    "timestamp": "2025-10-17T16:37:24.258523",
-    "topic": "sangi/emotion/set",
-    "payload": {
-      "emotion": 8,
-      "emotion_name": "excited",
-      "source": "workspace_monitor",
-      "hostname": "sani-pc",
-      "timestamp": 1760701043,
-      "stats": {
-        "changes_per_min": 4.6,
-        "commands_per_min": 0.0,
-        "error_rate": 0.0,
-        "idle_minutes": 0.1
-      }
-    }
-  },
-  {
-    "timestamp": "2025-10-17T16:42:21.690207",
-    "topic": "sangi/emotion/set",
-    "payload": {
-      "emotion": 1,
-      "emotion_name": "happy",
-      "source": "workspace_monitor",
-      "hostname": "sani-pc",
-      "timestamp": 1760701341,
-      "stats": {
-        "changes_per_min": 2.0,
-        "commands_per_min": 0.0,
-        "error_rate": 0.0,
-        "idle_minutes": 0.0
-      }
-    }
-  },
-  {
-    "timestamp": "2025-10-17T16:47:24.398920",
-    "topic": "sangi/emotion/set",
-    "payload": {
-      "emotion": 0,
-      "emotion_name": "idle",
-      "source": "workspace_monitor",
-      "hostname": "sani-pc",
-      "timestamp": 1760701644,
-      "stats": {
-        "changes_per_min": 0.4,
-        "commands_per_min": 0.0,
-        "error_rate": 0.0,
-        "idle_minutes": 4.6
-      }
-    }
-  },
-  {
-    "timestamp": "2025-10-17T16:47:29.670958",
-    "topic": "sangi/emotion/set",
-    "payload": {
-      "emotion": 1,
-      "emotion_name": "happy",
-      "source": "workspace_monitor",
-      "hostname": "sani-pc",
-      "timestamp": 1760701649,
-      "stats": {
-        "changes_per_min": 2.0,
-        "commands_per_min": 0.0,
-        "error_rate": 0.0,
-        "idle_minutes": 0.1
-      }
-    }
-  },
-  {
-    "timestamp": "2025-10-17T16:47:34.937285",
-    "topic": "sangi/emotion/set",
-    "payload": {
-      "emotion": 8,
-      "emotion_name": "excited",
-      "source": "workspace_monitor",
-      "hostname": "sani-pc",
-      "timestamp": 1760701654,
-      "stats": {
-        "changes_per_min": 3.6,
-        "commands_per_min": 0.0,
-        "error_rate": 0.0,
-        "idle_minutes": 0.1
-      }
-    }
-  },
-  {
-    "timestamp": "2025-10-17T16:52:32.334813",
-    "topic": "sangi/emotion/set",
-    "payload": {
-      "emotion": 1,
-      "emotion_name": "happy",
-      "source": "workspace_monitor",
-      "hostname": "sani-pc",
-      "timestamp": 1760701952,
-      "stats": {
-        "changes_per_min": 1.6,
-        "commands_per_min": 0.0,
-        "error_rate": 0.0,
-        "idle_minutes": 5.0
-      }
-    }
-  },
-  {
     "timestamp": "2025-10-17T16:57:34.508726",
     "topic": "sangi/emotion/set",
     "payload": {
@@ -8496,6 +8207,295 @@
         "commands_per_min": 0.0,
         "error_rate": 0.0,
         "idle_minutes": 0.1
+      }
+    }
+  },
+  {
+    "timestamp": "2025-10-21T01:49:04.226977",
+    "topic": "sangi/emotion/set",
+    "payload": {
+      "emotion": 1,
+      "emotion_name": "happy",
+      "source": "workspace_monitor",
+      "hostname": "sani-pc",
+      "timestamp": 1760993343,
+      "stats": {
+        "changes_per_min": 2.8,
+        "commands_per_min": 0.0,
+        "error_rate": 0.0,
+        "idle_minutes": 1.0
+      }
+    }
+  },
+  {
+    "timestamp": "2025-10-21T01:49:09.651028",
+    "topic": "sangi/emotion/set",
+    "payload": {
+      "emotion": 8,
+      "emotion_name": "excited",
+      "source": "workspace_monitor",
+      "hostname": "sani-pc",
+      "timestamp": 1760993349,
+      "stats": {
+        "changes_per_min": 7.4,
+        "commands_per_min": 0.0,
+        "error_rate": 0.0,
+        "idle_minutes": 0.1
+      }
+    }
+  },
+  {
+    "timestamp": "2025-10-21T01:54:12.992312",
+    "topic": "sangi/emotion/set",
+    "payload": {
+      "emotion": 1,
+      "emotion_name": "happy",
+      "source": "workspace_monitor",
+      "hostname": "sani-pc",
+      "timestamp": 1760993652,
+      "stats": {
+        "changes_per_min": 2.0,
+        "commands_per_min": 0.0,
+        "error_rate": 0.0,
+        "idle_minutes": 0.4
+      }
+    }
+  },
+  {
+    "timestamp": "2025-10-21T01:54:18.396406",
+    "topic": "sangi/emotion/set",
+    "payload": {
+      "emotion": 8,
+      "emotion_name": "excited",
+      "source": "workspace_monitor",
+      "hostname": "sani-pc",
+      "timestamp": 1760993658,
+      "stats": {
+        "changes_per_min": 7.0,
+        "commands_per_min": 0.0,
+        "error_rate": 0.0,
+        "idle_minutes": 0.1
+      }
+    }
+  },
+  {
+    "timestamp": "2025-10-21T02:02:32.151285",
+    "topic": "sangi/emotion/set",
+    "payload": {
+      "emotion": 0,
+      "emotion_name": "idle",
+      "source": "workspace_monitor",
+      "hostname": "sani-pc",
+      "timestamp": 1760994151,
+      "stats": {
+        "changes_per_min": 0.8,
+        "commands_per_min": 0.0,
+        "error_rate": 0.0,
+        "idle_minutes": 2.0
+      }
+    }
+  },
+  {
+    "timestamp": "2025-10-21T02:02:37.417536",
+    "topic": "sangi/emotion/set",
+    "payload": {
+      "emotion": 8,
+      "emotion_name": "excited",
+      "source": "workspace_monitor",
+      "hostname": "sani-pc",
+      "timestamp": 1760994157,
+      "stats": {
+        "changes_per_min": 6.0,
+        "commands_per_min": 0.0,
+        "error_rate": 0.0,
+        "idle_minutes": 0.1
+      }
+    }
+  },
+  {
+    "timestamp": "2025-10-21T02:08:15.463882",
+    "topic": "sangi/emotion/set",
+    "payload": {
+      "emotion": 1,
+      "emotion_name": "happy",
+      "source": "workspace_monitor",
+      "hostname": "sani-pc",
+      "timestamp": 1760994495,
+      "stats": {
+        "changes_per_min": 2.8,
+        "commands_per_min": 0.0,
+        "error_rate": 0.0,
+        "idle_minutes": 2.2
+      }
+    }
+  },
+  {
+    "timestamp": "2025-10-21T02:08:20.726976",
+    "topic": "sangi/emotion/set",
+    "payload": {
+      "emotion": 8,
+      "emotion_name": "excited",
+      "source": "workspace_monitor",
+      "hostname": "sani-pc",
+      "timestamp": 1760994500,
+      "stats": {
+        "changes_per_min": 8.4,
+        "commands_per_min": 0.0,
+        "error_rate": 0.0,
+        "idle_minutes": 0.1
+      }
+    }
+  },
+  {
+    "timestamp": "2025-10-21T02:15:44.298298",
+    "topic": "sangi/emotion/set",
+    "payload": {
+      "emotion": 1,
+      "emotion_name": "happy",
+      "source": "workspace_monitor",
+      "hostname": "sani-pc",
+      "timestamp": 1760994944,
+      "stats": {
+        "changes_per_min": 1.6,
+        "commands_per_min": 0.0,
+        "error_rate": 0.0,
+        "idle_minutes": 1.7
+      }
+    }
+  },
+  {
+    "timestamp": "2025-10-21T02:15:49.562298",
+    "topic": "sangi/emotion/set",
+    "payload": {
+      "emotion": 8,
+      "emotion_name": "excited",
+      "source": "workspace_monitor",
+      "hostname": "sani-pc",
+      "timestamp": 1760994949,
+      "stats": {
+        "changes_per_min": 6.6,
+        "commands_per_min": 0.0,
+        "error_rate": 0.0,
+        "idle_minutes": 0.1
+      }
+    }
+  },
+  {
+    "timestamp": "2025-10-21T02:27:40.376784",
+    "topic": "sangi/emotion/set",
+    "payload": {
+      "emotion": 1,
+      "emotion_name": "happy",
+      "source": "workspace_monitor",
+      "hostname": "sani-pc",
+      "timestamp": 1760995660,
+      "stats": {
+        "changes_per_min": 2.8,
+        "commands_per_min": 0.0,
+        "error_rate": 0.0,
+        "idle_minutes": 0.3
+      }
+    }
+  },
+  {
+    "timestamp": "2025-10-21T02:27:45.653825",
+    "topic": "sangi/emotion/set",
+    "payload": {
+      "emotion": 8,
+      "emotion_name": "excited",
+      "source": "workspace_monitor",
+      "hostname": "sani-pc",
+      "timestamp": 1760995665,
+      "stats": {
+        "changes_per_min": 7.0,
+        "commands_per_min": 0.0,
+        "error_rate": 0.0,
+        "idle_minutes": 0.1
+      }
+    }
+  },
+  {
+    "timestamp": "2025-10-21T02:32:47.984132",
+    "topic": "sangi/emotion/set",
+    "payload": {
+      "emotion": 0,
+      "emotion_name": "idle",
+      "source": "workspace_monitor",
+      "hostname": "sani-pc",
+      "timestamp": 1760995967,
+      "stats": {
+        "changes_per_min": 1.2,
+        "commands_per_min": 0.0,
+        "error_rate": 0.0,
+        "idle_minutes": 2.3
+      }
+    }
+  },
+  {
+    "timestamp": "2025-10-21T02:32:53.257785",
+    "topic": "sangi/emotion/set",
+    "payload": {
+      "emotion": 8,
+      "emotion_name": "excited",
+      "source": "workspace_monitor",
+      "hostname": "sani-pc",
+      "timestamp": 1760995973,
+      "stats": {
+        "changes_per_min": 6.4,
+        "commands_per_min": 0.0,
+        "error_rate": 0.0,
+        "idle_minutes": 0.1
+      }
+    }
+  },
+  {
+    "timestamp": "2025-10-21T02:37:55.559551",
+    "topic": "sangi/emotion/set",
+    "payload": {
+      "emotion": 0,
+      "emotion_name": "idle",
+      "source": "workspace_monitor",
+      "hostname": "sani-pc",
+      "timestamp": 1760996275,
+      "stats": {
+        "changes_per_min": 1.2,
+        "commands_per_min": 0.0,
+        "error_rate": 0.0,
+        "idle_minutes": 1.0
+      }
+    }
+  },
+  {
+    "timestamp": "2025-10-21T02:38:00.823962",
+    "topic": "sangi/emotion/set",
+    "payload": {
+      "emotion": 8,
+      "emotion_name": "excited",
+      "source": "workspace_monitor",
+      "hostname": "sani-pc",
+      "timestamp": 1760996280,
+      "stats": {
+        "changes_per_min": 6.4,
+        "commands_per_min": 0.0,
+        "error_rate": 0.0,
+        "idle_minutes": 0.1
+      }
+    }
+  },
+  {
+    "timestamp": "2025-10-21T02:43:03.155202",
+    "topic": "sangi/emotion/set",
+    "payload": {
+      "emotion": 1,
+      "emotion_name": "happy",
+      "source": "workspace_monitor",
+      "hostname": "sani-pc",
+      "timestamp": 1760996582,
+      "stats": {
+        "changes_per_min": 2.4,
+        "commands_per_min": 0.0,
+        "error_rate": 0.0,
+        "idle_minutes": 0.9
       }
     }
   }
