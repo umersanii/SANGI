@@ -120,3 +120,5 @@ message_history.json
 PC-setup/bin/logs/message_history.json
 *.vscode
 *.github
+/media/sani/work/Coding/SANGI/.github
+/media/sani/work/Coding/SANGI/.vscode
