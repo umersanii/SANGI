@@ -1,22 +1,5 @@
 [
   {
-    "timestamp": "2025-10-17T16:57:34.508726",
-    "topic": "sangi/emotion/set",
-    "payload": {
-      "emotion": 0,
-      "emotion_name": "idle",
-      "source": "workspace_monitor",
-      "hostname": "sani-pc",
-      "timestamp": 1760702254,
-      "stats": {
-        "changes_per_min": 0.0,
-        "commands_per_min": 0.0,
-        "error_rate": 0,
-        "idle_minutes": 5.0
-      }
-    }
-  },
-  {
     "timestamp": "2025-10-17T16:57:39.752011",
     "topic": "sangi/emotion/set",
     "payload": {
@@ -8496,6 +8479,23 @@
         "commands_per_min": 0.0,
         "error_rate": 0.0,
         "idle_minutes": 0.9
+      }
+    }
+  },
+  {
+    "timestamp": "2025-10-21T02:43:08.421789",
+    "topic": "sangi/emotion/set",
+    "payload": {
+      "emotion": 8,
+      "emotion_name": "excited",
+      "source": "workspace_monitor",
+      "hostname": "sani-pc",
+      "timestamp": 1760996588,
+      "stats": {
+        "changes_per_min": 9.2,
+        "commands_per_min": 0.0,
+        "error_rate": 0.0,
+        "idle_minutes": 0.0
       }
     }
   }
