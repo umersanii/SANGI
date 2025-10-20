@@ -36,9 +36,9 @@ void EmotionManager::setTargetEmotion(EmotionState newEmotion) {
     
     Serial.printf("Emotion transition: %d → %d\n", currentEmotion, newEmotion);
     
-    // Play beep sound when emotion changes
+    // Queue emotion-specific beep sound (non-blocking)
 #if ENABLE_EMOTION_BEEP
-    playEmotionChangeBeep();
+    beepManager.queueEmotionBeep(newEmotion);
 #endif
   }
 }

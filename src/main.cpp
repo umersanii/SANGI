@@ -6,6 +6,7 @@
 #include "battery.h"
 #include "input.h"
 #include "network.h"
+#include "speaker.h"
 
 // ===== GLOBAL STATE =====
 unsigned long bootTime = 0;
@@ -38,63 +39,8 @@ void generateOfflineNotification() {
   }
 }
 
-// ===== SPEAKER TEST FUNCTIONS =====
-void setupSpeaker() {
-  // Configure PWM for speaker on GPIO 9
-  ledcSetup(SPEAKER_CHANNEL, SPEAKER_BASE_FREQ, SPEAKER_RESOLUTION);
-  ledcAttachPin(SPEAKER_PIN, SPEAKER_CHANNEL);
-  ledcWrite(SPEAKER_CHANNEL, 0); // Start silent
-  Serial.println("🔊 Speaker initialized on GPIO 9");
-}
-
-void playTone(int frequency, int duration) {
-  ledcWriteTone(SPEAKER_CHANNEL, frequency);
-  delay(duration);
-  ledcWrite(SPEAKER_CHANNEL, 0); // Silence
-}
-
-void playEmotionChangeBeep() {
-  // Quick double beep to indicate emotion change
-  ledcWriteTone(SPEAKER_CHANNEL, 1200); // Higher pitch first beep
-  delay(80);
-  ledcWrite(SPEAKER_CHANNEL, 0);
-  delay(40);
-  ledcWriteTone(SPEAKER_CHANNEL, 1000); // Lower pitch second beep
-  delay(80);
-  ledcWrite(SPEAKER_CHANNEL, 0);
-}
-
-void testSpeaker() {
-  Serial.println("\n🎵 === SPEAKER TEST - CONTINUOUS BEEPING ===");
-  Serial.println("Speaker will beep continuously for 10 seconds...");
-  Serial.println("If you hear beeping, speaker is working correctly!\n");
-  delay(500);
-  
-  // Continuous beeping for 10 seconds
-  unsigned long testStart = millis();
-  unsigned long testDuration = 10000; // 10 seconds
-  int beepCount = 0;
-  
-  while (millis() - testStart < testDuration) {
-    beepCount++;
-    Serial.printf("Beep #%d\n", beepCount);
-    
-    // Short beep
-    playTone(1000, 150);  // 1kHz tone for 150ms
-    delay(350);           // 350ms silence between beeps (total = 500ms/beep)
-  }
-  
-  Serial.println("\n✅ === SPEAKER TEST COMPLETE ===");
-  Serial.printf("Total beeps: %d\n\n", beepCount);
-  Serial.println("If you heard beeping:");
-  Serial.println("  ✅ Speaker is working correctly!");
-  Serial.println("\nIf NO sound was heard, check:");
-  Serial.println("  ❌ Red wire connected to GPIO 9");
-  Serial.println("  ❌ Black wire connected to GND");
-  Serial.println("  ❌ Speaker impedance is 8Ω or higher");
-  Serial.println("  ❌ Connections are firm and secure");
-  Serial.println("  ❌ Speaker is not damaged\n");
-}
+// ===== SPEAKER TEST FUNCTIONS (DEPRECATED - Now using BeepManager) =====
+// All beep functionality moved to speaker.cpp with non-blocking implementation
 
 // ===== POWER MANAGEMENT =====
 void checkSleepConditions() {
@@ -156,8 +102,9 @@ void setup() {
   batteryManager.init();
   displayManager.showBootScreen();
   
-  // Initialize speaker
-  setupSpeaker();
+  // Initialize non-blocking beep manager
+  beepManager.init();
+  
   // Initialize network (if enabled in config.h)
 #if ENABLE_MQTT
   networkManager.init();
@@ -207,6 +154,9 @@ void loop() {
   static unsigned long lastEmotionSwitch = 0;
   static int emotionIndex = 0;
   unsigned long currentTime = millis();
+
+  // Update non-blocking beep manager (MUST be called every loop)
+  beepManager.update();
 
   // Update network manager (handles MQTT if enabled)
 #if ENABLE_MQTT

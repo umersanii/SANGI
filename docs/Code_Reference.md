@@ -328,26 +328,62 @@ inputManager.handleTouchInteraction();
 
 **Public Functions**:
 ```cpp
-void playEmotionChangeBeep();  // Plays double beep on emotion change
+void playEmotionBeep(EmotionState emotion);  // Play emotion-specific beep
+
+// Individual emotion beep patterns
+void beepIdle();         // Calm, neutral single tone
+void beepHappy();        // Cheerful ascending chirp
+void beepSleepy();       // Slow descending yawn
+void beepExcited();      // Rapid energetic bursts
+void beepSad();          // Descending melancholic tones
+void beepAngry();        // Aggressive harsh buzzing
+void beepConfused();     // Wandering uncertain tones
+void beepThinking();     // Thoughtful rhythmic pulses
+void beepLove();         // Sweet romantic melody
+void beepSurprised();    // Quick ascending gasp
+void beepDead();         // Dramatic "game over" sound
+void beepMusic();        // Musical notes pattern
+void beepNotification(); // Attention-grabbing triple beep
 ```
 
 **Usage**:
 ```cpp
 // Automatically called when emotion changes (if ENABLE_EMOTION_BEEP is true)
 // Manual call:
-playEmotionChangeBeep();
+playEmotionBeep(EMOTION_HAPPY);
+
+// Or call specific patterns:
+beepHappy();
 ```
 
+**Beep Patterns**:
+Each emotion has a unique sound signature:
+- **IDLE**: Single 800Hz tone (150ms) - neutral presence
+- **HAPPY**: Ascending 600→900→1200Hz - cheerful chirp
+- **SLEEPY**: Descending 700→500→300Hz - yawn-like
+- **EXCITED**: 4x rapid 1400Hz bursts + 1600Hz peak - energetic
+- **SAD**: Descending 600→450→350Hz - melancholic
+- **ANGRY**: 5x alternating 1800/1600Hz - aggressive buzzing
+- **CONFUSED**: Wandering 700→900→600→800Hz - uncertain
+- **THINKING**: 3x rhythmic 1000Hz pulses - contemplative
+- **LOVE**: Sweet melody 880→1047→1319→1047Hz (A-C-E-C)
+- **SURPRISED**: Ascending 400→800→1400→1800Hz - gasp
+- **DEAD**: Dramatic descent 800→600→400→200Hz - game over
+- **MUSIC**: Musical notes 523→659→784→1047Hz (C-E-G-C)
+- **NOTIFICATION**: Triple beep 1200→1200→1500Hz - alert
+
 **Behavior**:
-- Quick double beep (1200Hz → 1000Hz)
-- Total duration: ~200ms (80ms + 40ms + 80ms)
+- **Configurable volume** via `SPEAKER_VOLUME` (0-255, default 64 for stability)
+- **Non-blocking**: Uses BeepManager for asynchronous playback
 - Triggered automatically in `EmotionManager::setTargetEmotion()`
 - Can be disabled by setting `ENABLE_EMOTION_BEEP false` in `config.h`
+- No beep for EMOTION_BLINK (silent)
 
 **Hardware**:
 - Speaker connected to GPIO 9 (SPEAKER_PIN)
 - Uses PWM channel 0 (SPEAKER_CHANNEL)
 - Supports any passive speaker (8Ω or higher recommended)
+- Maximum volume achieved via 100% duty cycle
 
 ## Emotion States
 
@@ -385,8 +421,14 @@ enum EmotionState {
 #define I2C_SCL 7           // Fixed on ESP32-C3
 #define BATTERY_PIN 2       // ADC1 channel
 #define TOUCH_PIN 3         // Touch sensor
-#define SPEAKER_PIN 9       // PWM audio output
+#define SPEAKER_PIN 10      // PWM audio output (GPIO10 - SAFE, GPIO9 causes USB/display conflicts!)
 ```
+
+**CRITICAL - ESP32-C3 Safe GPIO Pins**:
+- ✅ **Safe for general use**: GPIO4, GPIO5, GPIO8, GPIO10
+- ❌ **AVOID GPIO9**: Conflicts with USB/boot, causes display shutdown
+- ❌ **AVOID GPIO18/19**: USB data lines
+- ⚠️ **GPIO6/7**: Reserved for I2C only (hardware-fixed)
 
 **Display**:
 ```cpp
@@ -401,6 +443,11 @@ enum EmotionState {
 #define FRAME_DELAY 30                 // 30ms (~20 FPS)
 #define STATUS_PUBLISH_INTERVAL 30000  // 30s
 #define DEBOUNCE_DELAY 500             // 500ms
+```
+
+**Speaker Volume**:
+```cpp
+#define SPEAKER_VOLUME 128  // Volume level (0-255, default 128 prevents power issues)
 ```
 
 **Features**:
@@ -758,3 +805,39 @@ Test script sends sample notifications:
 - Always use overflow detection pattern
 - Never assume time always increases
 - Test with long uptimes (>49 days)
+
+**Display Shuts Off When Speaker Connected**:
+- **ROOT CAUSE**: GPIO9 on ESP32-C3 conflicts with USB/boot circuitry!
+- **CRITICAL**: GPIO9 is NOT safe for general use on ESP32-C3
+- **SOLUTION**: Move speaker to GPIO10 (now default in config.h)
+- **Safe GPIO pins for ESP32-C3**: GPIO4, GPIO5, GPIO8, GPIO10
+- **Avoid these GPIOs**: GPIO9 (USB), GPIO18/19 (USB), GPIO6/7 (I2C)
+
+**Speaker Still Causing Display Issues**:
+- **Power Issue**: Speaker draws too much current, causing voltage drop
+- **Solution 1**: Reduce `SPEAKER_VOLUME` in `config.h` (now default 64, range 0-255)
+- **Solution 2**: Add external power for speaker (separate 3.3V regulator)
+- **Solution 3**: Add decoupling capacitor (100µF) near ESP32 VCC pin
+- **Solution 4**: Use NPN transistor to drive speaker from separate power rail
+- Start with `SPEAKER_VOLUME 32` if display still browns out with 4V battery
+- Higher values = louder but more current draw
+
+**How to Wire Speaker Properly**:
+```
+ESP32-C3 GPIO10 -----> Speaker (+) Red Wire
+ESP32-C3 GND --------> Speaker (-) Black Wire
+
+OR with transistor (recommended for stability):
+ESP32-C3 GPIO10 -----> 1kΩ resistor -----> NPN Base (2N2222)
+NPN Emitter --------> GND
+NPN Collector ------> Speaker (-) Black
+VCC (3.3V or 5V) ---> Speaker (+) Red
+```
+
+**Speaker Not Working After Display Fix**:
+- Non-blocking BeepManager runs in background via `update()` in main loop
+- Check `beepManager.update()` is being called every loop iteration
+- Verify `beepManager.init()` was called in `setup()`
+- No blocking `delay()` calls in beep patterns
+- Display and speaker now operate independently
+- Verify speaker is connected to GPIO10, not GPIO9

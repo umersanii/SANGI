@@ -5,14 +5,50 @@ All notable changes to the SANGI robot project.
 ## [Unreleased]
 
 ### Added
-- **Emotion Change Beep** (2025-10-20)
-  - SANGI now plays a quick double beep whenever the emotion changes
-  - Sound pattern: 1200Hz (80ms) → silence (40ms) → 1000Hz (80ms)
-  - Total duration: ~200ms for non-intrusive feedback
+- **CRITICAL FIX: Speaker GPIO Change** (2025-10-20)
+  - **MOVED SPEAKER FROM GPIO9 → GPIO10** to fix display shutdown issue
+  - **ROOT CAUSE**: GPIO9 on ESP32-C3 conflicts with USB/boot circuitry
+  - GPIO9 is NOT safe for general use on ESP32-C3 (causes display blackout)
+  - GPIO10 is confirmed safe and does not interfere with I2C or USB
+  - **Action Required**: Move speaker red wire from GPIO9 to GPIO10
+  - Also reduced `SPEAKER_VOLUME` to 64 (from 128) to reduce current draw
+  - Safe GPIO pins documented: GPIO4, GPIO5, GPIO8, GPIO10
+  - Avoid: GPIO9 (USB conflict), GPIO18/19 (USB), GPIO6/7 (I2C only)
+
+- **Non-Blocking Audio System with Power Management** (2025-10-20)
+  - **NEW: BeepManager class** - Non-blocking audio playback system
+  - Beeps now play asynchronously without blocking display or main loop
+  - Fixed display brownout issue caused by speaker current draw
+  - **Configurable volume**: `SPEAKER_VOLUME` (0-255, default 64 for stability)
+  - Lower volume = less current draw = stable display operation
+  - BeepManager runs via `update()` in main loop (no blocking delays)
+  - Emotion-specific beeps queue and play independently
+  - Robust against millis() overflow (49-day uptime safe)
+  - New files: `src/speaker.cpp` with pattern-based beep system
+
+- **Emotion-Specific Audio Feedback** (2025-10-20)
+  - SANGI now plays unique beep patterns for each emotion change
+  - **Configurable volume**: Default 128/255 to prevent power issues (adjustable in config.h)
+  - **13 unique sound signatures**:
+    - IDLE: Calm neutral tone (800Hz)
+    - HAPPY: Cheerful ascending chirp (600→900→1200Hz)
+    - SLEEPY: Slow descending yawn (700→500→300Hz)
+    - EXCITED: Rapid energetic bursts (4x 1400Hz + 1600Hz)
+    - SAD: Melancholic descending tones (600→450→350Hz)
+    - ANGRY: Aggressive harsh buzzing (5x 1800/1600Hz alternating)
+    - CONFUSED: Wandering uncertain pattern (700→900→600→800Hz)
+    - THINKING: Thoughtful rhythmic pulses (3x 1000Hz)
+    - LOVE: Sweet romantic melody (880→1047→1319→1047Hz, A-C-E-C)
+    - SURPRISED: Quick ascending gasp (400→800→1400→1800Hz)
+    - DEAD: Dramatic "game over" descent (800→600→400→200Hz)
+    - MUSIC: Musical notes (523→659→784→1047Hz, C-E-G-C)
+    - NOTIFICATION: Attention triple beep (1200→1200→1500Hz)
+  - Each beep pattern reflects the personality and character of the emotion
   - Automatically triggered in `EmotionManager::setTargetEmotion()`
   - Can be disabled via `ENABLE_EMOTION_BEEP` in `config.h`
   - Uses existing speaker on GPIO 9 (SPEAKER_PIN)
   - New header: `include/speaker.h` for audio control functions
+  - New API: `playEmotionBeep(EmotionState)` for emotion-specific sounds
 
 - **Offline Notification System** (2025-10-20)
   - EMOTION_NOTIFICATION now cycles in offline autonomous mode

@@ -23,10 +23,13 @@
 #define TOUCH_THRESHOLD 40
 
 // Speaker configuration
-#define SPEAKER_PIN 9          // GPIO9 for PWM audio output
+// IMPORTANT: GPIO9 causes display issues on ESP32-C3 (conflicts with USB/boot)
+// Safe GPIO options: GPIO4, GPIO5, GPIO8, GPIO10
+#define SPEAKER_PIN 10         // GPIO10 for PWM audio output (SAFE PIN - no boot conflicts)
 #define SPEAKER_CHANNEL 0      // PWM channel (0-7 available)
 #define SPEAKER_RESOLUTION 8   // 8-bit resolution (0-255)
 #define SPEAKER_BASE_FREQ 2000 // Base frequency in Hz
+#define SPEAKER_VOLUME 255      // Volume level (0-255) - REDUCED to prevent power issues
 
 // Emotion change beep configuration
 #define ENABLE_EMOTION_BEEP true  // Set to false to disable beep on emotion change
@@ -81,7 +84,7 @@
 
 // ===== OFFLINE MODE CONFIGURATION =====
 #define MQTT_TIMEOUT_THRESHOLD 60000       // ms without valid MQTT message before switching to offline mode (60s)
-#define OFFLINE_EMOTION_INTERVAL 20000     // ms between emotion changes in offline autonomous mode (20s)
+#define OFFLINE_EMOTION_INTERVAL 100     // ms between emotion changes in offline autonomous mode (20s)
 
 // ===== DEBUG MODE =====
 #define DEBUG_MODE_ENABLED false            // Set to true to enable debug mode (shows only DEBUG_MODE_EMOTION)
