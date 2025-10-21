@@ -22,7 +22,7 @@ This project creates a Dasai Mochi-style robot with cute animated facial express
 ## ✨ Features
 
 ### Animated Expressions
-The robot displays 15 different emotions with smooth multi-frame animations:
+The robot displays 11 different emotions with smooth multi-frame animations:
 
 1. 😊 **Normal** - Calm resting face
 2. 😄 **Happy** - Slightly squinted eyes with smile
@@ -36,18 +36,13 @@ The robot displays 15 different emotions with smooth multi-frame animations:
 10. 😕 **Confused** - Asymmetric eyes with wavy mouth
 11. 💀 **Dead** - X eyes forming with tongue sticking out (51 frames)
 12. 🎵 **Music** - Closed eyes with smooth swaying motion and floating music notes (51 frames)
-13. 🔔 **Notification** - Alert state with notification indicator
-14. 🎯 **Focus** - Concentrated expression with enhanced attention
-15. 💻 **Coding** - Matrix-style with thick glasses, squinted eyes, and falling binary digits (25 frames)
 
 ### Animations
 - **Smooth Blinking** - Eyes gradually close and open (3-frame transition)
 - **Look Around** - Eyes shift left and right
-- **Complex Emotions** - Multi-frame sequences for sleepy, excited, thinking, music, coding, and dead emotions
+- **Complex Emotions** - Multi-frame sequences for sleepy, excited, thinking, music, and dead emotions
 - **Music Swaying** - Slow left-to-right humming motion with closed eyes (full cycle: 51 frames)
 - **Floating Music Notes** - Dispersed notes moving to top-left and top-right corners
-- **Matrix Binary Effect** - Falling 0s and 1s in 6 columns with synchronized speed (25 frames)
-- **Fast Focus Blinks** - Quick double blinks for concentrated expression
 - **X Eyes Formation** - Dead emotion features thick X eyes that form gradually (frames 9-15)
 - **Tongue Animation** - Tongue extends and retracts smoothly (frames 16-50)
 - **Ghost Effects** - Subtle floating particles during dead emotion hold phase
@@ -136,7 +131,7 @@ To test individual emotions during development:
 3. Set `#define DEBUG_MODE_EMOTION EMOTION_DEAD` (or any emotion)
 4. Build and upload - the robot will display only that emotion
 
-Available emotions: `EMOTION_NORMAL`, `EMOTION_HAPPY`, `EMOTION_SURPRISED`, `EMOTION_SAD`, `EMOTION_ANGRY`, `EMOTION_LOVE`, `EMOTION_SLEEPY`, `EMOTION_EXCITED`, `EMOTION_THINKING`, `EMOTION_CONFUSED`, `EMOTION_DEAD`, `EMOTION_MUSIC`, `EMOTION_NOTIFICATION`, `EMOTION_FOCUS`, `EMOTION_CODING`
+Available emotions: `EMOTION_NORMAL`, `EMOTION_HAPPY`, `EMOTION_SURPRISED`, `EMOTION_SAD`, `EMOTION_ANGRY`, `EMOTION_LOVE`, `EMOTION_SLEEPY`, `EMOTION_EXCITED`, `EMOTION_THINKING`, `EMOTION_CONFUSED`, `EMOTION_DEAD`, `EMOTION_MUSIC`
 
 ### Hardware Wiring
 See [HARDWARE_WIRING.md](HARDWARE_WIRING.md) for detailed wiring instructions.
