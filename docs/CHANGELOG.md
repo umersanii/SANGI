@@ -114,7 +114,7 @@ All notable changes to the SANGI robot project.
   - Applied to both test notifications and live workspace monitor
 
 - **Notification System Integration** (2025-10-18)
-  - Integrated NotificationDetector into main workspace_monitor.py
+  - Integrated NotificationDetector into main workspace_monitor.py (DEPRECATED: moved to standalone pi-notification-service)
   - Added automatic MQTT publishing callback for notifications
   - Enhanced notification_detector.py with Discord-specific formatting
   - Updated test_notifications.py to focus on relevant notification types
@@ -200,7 +200,7 @@ All notable changes to the SANGI robot project.
 - `EMOTION_NOTIFICATION` (13) state
 
 ### Technical
-- NotificationDetector module for D-Bus monitoring
+- NotificationDetector module for D-Bus monitoring (moved to `pi-notification-service`)
 - Notification queue management in NetworkManager
 - Text truncation for OLED display (title: 31 chars, message: 63 chars)
 

@@ -772,54 +772,105 @@ python3 workspace_monitor.py
 - Audio playing → MUSIC
 - Idle >10min → SLEEPY
 
-### Notification Detector
+### Notification Service (Standalone 24/7)
 
-**Module**: `PC-setup/lib/notification_detector.py`
+**Location**: `PC-setup/notification-service/`
 
-The notification detector uses D-Bus to capture desktop notifications and forward them to SANGI via MQTT.
+Standalone systemd service for Raspberry Pi that monitors Discord, GitHub, and WhatsApp notifications 24/7 and forwards them to SANGI via MQTT.
 
-**Supported Sources**:
-- Discord (simplified format)
-- System notifications
-- Generic alerts
+**Architecture**:
+- **notification_service.py** - Main orchestrator
+- **lib/notification_monitor.py** - D-Bus notification capture (Discord, WhatsApp)
+- **lib/github_monitor.py** - GitHub API polling
+- **lib/mqtt_publisher.py** - AWS IoT MQTT publisher
 
-**Discord Format**:
-Discord notifications are automatically simplified:
-- Extracts username from notification summary
-- Sets message to "new message"
-- Removes message content for privacy/simplicity
-
-**Usage in workspace_monitor.py**:
-```python
-from lib import NotificationDetector
-
-# Initialize with callback
-notification_detector = NotificationDetector(
-    logger=self.logger,
-    callback=self._on_notification
-)
-
-# Callback handles MQTT publishing
-def _on_notification(self, notif_type, title, message):
-    payload = json.dumps({
-        'type': notif_type,
-        'title': title,
-        'message': message,
-        'timestamp': int(time.time())
-    })
-    self.mqtt_client.publish('sangi/notification/push', payload, 1)
-```
-
-**Testing Notifications**:
+**Installation**:
 ```bash
-cd PC-setup
-python3 test_notifications.py
+cd PC-setup/notification-service
+./setup.sh
 ```
 
-Test script sends sample notifications:
-- Discord (2 different usernames)
-- System notification
-- Generic alert
+**Configuration** (`config.json`):
+```json
+{
+  "mqtt": {
+    "endpoint": "xxxxx-ats.iot.us-east-1.amazonaws.com",
+    "certificate_path": "./certs/cert.pem",
+    "private_key_path": "./certs/private.key",
+    "root_ca_path": "./certs/AmazonRootCA1.pem"
+  },
+  "notifications": {
+    "discord": {
+      "enabled": true,
+      "monitor_method": "dbus"
+    },
+    "github": {
+      "enabled": true,
+      "token": "ghp_your_token_here",
+      "username": "your_github_username",
+      "check_interval": 60
+    },
+    "whatsapp": {
+      "enabled": false,
+      "monitor_method": "dbus"
+    }
+  },
+  "filters": {
+    "min_notification_interval": 5,
+    "max_notifications_per_minute": 10
+  }
+}
+```
+
+**Service Management**:
+```bash
+# Start service
+sudo systemctl start sangi-notification-monitor@$(whoami).service
+
+# Stop service
+sudo systemctl stop sangi-notification-monitor@$(whoami).service
+
+# View logs
+journalctl -u sangi-notification-monitor@$(whoami).service -f
+
+# Enable auto-start on boot
+sudo systemctl enable sangi-notification-monitor@$(whoami).service
+```
+
+**Supported Notifications**:
+- **Discord**: D-Bus capture from desktop app (username + "new message")
+- **GitHub**: API polling for PRs, issues, mentions (requires token)
+- **WhatsApp**: D-Bus capture from desktop app (contact + message preview)
+
+**Testing**:
+```bash
+cd PC-setup/notification-service
+python3 test_service.py
+```
+
+**Features**:
+- Auto-start on boot via systemd
+- Rate limiting (5s min interval, 10/min max)
+- Comprehensive logging to file and journal
+- Automatic reconnection on network issues
+- Runs as non-root user
+
+**GitHub Setup**:
+1. Generate token at https://github.com/settings/tokens
+2. Required scopes: `notifications`, `repo`
+3. Add to `config.json`
+
+**See Also**: `PC-setup/notification-service/README.md` for detailed documentation
+
+def _on_notification(self, notif_type, title, message):
+### Notification Capture (Standalone Pi service)
+
+Desktop D-Bus notification capture has been split out to a standalone Raspberry Pi
+service: `pi-notification-service` (path: `PC-setup/notification-service/`). This
+service runs 24/7 on a Pi, captures Discord/WhatsApp desktop notifications via
+D-Bus, polls GitHub, and forwards notifications to SANGI over MQTT.
+
+Use the standalone service and its `README.md` for setup instructions and tests.
 
 ## Common Issues
 

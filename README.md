@@ -165,11 +165,41 @@ The codebase uses a clean, modular design with separate components for each func
 
 > See [COPILOT.md](COPILOT.md) for detailed refactoring documentation and [REFACTORING_SUMMARY.md](REFACTORING_SUMMARY.md) for module descriptions.
 
-## 📐 Future Plans
+## � Notification Service (Raspberry Pi)
+
+**NEW**: Standalone 24/7 notification monitoring service for Raspberry Pi!
+
+Monitor Discord, GitHub, and WhatsApp notifications and forward them to SANGI automatically.
+
+**Quick Setup**:
+```bash
+cd PC-setup/notification-service
+./setup.sh
+```
+
+**Features**:
+- 🎮 **Discord** - Desktop app notifications via D-Bus
+- 🐙 **GitHub** - API polling for PRs, issues, mentions
+- 💬 **WhatsApp** - Desktop app notifications via D-Bus
+- 🔄 **Auto-start** - Runs as systemd service on boot
+- 📊 **Rate limiting** - Prevents notification spam
+- 📝 **Logging** - Comprehensive logs to file and journal
+
+**Service Commands**:
+```bash
+sudo systemctl start sangi-notification-monitor@$(whoami).service    # Start
+sudo systemctl status sangi-notification-monitor@$(whoami).service   # Status
+journalctl -u sangi-notification-monitor@$(whoami).service -f        # Logs
+```
+
+> 📚 See [PC-setup/notification-service/README.md](PC-setup/notification-service/README.md) for detailed documentation
+
+## �📐 Future Plans
 
 - [x] ~~Add Bluetooth/WiFi remote control~~ **✅ COMPLETED: MQTT via AWS IoT Core (Oct 2025)**
 - [x] ~~Implement cloud telemetry~~ **✅ COMPLETED: Real-time battery & emotion updates**
 - [x] ~~Battery monitoring with visual indicators~~ **✅ COMPLETED: Published via MQTT**
+- [x] ~~24/7 notification monitoring~~ **✅ COMPLETED: Standalone service for Pi (Oct 2025)**
 - [ ] Sound/buzzer feedback
 - [ ] Touch sensor integration for interaction
 - [ ] Home Assistant / Node-RED integration

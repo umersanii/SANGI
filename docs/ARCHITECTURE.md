@@ -317,7 +317,12 @@ Discord Desktop App
     ↓ (sends notification)
 Linux D-Bus System
     ↓ (captures)
-NotificationDetector
+NotificationDetector (moved)
+
+Note: Desktop D-Bus notification capture has been moved to the standalone
+`pi-notification-service` (see `PC-setup/notification-service/README.md`). The
+workspace monitor no longer includes live notification capture to keep PC and
+Pi responsibilities separated.
     ↓ (formats: username + "new message")
 workspace_monitor._on_notification()
     ↓ (publishes)

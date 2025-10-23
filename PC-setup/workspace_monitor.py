@@ -24,7 +24,7 @@ from watchdog.events import FileSystemEventHandler
 from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
 
 # Import modular library components
-from lib import ActivityTracker, AudioDetector, EmotionMapper, NotificationDetector, EMOTIONS
+from lib import ActivityTracker, AudioDetector, EmotionMapper, EMOTIONS
 
 # Try to import pynput for keyboard/mouse tracking (optional)
 try:
@@ -78,10 +78,10 @@ class WorkspaceMonitor:
         self.activity_tracker = ActivityTracker()
         self.audio_detector = AudioDetector(logger=self.logger)
         self.emotion_mapper = EmotionMapper(logger=self.logger)
-        self.notification_detector = NotificationDetector(
-            logger=self.logger,
-            callback=self._on_notification
-        )
+        # Notification capture has been moved to the standalone Pi notification
+        # service (pi-notification-service). Desktop workspace monitor no longer
+        # listens for D-Bus notifications. See PC-setup/notification-service/README.md
+        # for the Pi service implementation.
         
         # Monitor state
         self.current_emotion = 'idle'
@@ -193,23 +193,7 @@ class WorkspaceMonitor:
             self.logger.error(f"❌ MQTT connection failed: {e}")
             raise
     
-    def _on_notification(self, notif_type, title, message):
-        """Callback for when a notification is detected"""
-        try:
-            ssid = self.get_wifi_ssid()
-            payload = json.dumps({
-                'type': notif_type,
-                'title': title,
-                'message': message,
-                'ssid': ssid if ssid else '',
-                'timestamp': int(time.time())
-            })
-            
-            self.mqtt_client.publish('sangi/notification/push', payload, 1)
-            self.logger.info(f"📬 Notification sent: [{notif_type}] {title}")
-        except Exception as e:
-            self.logger.error(f"Failed to send notification: {e}")
-    
+
     def check_clipboard_activity(self):
         """Check for clipboard changes (copy/paste activity)"""
         try:
@@ -347,6 +331,9 @@ class WorkspaceMonitor:
                 
         except Exception as e:
             self.logger.error(f"Failed to publish: {e}")
+
+    # NOTE: Notification callback removed. Notifications are handled by the
+    # standalone pi-notification-service which forwards to SANGI via MQTT.
     
     def publish_activity_stats(self):
         """Publish detailed activity stats"""

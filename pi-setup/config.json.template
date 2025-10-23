@@ -1,0 +1,41 @@
+{
+  "mqtt": {
+    "endpoint": "xxxxx-ats.iot.us-east-1.amazonaws.com",
+    "client_id": "sangi-notification-monitor",
+    "certificate_path": "./certs/cert.pem",
+    "private_key_path": "./certs/private.key",
+    "root_ca_path": "./certs/AmazonRootCA1.pem",
+    "topic": "sangi/notification/push"
+  },
+  "notifications": {
+    "discord": {
+      "enabled": true,
+      "webhook_url": "",
+      "bot_token": "",
+      "monitor_method": "dbus"
+    },
+    "github": {
+      "enabled": true,
+      "token": "ghp_your_token_here",
+      "username": "your_github_username",
+      "check_interval": 60,
+      "monitor_types": ["pull_requests", "issues", "mentions"]
+    },
+    "whatsapp": {
+      "enabled": false,
+      "monitor_method": "dbus",
+      "note": "WhatsApp API requires business account - uses D-Bus for desktop notifications"
+    }
+  },
+  "filters": {
+    "min_notification_interval": 5,
+    "max_notifications_per_minute": 10,
+    "ignore_apps": ["notify-send"]
+  },
+  "logging": {
+    "level": "INFO",
+    "file": "./logs/notification_monitor.log",
+    "max_size_mb": 10,
+    "backup_count": 3
+  }
+}

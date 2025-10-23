@@ -10,12 +10,19 @@ __author__ = "SANGI Project"
 from .activity_tracker import ActivityTracker
 from .audio_detector import AudioDetector
 from .emotion_mapper import EmotionMapper, EMOTIONS
-from .notification_detector import NotificationDetector
+# NotificationDetector has been moved to a standalone Pi notification service.
+# Keep the module for legacy/testing, but do not re-export it here to avoid
+# importing desktop-only notification code in the workspace monitor.
 
 __all__ = [
     'ActivityTracker',
     'AudioDetector',
     'EmotionMapper',
-    'NotificationDetector',
+    'EMOTIONS'
+]
+__all__ = [
+    'ActivityTracker',
+    'AudioDetector',
+    'EmotionMapper',
     'EMOTIONS'
 ]
