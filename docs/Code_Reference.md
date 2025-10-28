@@ -122,7 +122,7 @@ void animateSurprised();
 void animateMusic();
 void animateNotification(const char* title = "", const char* message = "");
 void animateCoding();
-void animateCommitHistory();
+void animateGitHubStats();
 void resetAnimationState();
 ```
 
@@ -157,29 +157,31 @@ void resetAnimationState();
   - Auto-reset when off-screen
 - **Behavior**: Continuous loop, streams perpetually fall
 
-**Commit History Animation Details**:
-- **Theme**: Scrolling GitHub commit log display
-- **Update rate**: 100ms per frame for smooth scrolling
-- **Display duration**: 4 seconds per commit (40 frames)
-- **Visual elements**:
-  - Git icon and repo name in header
-  - Commit SHA (7 chars) on right
-  - Author name with @ prefix
-  - Time ago (hours/days)
-  - Commit message (scrolls if > 21 chars)
-  - Progress indicator bar at bottom
-  - Commit counter (e.g., "2/5 commits")
-- **Scrolling**: Message scrolls 5 chars every second if too long
-- **Data source**: Reads from `networkManager.getCommitAtIndex()`
-- **Fallback**: Shows "No commits yet" if empty
-- **Behavior**: Cycles through all commits, 4 seconds each
+**GitHub Stats Animation Details**:
+- **Theme**: Clean GitHub contribution graph (last 14 days)
+- **Update rate**: 200ms per frame
+- **Display layout**:
+  - **Grid**: 2 weeks (columns) x 7 days (rows)
+  - **Cell size**: 8x8 pixels (large, clearly visible)
+  - **Spacing**: 2px horizontal, 1px vertical gaps
+  - **Position**: Centered on 128x64 display
+- **Visual contribution levels** (GitHub-style heat map):
+  - **Level 0**: Empty outline (no contributions)
+  - **Level 1**: Outline + center dot (1-3 contributions)
+  - **Level 2**: Outline + half filled (4-6 contributions)
+  - **Level 3**: Filled + small hole (7-9 contributions)
+  - **Level 4**: Completely filled (10+ contributions)
+- **Day labels**: S M T W T F S on left side
+- **Data source**: Reads from `networkManager.getGitHubData()`
+- **Fallback**: Shows "No GitHub data" if empty
+- **Behavior**: Static display (no scrolling for clarity)
 
 **Usage**:
 ```cpp
 // Call continuously in loop
 animationManager.animateMusic();
 animationManager.animateCoding();
-animationManager.animateCommitHistory();
+animationManager.animateGitHubStats();
 
 // Reset when changing emotions
 animationManager.resetAnimationState();
@@ -235,12 +237,11 @@ void clearCurrentNotification();
 bool hasNotifications();
 int getNotificationCount();
 
-// Commit History
-bool addCommit(const char* repo, const char* message, const char* author, const char* sha, unsigned long timestamp);
-CommitHistoryEntry* getCommitAtIndex(int index);
-bool hasCommits();
-int getCommitCount();
-void clearCommitHistory();
+// GitHub Contribution Data
+void setGitHubContributions(const uint8_t contributions[52][7], int total, int streak, int longest, const char* user);
+GitHubContributionData* getGitHubData();
+bool hasGitHubData();
+void clearGitHubData();
 
 // Offline mode
 bool isInWorkspaceMode();
@@ -261,13 +262,11 @@ if (networkManager.hasNotifications()) {
   networkManager.clearCurrentNotification();
 }
 
-// Handle commit history
-if (networkManager.hasCommits()) {
-  int count = networkManager.getCommitCount();
-  for (int i = 0; i < count; i++) {
-    CommitHistoryEntry* commit = networkManager.getCommitAtIndex(i);
-    // Display commit data...
-  }
+// Handle GitHub contribution data
+if (networkManager.hasGitHubData()) {
+  GitHubContributionData* data = networkManager.getGitHubData();
+  // Display contribution graph...
+  // Access: data->contributions[week][day], data->totalContributions, etc.
 }
 
 // Check workspace mode status
@@ -289,30 +288,37 @@ Offline mode triggers when:
 
 **Offline Emotion Cycling**:
 - Random selection from all emotions every 20 seconds (`OFFLINE_EMOTION_INTERVAL`)
-- Includes: IDLE, HAPPY, SLEEPY, EXCITED, SAD, ANGRY, CONFUSED, THINKING, LOVE, SURPRISED, DEAD, MUSIC, NOTIFICATION, COMMIT_HISTORY
+- Includes: IDLE, HAPPY, SLEEPY, EXCITED, SAD, ANGRY, CONFUSED, THINKING, LOVE, SURPRISED, DEAD, MUSIC, NOTIFICATION, GITHUB_STATS
 - Excludes: BLINK (handled separately by blink interval system)
 - When EMOTION_NOTIFICATION is randomly selected, displays random system info:
   - Battery status: "Battery Status / 3.85V (75%)"
   - System uptime: "System Uptime / 2h 15m 43s"
   - 50/50 random selection between battery and uptime
 
-**Commit History Data Structure**:
+**GitHub Contribution Data Structure**:
 
-`CommitHistoryEntry` struct (defined in `include/network.h`):
+`GitHubContributionData` struct (defined in `include/network.h`):
 ```cpp
-struct CommitHistoryEntry {
-  char repo[32];          // Repository name (e.g., "SANGI")
-  char message[64];       // Commit message
-  char author[24];        // Author name
-  char sha[16];           // Short commit SHA (first 7 chars)
-  unsigned long timestamp; // Commit timestamp (millis)
-  bool active;            // Entry is valid
+struct GitHubContributionData {
+  uint8_t contributions[52][7];  // 52 weeks x 7 days grid (0-4 scale)
+  int totalContributions;        // Total count for the year
+  int currentStreak;             // Current consecutive days
+  int longestStreak;             // Longest streak this year
+  char username[32];             // GitHub username
+  bool dataLoaded;               // Data is valid
 };
 ```
 
+**Contribution Level Scale** (matches GitHub):
+- **0**: No contributions
+- **1**: 1-3 contributions (light)
+- **2**: 4-6 contributions (medium)
+- **3**: 7-9 contributions (high)
+- **4**: 10+ contributions (very high)
+
 **Hardcoded Test Data**:
-- 5 sample commits loaded at boot via `loadHardcodedCommitHistory()`
-- Provides immediate functionality without Pi service running
+- Simulates 397 total contributions across the year
+- Loaded at boot via `loadHardcodedGitHubData()`
 - Real data will replace hardcoded values when Pi publishes to `sangi/github/commits`
 
 **Offline Notification Generator**:
@@ -344,27 +350,22 @@ Notification (`sangi/notification/push`):
 }
 ```
 
-GitHub Commit History (`sangi/github/commits`):
+GitHub Contribution Graph (`sangi/github/commits`):
 ```json
 {
-  "commits": [
-    {
-      "repo": "SANGI",
-      "message": "Add commit history display",
-      "author": "umersanii",
-      "sha": "a1b2c3d",
-      "timestamp": 1234567890
-    },
-    {
-      "repo": "DotFiles",
-      "message": "Update tmux config",
-      "author": "umersanii",
-      "sha": "e4f5g6h",
-      "timestamp": 1234560000
-    }
+  "username": "umersanii",
+  "total": 397,
+  "current_streak": 15,
+  "longest_streak": 45,
+  "contributions": [
+    [0,1,2,3,2,1,0],
+    [1,2,3,4,3,2,1],
+    ...
   ]
 }
 ```
+*Note: `contributions` array contains 52 weeks, each with 7 days (Sunday-Saturday).  
+Values: 0=none, 1=1-3, 2=4-6, 3=7-9, 4=10+ contributions per day.*
 
 **SSID Validation**:
 - All MQTT messages from workspace monitor include the WiFi SSID
@@ -515,13 +516,13 @@ enum EmotionState {
   EMOTION_BLINK = 12,
   EMOTION_NOTIFICATION = 13,
   EMOTION_CODING = 14,
-  EMOTION_COMMIT_HISTORY = 15
+  EMOTION_GITHUB_STATS = 15
 };
 ```
 
 **Static vs Animated**:
 - Static: IDLE, SAD, ANGRY, SURPRISED, CONFUSED, DEAD, BLINK
-- Animated: SLEEPY, THINKING, EXCITED, HAPPY, LOVE, MUSIC, NOTIFICATION, CODING, COMMIT_HISTORY
+- Animated: SLEEPY, THINKING, EXCITED, HAPPY, LOVE, MUSIC, NOTIFICATION, CODING, GITHUB_STATS
 
 ## Configuration
 

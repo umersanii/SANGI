@@ -2420,110 +2420,83 @@ void AnimationManager::animateGitHubStats() {
       return;
     }
     
-    // GitHub contribution graph layout on 128x64 display
-    // We'll show a heat map similar to GitHub's contribution graph
+    // CLEAN LAYOUT: Show only last 14 days (2 weeks) in large visible boxes
+    // Display: 128x64 pixels
+    // Layout: 2 weeks (columns) x 7 days (rows)
     
-    // Title area
-    displayManager.getDisplay().setTextSize(1);
-    displayManager.getDisplay().setTextColor(SSD1306_WHITE);
-    displayManager.getDisplay().setCursor(2, 1);
-    displayManager.getDisplay().print("@");
-    displayManager.getDisplay().print(githubData->username);
+    int weeksToShow = 2;  // Last 2 weeks (14 days)
+    int daysPerWeek = 7;
     
-    // Stats info on right
-    displayManager.getDisplay().setCursor(75, 1);
-    displayManager.getDisplay().print(githubData->totalContributions);
-    displayManager.getDisplay().print(" total");
+    // Large cell size for visibility
+    int cellWidth = 8;   // 8 pixels wide
+    int cellHeight = 8;  // 8 pixels tall
+    int cellGapX = 2;    // 2 pixel horizontal gap
+    int cellGapY = 1;    // 1 pixel vertical gap
     
-    // Draw separator
-    displayManager.getDisplay().drawLine(0, 10, 127, 10, SSD1306_WHITE);
+    // Center the grid on screen
+    int totalWidth = (weeksToShow * cellWidth) + ((weeksToShow - 1) * cellGapX);
+    int totalHeight = (daysPerWeek * cellHeight) + ((daysPerWeek - 1) * cellGapY);
     
-    // Contribution grid (52 weeks x 7 days)
-    // Display constraints: 128 pixels wide, need to fit 52 weeks
-    // Cell size: 2x2 pixels (2 wide x 2 tall), with 1 pixel gap = 3 pixels per week column
-    // This fits: 52 weeks * 2 = 104 pixels + spacing
+    int gridStartX = (128 - totalWidth) / 2;   // Center horizontally
+    int gridStartY = (64 - totalHeight) / 2;   // Center vertically
     
-    int cellWidth = 2;
-    int cellHeight = 2;
-    int cellSpacingX = 0;  // No horizontal spacing to fit 52 weeks
-    int cellSpacingY = 1;  // 1 pixel vertical spacing
-    int gridStartX = 2;
-    int gridStartY = 14;
+    // Get data from last 2 weeks
+    int startWeek = 50;  // Week 50 and 51 (last 2 weeks of the year)
     
-    // Show last 42 weeks (fits better on screen: 42 * 2 = 84 pixels + margin)
-    int weeksToShow = 42;
-    int startWeek = 52 - weeksToShow;  // Start from week 10 to show most recent
-    
-    // Animate scroll through all weeks (optional - for now show static last 42 weeks)
-    // int scrollOffset = (githubStatsFrame / 10) % 52;  // Slow scroll
-    
+    // Draw the contribution grid
     for (int week = 0; week < weeksToShow; week++) {
       int dataWeek = startWeek + week;
-      if (dataWeek >= 52) break;
+      if (dataWeek >= 52) dataWeek = 51;  // Clamp to last week
       
-      for (int day = 0; day < 7; day++) {
-        int x = gridStartX + (week * (cellWidth + cellSpacingX));
-        int y = gridStartY + (day * (cellHeight + cellSpacingY));
+      for (int day = 0; day < daysPerWeek; day++) {
+        int x = gridStartX + (week * (cellWidth + cellGapX));
+        int y = gridStartY + (day * (cellHeight + cellGapY));
         
         // Get contribution level (0-4)
         uint8_t level = githubData->contributions[dataWeek][day];
         
-        // Draw cell based on contribution level
-        // 0 = empty/outline, 1-4 = increasing fill density
+        // Draw cell with clear visible patterns
+        // 0 = empty outline
+        // 1 = light (small dot in center)
+        // 2 = medium (half filled)
+        // 3 = high (mostly filled)
+        // 4 = max (completely filled)
+        
         if (level == 0) {
           // No contributions - draw outline only
           displayManager.getDisplay().drawRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
+          
         } else if (level == 1) {
-          // Low contributions - 25% fill (draw 1 pixel)
+          // Low contributions - outline + center dot
           displayManager.getDisplay().drawRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
-          displayManager.getDisplay().drawPixel(x, y, SSD1306_WHITE);
+          displayManager.getDisplay().fillRect(x + 3, y + 3, 2, 2, SSD1306_WHITE);
+          
         } else if (level == 2) {
-          // Medium contributions - 50% fill (checkerboard pattern)
-          displayManager.getDisplay().fillRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
-          displayManager.getDisplay().drawPixel(x+1, y, SSD1306_BLACK);
-          displayManager.getDisplay().drawPixel(x, y+1, SSD1306_BLACK);
+          // Medium contributions - outline + half filled
+          displayManager.getDisplay().drawRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
+          displayManager.getDisplay().fillRect(x + 1, y + 1, 6, 3, SSD1306_WHITE);
+          
         } else if (level == 3) {
-          // High contributions - 75% fill
+          // High contributions - mostly filled
           displayManager.getDisplay().fillRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
-          displayManager.getDisplay().drawPixel(x+1, y+1, SSD1306_BLACK);
+          displayManager.getDisplay().drawRect(x + 2, y + 2, 4, 4, SSD1306_BLACK);
+          
         } else {
-          // Very high contributions (4+) - 100% fill
+          // Very high contributions (4+) - completely filled
           displayManager.getDisplay().fillRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
         }
       }
     }
     
-    // Draw day labels on left (M/W/F)
+    // Day labels on the left (S M T W T F S)
     displayManager.getDisplay().setTextSize(1);
-    displayManager.getDisplay().setCursor(0, 16);
-    displayManager.getDisplay().print("M");
-    displayManager.getDisplay().setCursor(0, 28);
-    displayManager.getDisplay().print("W");
-    displayManager.getDisplay().setCursor(0, 40);
-    displayManager.getDisplay().print("F");
+    const char* dayLabels[] = {"S", "M", "T", "W", "T", "F", "S"};
     
-    // Draw month markers at bottom (simplified)
-    int monthPositions[] = {2, 22, 42, 62, 82};  // Approximate positions
-    const char* monthNames[] = {"J", "M", "M", "S", "O"};  // Jun, Mar, May, Sep, Oct (sampled)
-    
-    displayManager.getDisplay().setTextSize(1);
-    for (int i = 0; i < 5; i++) {
-      displayManager.getDisplay().setCursor(monthPositions[i] + gridStartX, 55);
-      displayManager.getDisplay().print(monthNames[i]);
+    for (int day = 0; day < 7; day++) {
+      int labelY = gridStartY + (day * (cellHeight + cellGapY)) + 1;  // +1 for centering
+      displayManager.getDisplay().setCursor(gridStartX - 8, labelY);
+      displayManager.getDisplay().print(dayLabels[day]);
     }
-    
-    // Stats footer
-    displayManager.getDisplay().setCursor(94, 55);
-    displayManager.getDisplay().print(githubData->currentStreak);
-    displayManager.getDisplay().print("d");
-    
-    // Legend in bottom right corner (tiny)
-    int legendX = 110;
-    int legendY = 48;
-    // Less
-    displayManager.getDisplay().drawRect(legendX, legendY, 2, 2, SSD1306_WHITE);
-    // More
-    displayManager.getDisplay().fillRect(legendX + 4, legendY, 2, 2, SSD1306_WHITE);
     
     displayManager.updateDisplay();
     

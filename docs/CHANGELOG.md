@@ -5,32 +5,35 @@ All notable changes to the SANGI robot project.
 ## [Unreleased]
 
 ### Added
-- **NEW: EMOTION_COMMIT_HISTORY - GitHub Commit Display** (2025-10-28)
-  - Scrolling display of recent GitHub commits on OLED
-  - Shows repo name, commit message, author, SHA, and time ago
-  - Supports up to 10 commits in history with automatic cycling
-  - **Hardcoded test data** for immediate use (5 sample commits)
-  - **MQTT Integration Ready**: Topic `sangi/github/commits` for real-time updates
-  - Designed for Pi service to push real GitHub API data via MQTT
-  - Visual progress indicator shows position in commit list
-  - Smooth scrolling for long commit messages (21 char limit per line)
-  - Auto-calculates time ago (hours/days) from commit timestamp
+- **NEW: EMOTION_GITHUB_STATS - GitHub Contribution Graph Display** (2025-10-28)
+  - Clean, focused display of last 14 days (2 weeks) of GitHub contributions
+  - Large 8x8 pixel boxes for clear visibility on 128x64 OLED
+  - **Visual contribution levels** (0-4):
+    - Level 0: Empty outline (no contributions)
+    - Level 1: Outline + center dot (1-3 contributions)
+    - Level 2: Outline + half filled (4-6 contributions)
+    - Level 3: Filled + small hole (7-9 contributions)
+    - Level 4: Completely filled (10+ contributions)
+  - **Centered grid layout**: 2 columns (weeks) x 7 rows (days)
+  - Day labels on left side (S M T W T F S)
+  - **Hardcoded test data**: 397 total contributions simulating your actual GitHub activity
+  - **MQTT Integration Ready**: Topic `sangi/github/commits` for real-time updates from Pi service
   - **JSON Format for Pi Service**:
     ```json
     {
-      "commits": [
-        {
-          "repo": "SANGI",
-          "message": "Add commit history display",
-          "author": "umersanii",
-          "sha": "a1b2c3d",
-          "timestamp": 1234567890
-        }
+      "username": "umersanii",
+      "total": 397,
+      "current_streak": 15,
+      "longest_streak": 45,
+      "contributions": [
+        [0,1,2,3,2,1,0],  // Week 1: Sunday-Saturday
+        [1,2,3,4,3,2,1],  // Week 2: Sunday-Saturday
+        ...               // 52 weeks total
       ]
     }
     ```
-  - Frame rate: 100ms, displays each commit for 4 seconds
-  - Trigger via MQTT: `{"emotion": 15}` or `emotionManager.setTargetEmotion(EMOTION_COMMIT_HISTORY)`
+  - Frame rate: 200ms, static display (no scrolling for clarity)
+  - Trigger via MQTT: `{"emotion": 15}` or `emotionManager.setTargetEmotion(EMOTION_GITHUB_STATS)`
 
 - **NEW: EMOTION_CODING - Matrix-Inspired Coding Animation** (2025-10-21)
   - Focused coder face with thick rectangular glasses (28×24px lenses, 3-layer thickness)
