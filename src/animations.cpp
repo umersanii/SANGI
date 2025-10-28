@@ -2420,30 +2420,30 @@ void AnimationManager::animateGitHubStats() {
       return;
     }
     
-    // CLEAN LAYOUT: Show only last 14 days (2 weeks) in large visible boxes
+    // MAXIMIZED LAYOUT: Full screen 14-day grid
     // Display: 128x64 pixels
     // Layout: 2 weeks (columns) x 7 days (rows)
+    // BINARY: Filled box = commit that day, Empty box = no commits
     
     int weeksToShow = 2;  // Last 2 weeks (14 days)
     int daysPerWeek = 7;
     
-    // Large cell size for visibility
-    int cellWidth = 8;   // 8 pixels wide
-    int cellHeight = 8;  // 8 pixels tall
-    int cellGapX = 2;    // 2 pixel horizontal gap
-    int cellGapY = 1;    // 1 pixel vertical gap
+    // Calculate maximum cell size to fill screen
+    // 128 pixels wide / 2 weeks = 64 pixels per week
+    // 64 pixels tall / 7 days = ~9 pixels per day
     
-    // Center the grid on screen
-    int totalWidth = (weeksToShow * cellWidth) + ((weeksToShow - 1) * cellGapX);
-    int totalHeight = (daysPerWeek * cellHeight) + ((daysPerWeek - 1) * cellGapY);
+    int cellWidth = 62;   // Large boxes
+    int cellHeight = 9;   // Tall boxes to fill height
+    int cellGapX = 4;     // Small gap between weeks
+    int cellGapY = 0;     // No vertical gap to maximize height
     
-    int gridStartX = (128 - totalWidth) / 2;   // Center horizontally
-    int gridStartY = (64 - totalHeight) / 2;   // Center vertically
+    int gridStartX = 0;   // Start at edge
+    int gridStartY = 0;   // Start at top
     
     // Get data from last 2 weeks
     int startWeek = 50;  // Week 50 and 51 (last 2 weeks of the year)
     
-    // Draw the contribution grid
+    // Draw the contribution grid - FULL SCREEN
     for (int week = 0; week < weeksToShow; week++) {
       int dataWeek = startWeek + week;
       if (dataWeek >= 52) dataWeek = 51;  // Clamp to last week
@@ -2455,47 +2455,15 @@ void AnimationManager::animateGitHubStats() {
         // Get contribution level (0-4)
         uint8_t level = githubData->contributions[dataWeek][day];
         
-        // Draw cell with clear visible patterns
-        // 0 = empty outline
-        // 1 = light (small dot in center)
-        // 2 = medium (half filled)
-        // 3 = high (mostly filled)
-        // 4 = max (completely filled)
-        
-        if (level == 0) {
-          // No contributions - draw outline only
-          displayManager.getDisplay().drawRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
-          
-        } else if (level == 1) {
-          // Low contributions - outline + center dot
-          displayManager.getDisplay().drawRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
-          displayManager.getDisplay().fillRect(x + 3, y + 3, 2, 2, SSD1306_WHITE);
-          
-        } else if (level == 2) {
-          // Medium contributions - outline + half filled
-          displayManager.getDisplay().drawRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
-          displayManager.getDisplay().fillRect(x + 1, y + 1, 6, 3, SSD1306_WHITE);
-          
-        } else if (level == 3) {
-          // High contributions - mostly filled
+        // BINARY SYSTEM: Either had commits (any level > 0) or didn't (level 0)
+        if (level > 0) {
+          // Had commits - FILLED BOX
           displayManager.getDisplay().fillRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
-          displayManager.getDisplay().drawRect(x + 2, y + 2, 4, 4, SSD1306_BLACK);
-          
         } else {
-          // Very high contributions (4+) - completely filled
-          displayManager.getDisplay().fillRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
+          // No commits - EMPTY BOX (outline only)
+          displayManager.getDisplay().drawRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
         }
       }
-    }
-    
-    // Day labels on the left (S M T W T F S)
-    displayManager.getDisplay().setTextSize(1);
-    const char* dayLabels[] = {"S", "M", "T", "W", "T", "F", "S"};
-    
-    for (int day = 0; day < 7; day++) {
-      int labelY = gridStartY + (day * (cellHeight + cellGapY)) + 1;  // +1 for centering
-      displayManager.getDisplay().setCursor(gridStartX - 8, labelY);
-      displayManager.getDisplay().print(dayLabels[day]);
     }
     
     displayManager.updateDisplay();
