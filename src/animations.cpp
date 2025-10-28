@@ -2399,80 +2399,146 @@ void AnimationManager::animateCoding() {
 void AnimationManager::animateGitHubStats() {
   unsigned long currentTime = millis();
   
-  // Animate every 200ms for smooth transitions
-  if (currentTime - lastGitHubStatsAnim > 200) {
+
+  // Animation timing: 50ms per frame for smoothness
+  if (currentTime - lastGitHubStatsAnim > 50) {
     displayManager.clearDisplay();
-    
-    // Access network manager to get GitHub data
+
     extern NetworkManager networkManager;
-    
     GitHubContributionData* githubData = networkManager.getGitHubData();
-    
-    if (githubData == nullptr || !networkManager.hasGitHubData()) {
-      // No data available - show message
-      displayManager.getDisplay().setTextSize(1);
+
+    // Animation phases:
+    // 0-7: Sangi scared, 'github stats' text appears, Sangi runs off
+    // 8-11: Text fades out, Sangi off-screen
+    // 12-23: Boxes animate in (slide in from left)
+    // 24-35: Boxes animate out (slide out to right)
+    // 36-43: Sangi returns to center
+
+    // --- PHASE 1: Sangi scared, text appears, Sangi runs off ---
+    if (githubStatsFrame <= 7) {
+      // Sangi face (center, then moves right)
+      int offset = githubStatsFrame * 12; // Move 0 to 84px right
+      displayManager.drawEyes(40 + offset, 28, 88 + offset, 28, 18 - githubStatsFrame*2);
+      displayManager.getDisplay().drawCircle(64 + offset, 48, 5, SSD1306_WHITE);
+      // 'github stats' text
+      displayManager.getDisplay().setTextSize(2);
       displayManager.getDisplay().setTextColor(SSD1306_WHITE);
-      displayManager.getDisplay().setCursor(8, 20);
-      displayManager.getDisplay().println("No GitHub data");
-      displayManager.getDisplay().setCursor(15, 35);
-      displayManager.getDisplay().println("Waiting...");
-      displayManager.updateDisplay();
-      return;
+      displayManager.getDisplay().setCursor(10, 10);
+      displayManager.getDisplay().print("github stats");
     }
-    
-    // THREE-ROW LAYOUT: Full screen 21-day grid (3 weeks)
-    // Display: 128x64 pixels
-    // Layout: 3 rows x 7 columns (7 days per row = 21 days total)
-    // BINARY: Filled box = commit that day, Empty box = no commits
-    
-    int totalDays = 21;
-    int daysPerRow = 7;
-    int numRows = 3;
-    
-    // Calculate cell size to perfectly fill screen with 3 rows
-    // 128 pixels wide / 7 days = ~18 pixels per day (with small gaps)
-    // 64 pixels tall / 3 rows = ~21 pixels per row
-    
-    int cellWidth = 17;   // Width per box
-    int cellHeight = 20;  // Height per box (smaller to fit 3 rows)
-    int cellGapX = 1;     // Tiny gap between boxes horizontally
-    int cellGapY = 2;     // Small gap between rows
-    
-    int gridStartX = 1;   // Small margin from left edge
-    int gridStartY = 0;   // Start at top
-    
-    // Get data from last 3 weeks (21 days)
-    int startWeek = 49;  // Week 49, 50, and 51
-    
-    // Draw 21 days in 3 rows of 7
-    // Row 0: Days 0-6 (week 49)
-    // Row 1: Days 0-6 (week 50)
-    // Row 2: Days 0-6 (week 51)
-    
-    for (int row = 0; row < numRows; row++) {
-      int dataWeek = startWeek + row;
-      if (dataWeek >= 52) dataWeek = 51;  // Clamp to last week
-      
-      for (int col = 0; col < daysPerRow; col++) {
-        int x = gridStartX + (col * (cellWidth + cellGapX));
-        int y = gridStartY + (row * (cellHeight + cellGapY));
-        
-        // Get contribution level (0-4)
-        uint8_t level = githubData->contributions[dataWeek][col];
-        
-        // BINARY SYSTEM: Either had commits (any level > 0) or didn't (level 0)
-        if (level > 0) {
-          // Had commits - FILLED BOX
-          displayManager.getDisplay().fillRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
-        } else {
-          // No commits - EMPTY BOX (outline only)
-          displayManager.getDisplay().drawRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
+
+    // --- PHASE 2: Text fades out, Sangi off-screen ---
+    else if (githubStatsFrame <= 11) {
+      // Fade out text (reduce brightness by drawing with black over)
+      displayManager.getDisplay().setTextSize(2);
+      displayManager.getDisplay().setTextColor(SSD1306_WHITE);
+      displayManager.getDisplay().setCursor(10, 10);
+      displayManager.getDisplay().print("github stats");
+      // Overlay black rectangle to fade out
+      int fade = (githubStatsFrame - 8) * 32;
+      displayManager.getDisplay().fillRect(10, 10, fade, 20, SSD1306_BLACK);
+    }
+
+    // --- PHASE 3: Boxes animate in (slide in from left) ---
+    else if (githubStatsFrame <= 23) {
+      if (githubData == nullptr || !networkManager.hasGitHubData()) {
+        displayManager.getDisplay().setTextSize(1);
+        displayManager.getDisplay().setTextColor(SSD1306_WHITE);
+        displayManager.getDisplay().setCursor(8, 20);
+        displayManager.getDisplay().println("No GitHub data");
+        displayManager.getDisplay().setCursor(15, 35);
+        displayManager.getDisplay().println("Waiting...");
+        displayManager.updateDisplay();
+        lastGitHubStatsAnim = currentTime;
+        githubStatsFrame++;
+        return;
+      }
+      // Animate boxes sliding in
+      int totalDays = 21;
+      int daysPerRow = 7;
+      int numRows = 3;
+      int cellWidth = 17;
+      int cellHeight = 20;
+      int cellGapX = 1;
+      int cellGapY = 2;
+      int gridStartX = 1;
+      int gridStartY = 0;
+      int startWeek = 49;
+      // Slide in offset
+      int slide = 128 - ((githubStatsFrame - 12) * 12);
+      if (slide < 0) slide = 0;
+      for (int row = 0; row < numRows; row++) {
+        int dataWeek = startWeek + row;
+        if (dataWeek >= 52) dataWeek = 51;
+        for (int col = 0; col < daysPerRow; col++) {
+          int x = gridStartX + (col * (cellWidth + cellGapX)) - slide;
+          int y = gridStartY + (row * (cellHeight + cellGapY));
+          uint8_t level = githubData->contributions[dataWeek][col];
+          if (level > 0) {
+            displayManager.getDisplay().fillRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
+          } else {
+            displayManager.getDisplay().drawRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
+          }
         }
       }
     }
-    
+
+    // --- PHASE 4: Boxes animate out (slide out to right) ---
+    else if (githubStatsFrame <= 35) {
+      if (githubData == nullptr || !networkManager.hasGitHubData()) {
+        displayManager.getDisplay().setTextSize(1);
+        displayManager.getDisplay().setTextColor(SSD1306_WHITE);
+        displayManager.getDisplay().setCursor(8, 20);
+        displayManager.getDisplay().println("No GitHub data");
+        displayManager.getDisplay().setCursor(15, 35);
+        displayManager.getDisplay().println("Waiting...");
+        displayManager.updateDisplay();
+        lastGitHubStatsAnim = currentTime;
+        githubStatsFrame++;
+        return;
+      }
+      // Animate boxes sliding out
+      int totalDays = 21;
+      int daysPerRow = 7;
+      int numRows = 3;
+      int cellWidth = 17;
+      int cellHeight = 20;
+      int cellGapX = 1;
+      int cellGapY = 2;
+      int gridStartX = 1;
+      int gridStartY = 0;
+      int startWeek = 49;
+      int slide = (githubStatsFrame - 24) * 12;
+      for (int row = 0; row < numRows; row++) {
+        int dataWeek = startWeek + row;
+        if (dataWeek >= 52) dataWeek = 51;
+        for (int col = 0; col < daysPerRow; col++) {
+          int x = gridStartX + (col * (cellWidth + cellGapX)) + slide;
+          int y = gridStartY + (row * (cellHeight + cellGapY));
+          uint8_t level = githubData->contributions[dataWeek][col];
+          if (level > 0) {
+            displayManager.getDisplay().fillRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
+          } else {
+            displayManager.getDisplay().drawRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
+          }
+        }
+      }
+    }
+
+    // --- PHASE 5: Sangi returns to center ---
+    else if (githubStatsFrame <= 43) {
+      int offset = (43 - githubStatsFrame) * 12; // Move from right to center
+      displayManager.drawEyes(40 + offset, 28, 88 + offset, 28, 18);
+      displayManager.getDisplay().drawCircle(64 + offset, 48, 5, SSD1306_WHITE);
+    }
+
+    // --- PHASE 6: Hold idle Sangi ---
+    else {
+      displayManager.drawEyes(40, 28, 88, 28, 18);
+      displayManager.getDisplay().drawCircle(64, 48, 5, SSD1306_WHITE);
+    }
+
     displayManager.updateDisplay();
-    
     githubStatsFrame++;
     lastGitHubStatsAnim = currentTime;
   }
