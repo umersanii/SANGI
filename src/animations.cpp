@@ -1,5 +1,6 @@
 #include "animations.h"
 #include "display.h"
+#include "network.h"
 
 AnimationManager animationManager;
 
@@ -17,7 +18,7 @@ AnimationManager::AnimationManager()
     lastDeadAnim(0),
     lastNotificationAnim(0),
     lastCodingAnim(0),
-    lastCommitHistoryAnim(0),
+    lastGitHubStatsAnim(0),
     sleepyFrame(0),
     thinkFrame(0),
     exciteFrame(0),
@@ -31,7 +32,7 @@ AnimationManager::AnimationManager()
     deadFrame(0),
     notificationFrame(0),
     codingFrame(0),
-    commitHistoryFrame(0) {
+    githubStatsFrame(0) {
 }
 
 // Reset animation frame to start smoothly from beginning
@@ -2398,155 +2399,140 @@ void AnimationManager::animateCoding() {
   }
 }
 
-// Animated commit history display - scrolling GitHub commits
-void AnimationManager::animateCommitHistory() {
+// Animated GitHub contribution graph - displays heat map like GitHub
+void AnimationManager::animateGitHubStats() {
   unsigned long currentTime = millis();
   
-  // Animate every 100ms for smooth scrolling
-  if (currentTime - lastCommitHistoryAnim > 100) {
+  // Animate every 200ms for smooth transitions
+  if (currentTime - lastGitHubStatsAnim > 200) {
     displayManager.clearDisplay();
     
-    // Import network manager to access commit data
+    // Access network manager to get GitHub data
     extern NetworkManager networkManager;
     
-    int commitCount = networkManager.getCommitCount();
+    GitHubContributionData* githubData = networkManager.getGitHubData();
     
-    if (commitCount == 0) {
-      // No commits available - show message
+    if (githubData == nullptr || !networkManager.hasGitHubData()) {
+      // No data available - show message
       displayManager.getDisplay().setTextSize(1);
       displayManager.getDisplay().setTextColor(SSD1306_WHITE);
-      displayManager.getDisplay().setCursor(10, 20);
-      displayManager.getDisplay().println("No commits yet");
+      displayManager.getDisplay().setCursor(8, 20);
+      displayManager.getDisplay().println("No GitHub data");
       displayManager.getDisplay().setCursor(15, 35);
-      displayManager.getDisplay().println("Waiting for data...");
+      displayManager.getDisplay().println("Waiting...");
       displayManager.updateDisplay();
       return;
     }
     
-    // Calculate which commit to show based on frame
-    // Each commit displays for 40 frames (4 seconds at 100ms)
-    int currentCommitIndex = (commitHistoryFrame / 40) % commitCount;
+    // GitHub contribution graph layout on 128x64 display
+    // We'll show a heat map similar to GitHub's contribution graph
     
-    // Get current commit
-    CommitHistoryEntry* commit = networkManager.getCommitAtIndex(currentCommitIndex);
-    
-    if (commit == nullptr) {
-      displayManager.getDisplay().setTextSize(1);
-      displayManager.getDisplay().setTextColor(SSD1306_WHITE);
-      displayManager.getDisplay().setCursor(20, 28);
-      displayManager.getDisplay().println("Loading...");
-      displayManager.updateDisplay();
-      return;
-    }
-    
-    // Scrolling offset within current commit (10 frames = 1 second per scroll phase)
-    int scrollPhase = (commitHistoryFrame % 40) / 10;  // 0-3
-    
-    // Draw GitHub icon (simple git branch icon)
+    // Title area
     displayManager.getDisplay().setTextSize(1);
     displayManager.getDisplay().setTextColor(SSD1306_WHITE);
-    displayManager.getDisplay().setCursor(2, 2);
-    displayManager.getDisplay().print("git");
-    
-    // Draw repo name at top
-    displayManager.getDisplay().setTextSize(1);
-    displayManager.getDisplay().setCursor(25, 2);
-    displayManager.getDisplay().print(commit->repo);
-    
-    // Draw commit SHA on right
-    displayManager.getDisplay().setCursor(95, 2);
-    displayManager.getDisplay().print(commit->sha);
-    
-    // Draw separator line
-    displayManager.getDisplay().drawLine(0, 12, 127, 12, SSD1306_WHITE);
-    
-    // Draw author
-    displayManager.getDisplay().setTextSize(1);
-    displayManager.getDisplay().setCursor(2, 16);
+    displayManager.getDisplay().setCursor(2, 1);
     displayManager.getDisplay().print("@");
-    displayManager.getDisplay().print(commit->author);
+    displayManager.getDisplay().print(githubData->username);
     
-    // Draw time ago (simplified - just show "recent")
-    unsigned long currentMillis = millis();
-    unsigned long commitAge = 0;
+    // Stats info on right
+    displayManager.getDisplay().setCursor(75, 1);
+    displayManager.getDisplay().print(githubData->totalContributions);
+    displayManager.getDisplay().print(" total");
     
-    // Handle millis() overflow
-    if (currentMillis >= commit->timestamp) {
-      commitAge = currentMillis - commit->timestamp;
-    } else {
-      commitAge = 0;
-    }
+    // Draw separator
+    displayManager.getDisplay().drawLine(0, 10, 127, 10, SSD1306_WHITE);
     
-    int hoursAgo = commitAge / 3600000;
-    displayManager.getDisplay().setCursor(80, 16);
-    if (hoursAgo < 1) {
-      displayManager.getDisplay().print("now");
-    } else if (hoursAgo < 24) {
-      displayManager.getDisplay().print(hoursAgo);
-      displayManager.getDisplay().print("h ago");
-    } else {
-      int daysAgo = hoursAgo / 24;
-      displayManager.getDisplay().print(daysAgo);
-      displayManager.getDisplay().print("d ago");
-    }
+    // Contribution grid (52 weeks x 7 days)
+    // Display constraints: 128 pixels wide, need to fit 52 weeks
+    // Cell size: 2x2 pixels (2 wide x 2 tall), with 1 pixel gap = 3 pixels per week column
+    // This fits: 52 weeks * 2 = 104 pixels + spacing
     
-    // Draw commit message (scrolling if too long)
-    displayManager.getDisplay().setTextSize(1);
-    int messageY = 28;
+    int cellWidth = 2;
+    int cellHeight = 2;
+    int cellSpacingX = 0;  // No horizontal spacing to fit 52 weeks
+    int cellSpacingY = 1;  // 1 pixel vertical spacing
+    int gridStartX = 2;
+    int gridStartY = 14;
     
-    // Calculate message length
-    int messageLen = strlen(commit->message);
-    int maxChars = 21;  // Max characters per line at size 1
+    // Show last 42 weeks (fits better on screen: 42 * 2 = 84 pixels + margin)
+    int weeksToShow = 42;
+    int startWeek = 52 - weeksToShow;  // Start from week 10 to show most recent
     
-    if (messageLen <= maxChars) {
-      // Message fits on one line
-      displayManager.getDisplay().setCursor(2, messageY);
-      displayManager.getDisplay().print(commit->message);
-    } else {
-      // Scroll message based on scroll phase
-      int startChar = scrollPhase * 5;  // Scroll 5 chars at a time
-      if (startChar >= messageLen) startChar = 0;
+    // Animate scroll through all weeks (optional - for now show static last 42 weeks)
+    // int scrollOffset = (githubStatsFrame / 10) % 52;  // Slow scroll
+    
+    for (int week = 0; week < weeksToShow; week++) {
+      int dataWeek = startWeek + week;
+      if (dataWeek >= 52) break;
       
-      char displayMsg[22];
-      int charsToCopy = min(maxChars, messageLen - startChar);
-      strncpy(displayMsg, commit->message + startChar, charsToCopy);
-      displayMsg[charsToCopy] = '\0';
-      
-      displayManager.getDisplay().setCursor(2, messageY);
-      displayManager.getDisplay().print(displayMsg);
-      
-      // Show ellipsis if truncated
-      if (startChar + charsToCopy < messageLen) {
-        displayManager.getDisplay().print("...");
+      for (int day = 0; day < 7; day++) {
+        int x = gridStartX + (week * (cellWidth + cellSpacingX));
+        int y = gridStartY + (day * (cellHeight + cellSpacingY));
+        
+        // Get contribution level (0-4)
+        uint8_t level = githubData->contributions[dataWeek][day];
+        
+        // Draw cell based on contribution level
+        // 0 = empty/outline, 1-4 = increasing fill density
+        if (level == 0) {
+          // No contributions - draw outline only
+          displayManager.getDisplay().drawRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
+        } else if (level == 1) {
+          // Low contributions - 25% fill (draw 1 pixel)
+          displayManager.getDisplay().drawRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
+          displayManager.getDisplay().drawPixel(x, y, SSD1306_WHITE);
+        } else if (level == 2) {
+          // Medium contributions - 50% fill (checkerboard pattern)
+          displayManager.getDisplay().fillRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
+          displayManager.getDisplay().drawPixel(x+1, y, SSD1306_BLACK);
+          displayManager.getDisplay().drawPixel(x, y+1, SSD1306_BLACK);
+        } else if (level == 3) {
+          // High contributions - 75% fill
+          displayManager.getDisplay().fillRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
+          displayManager.getDisplay().drawPixel(x+1, y+1, SSD1306_BLACK);
+        } else {
+          // Very high contributions (4+) - 100% fill
+          displayManager.getDisplay().fillRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
+        }
       }
     }
     
-    // Draw commit indicator at bottom (shows progress through commits)
-    int indicatorY = 54;
-    int indicatorWidth = 128 / commitCount;
-    if (indicatorWidth < 2) indicatorWidth = 2;
+    // Draw day labels on left (M/W/F)
+    displayManager.getDisplay().setTextSize(1);
+    displayManager.getDisplay().setCursor(0, 16);
+    displayManager.getDisplay().print("M");
+    displayManager.getDisplay().setCursor(0, 28);
+    displayManager.getDisplay().print("W");
+    displayManager.getDisplay().setCursor(0, 40);
+    displayManager.getDisplay().print("F");
     
-    for (int i = 0; i < commitCount; i++) {
-      int x = i * indicatorWidth;
-      if (i == currentCommitIndex) {
-        displayManager.getDisplay().fillRect(x, indicatorY, indicatorWidth - 1, 3, SSD1306_WHITE);
-      } else {
-        displayManager.getDisplay().drawRect(x, indicatorY, indicatorWidth - 1, 3, SSD1306_WHITE);
-      }
+    // Draw month markers at bottom (simplified)
+    int monthPositions[] = {2, 22, 42, 62, 82};  // Approximate positions
+    const char* monthNames[] = {"J", "M", "M", "S", "O"};  // Jun, Mar, May, Sep, Oct (sampled)
+    
+    displayManager.getDisplay().setTextSize(1);
+    for (int i = 0; i < 5; i++) {
+      displayManager.getDisplay().setCursor(monthPositions[i] + gridStartX, 55);
+      displayManager.getDisplay().print(monthNames[i]);
     }
     
-    // Draw navigation hint
-    displayManager.getDisplay().setTextSize(1);
-    displayManager.getDisplay().setCursor(25, 58);
-    displayManager.getDisplay().print(currentCommitIndex + 1);
-    displayManager.getDisplay().print("/");
-    displayManager.getDisplay().print(commitCount);
-    displayManager.getDisplay().print(" commits");
+    // Stats footer
+    displayManager.getDisplay().setCursor(94, 55);
+    displayManager.getDisplay().print(githubData->currentStreak);
+    displayManager.getDisplay().print("d");
+    
+    // Legend in bottom right corner (tiny)
+    int legendX = 110;
+    int legendY = 48;
+    // Less
+    displayManager.getDisplay().drawRect(legendX, legendY, 2, 2, SSD1306_WHITE);
+    // More
+    displayManager.getDisplay().fillRect(legendX + 4, legendY, 2, 2, SSD1306_WHITE);
     
     displayManager.updateDisplay();
     
-    commitHistoryFrame++;
-    lastCommitHistoryAnim = currentTime;
+    githubStatsFrame++;
+    lastGitHubStatsAnim = currentTime;
   }
 }
 

@@ -11,8 +11,8 @@
 // ===== GLOBAL STATE =====
 unsigned long bootTime = 0;
 
-// Forward declaration for hardcoded commit loading
-void loadHardcodedCommitHistory();
+// Forward declaration for hardcoded GitHub data loading
+void loadHardcodedGitHubData();
 
 // ===== OFFLINE NOTIFICATION GENERATOR =====
 // Stores generated notification data for offline mode
@@ -121,7 +121,7 @@ void setup() {
 #endif
 
   // Load hardcoded commit history for testing (will be replaced by MQTT data in production)
-  loadHardcodedCommitHistory();
+  loadHardcodedGitHubData();
 
   // Show boot screen
 //  displayManager.showBootScreen();
@@ -142,7 +142,7 @@ void setup() {
                 DEBUG_MODE_EMOTION == EMOTION_MUSIC ? "MUSIC" :
                 DEBUG_MODE_EMOTION == EMOTION_NOTIFICATION ? "NOTIFICATION" :
                 DEBUG_MODE_EMOTION == EMOTION_CODING ? "CODING" :
-                DEBUG_MODE_EMOTION == EMOTION_COMMIT_HISTORY ? "COMMIT_HISTORY" : "IDLE");
+                DEBUG_MODE_EMOTION == EMOTION_GITHUB_STATS ? "GITHUB_STATS" : "IDLE");
   emotionManager.setTargetEmotion(DEBUG_MODE_EMOTION);
 #else
   // Ensure final face is rendered (only when not in debug mode)
@@ -191,7 +191,7 @@ void loop() {
     EMOTION_DEAD,
     EMOTION_MUSIC,
     EMOTION_NOTIFICATION,
-    EMOTION_COMMIT_HISTORY
+    EMOTION_GITHUB_STATS
   };
   static const int numEmotions = sizeof(testEmotions) / sizeof(testEmotions[0]);
 
@@ -361,8 +361,8 @@ void loop() {
       case EMOTION_CODING:
         animationManager.animateCoding();
         break;
-      case EMOTION_COMMIT_HISTORY:
-        animationManager.animateCommitHistory();
+      case EMOTION_GITHUB_STATS:
+        animationManager.animateGitHubStats();
         break;
       default:
         // Static display for other emotions

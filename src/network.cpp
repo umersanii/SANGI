@@ -25,7 +25,6 @@ NetworkManager::NetworkManager()
     piOnline(false),
     notificationCount(0),
     currentNotificationIndex(0),
-    commitCount(0),
     workspaceMode(false),
     lastMQTTMessageTime(0) {
   // Initialize notification queue
@@ -33,10 +32,13 @@ NetworkManager::NetworkManager()
     notificationQueue[i].active = false;
   }
   
-  // Initialize commit history
-  for (int i = 0; i < MAX_COMMIT_HISTORY; i++) {
-    commitHistory[i].active = false;
-  }
+  // Initialize GitHub data
+  githubData.dataLoaded = false;
+  githubData.totalContributions = 0;
+  githubData.currentStreak = 0;
+  githubData.longestStreak = 0;
+  memset(githubData.username, 0, sizeof(githubData.username));
+  memset(githubData.contributions, 0, sizeof(githubData.contributions));
   
   // Initialize SSID storage
   memset(connectedSSID, 0, sizeof(connectedSSID));
@@ -89,33 +91,96 @@ bool NetworkManager::init() {
 #endif
 }
 
-// ===== HARDCODED COMMIT HISTORY (for testing) =====
+// ===== HARDCODED GITHUB CONTRIBUTION DATA (for testing) =====
 // This will be replaced by real GitHub API data from Pi service via MQTT
-void NetworkManager::clearCommitHistory() {
-  for (int i = 0; i < MAX_COMMIT_HISTORY; i++) {
-    commitHistory[i].active = false;
+void loadHardcodedGitHubData() {
+  // Clear existing data
+  networkManager.clearGitHubData();
+  
+  // Sample contribution data simulating a year of activity
+  // Values: 0 = no contributions, 1 = 1-3 contributions, 2 = 4-6, 3 = 7-9, 4 = 10+
+  uint8_t sampleContributions[52][7];
+  
+  // Initialize all to 0
+  memset(sampleContributions, 0, sizeof(sampleContributions));
+  
+  // Based on your graph: concentrated activity in certain periods
+  // Simulating the pattern from your screenshot
+  
+  // December 2024 - sparse activity
+  for (int week = 0; week < 5; week++) {
+    for (int day = 0; day < 7; day++) {
+      if (week >= 1 && (day == 2 || day == 3 || day == 4)) {
+        sampleContributions[week][day] = (week % 2 == 0) ? 2 : 1;
+      }
+    }
   }
-  commitCount = 0;
-  Serial.println("Commit history cleared");
-}
-
-void loadHardcodedCommitHistory() {
-  // Clear existing history
-  networkManager.clearCommitHistory();
   
-  // Add sample commits (most recent first)
-  // In production, this data will come from GitHub API via MQTT topic "sangi/github/commits"
-  networkManager.addCommit("SANGI", "Add commit history display", "umersanii", "a1b2c3d", millis());
-  delay(1);
-  networkManager.addCommit("SANGI", "Fix MQTT notification queue", "umersanii", "e4f5g6h", millis() - 3600000);
-  delay(1);
-  networkManager.addCommit("DotFiles", "Update tmux config", "umersanii", "i7j8k9l", millis() - 7200000);
-  delay(1);
-  networkManager.addCommit("SANGI", "Add workspace monitor", "umersanii", "m1n2o3p", millis() - 10800000);
-  delay(1);
-  networkManager.addCommit("Portfolio", "Optimize images", "umersanii", "q4r5s6t", millis() - 14400000);
+  // January - increasing activity
+  for (int week = 5; week < 9; week++) {
+    for (int day = 0; day < 7; day++) {
+      if (day >= 1 && day <= 5) {
+        sampleContributions[week][day] = (day % 2 == 0) ? 3 : 2;
+      }
+    }
+  }
   
-  Serial.printf("Loaded %d hardcoded commits for testing\n", networkManager.getCommitCount());
+  // February-March - moderate activity
+  for (int week = 9; week < 17; week++) {
+    for (int day = 0; day < 7; day++) {
+      if (day >= 1 && day <= 4) {
+        sampleContributions[week][day] = (week % 3 == 0) ? 2 : 1;
+      }
+    }
+  }
+  
+  // April-May - peak activity
+  for (int week = 17; week < 26; week++) {
+    for (int day = 0; day < 7; day++) {
+      if (day >= 0 && day <= 5) {
+        sampleContributions[week][day] = ((week + day) % 4 == 0) ? 4 : 3;
+      }
+    }
+  }
+  
+  // June-July - high activity
+  for (int week = 26; week < 35; week++) {
+    for (int day = 0; day < 7; day++) {
+      if (day >= 1 && day <= 6) {
+        sampleContributions[week][day] = (day % 2 == 0) ? 4 : 3;
+      }
+    }
+  }
+  
+  // August-September - very high activity
+  for (int week = 35; week < 44; week++) {
+    for (int day = 0; day < 7; day++) {
+      if (day >= 0 && day <= 6) {
+        sampleContributions[week][day] = ((week + day) % 3 == 0) ? 4 : 3;
+      }
+    }
+  }
+  
+  // October - recent high activity
+  for (int week = 44; week < 52; week++) {
+    for (int day = 0; day < 7; day++) {
+      if (day >= 1 && day <= 5) {
+        sampleContributions[week][day] = (day % 2 == 0) ? 4 : 3;
+      }
+    }
+  }
+  
+  // Set the data with stats
+  networkManager.setGitHubContributions(
+    sampleContributions,
+    397,  // Total contributions from your graph
+    15,   // Current streak (sample)
+    45    // Longest streak (sample)
+    , "umersanii"
+  );
+  
+  Serial.println("Loaded hardcoded GitHub contribution data for testing");
+  Serial.printf("Total: 397 contributions | Current streak: 15 days\n");
 }
 
 // ===== WiFi CONNECTION =====
@@ -473,50 +538,57 @@ void NetworkManager::handleIncomingMessage(const char* topic, const char* payloa
       Serial.println("⚠️  Notification queue full - dropped");
     }
   }
-  // Handle GitHub commit history updates
+  // Handle GitHub contribution data updates
   else if (strcmp(topic, MQTT_TOPIC_GITHUB_COMMITS) == 0) {
     // Expected JSON format:
     // {
-    //   "commits": [
-    //     {
-    //       "repo": "SANGI",
-    //       "message": "Add new feature",
-    //       "author": "umersanii",
-    //       "sha": "a1b2c3d",
-    //       "timestamp": 1234567890
-    //     },
-    //     ...
-    //   ]
+    //   "username": "umersanii",
+    //   "total": 397,
+    //   "current_streak": 15,
+    //   "longest_streak": 45,
+    //   "contributions": [[0,1,2,3,2,1,0], [1,2,3,4,3,2,1], ...] // 52 weeks x 7 days
     // }
     
-    if (doc.containsKey("commits") && doc["commits"].is<JsonArray>()) {
-      JsonArray commits = doc["commits"].as<JsonArray>();
+    if (doc.containsKey("contributions") && doc["contributions"].is<JsonArray>()) {
+      const char* username = doc["username"] | "user";
+      int total = doc["total"] | 0;
+      int currentStreak = doc["current_streak"] | 0;
+      int longestStreak = doc["longest_streak"] | 0;
       
-      // Clear existing history before loading new data
-      clearCommitHistory();
+      JsonArray weeksArray = doc["contributions"].as<JsonArray>();
       
-      int addedCount = 0;
-      for (JsonVariant commit : commits) {
-        const char* repo = commit["repo"] | "";
-        const char* message = commit["message"] | "";
-        const char* author = commit["author"] | "";
-        const char* sha = commit["sha"] | "";
-        unsigned long timestamp = commit["timestamp"] | millis();
+      uint8_t contributions[52][7];
+      memset(contributions, 0, sizeof(contributions));
+      
+      int weekIndex = 0;
+      for (JsonVariant weekVar : weeksArray) {
+        if (weekIndex >= 52) break;
         
-        if (addCommit(repo, message, author, sha, timestamp)) {
-          addedCount++;
+        if (weekVar.is<JsonArray>()) {
+          JsonArray daysArray = weekVar.as<JsonArray>();
+          int dayIndex = 0;
+          
+          for (JsonVariant dayVar : daysArray) {
+            if (dayIndex >= 7) break;
+            contributions[weekIndex][dayIndex] = dayVar.as<uint8_t>();
+            dayIndex++;
+          }
         }
+        weekIndex++;
       }
       
-      Serial.printf("📊 Updated commit history: %d commits loaded\n", addedCount);
+      // Set the data
+      setGitHubContributions(contributions, total, currentStreak, longestStreak, username);
       
-      // Optionally trigger commit history emotion
-      if (addedCount > 0 && emotionManager.getCurrentEmotion() != EMOTION_COMMIT_HISTORY) {
-        // Could auto-switch to commit history view
-        // emotionManager.setTargetEmotion(EMOTION_COMMIT_HISTORY);
+      Serial.printf("📊 Updated GitHub data: %d contributions, %d day streak\n", total, currentStreak);
+      
+      // Optionally trigger GitHub stats emotion
+      if (emotionManager.getCurrentEmotion() != EMOTION_GITHUB_STATS) {
+        // Could auto-switch to stats view
+        // emotionManager.setTargetEmotion(EMOTION_GITHUB_STATS);
       }
     } else {
-      Serial.println("⚠️  Invalid commit history format");
+      Serial.println("⚠️  Invalid GitHub contribution format");
     }
   }
   else {
@@ -720,53 +792,46 @@ void NetworkManager::testConnectivity() {
   Serial.println("\n════════════════════════════════════\n");
 }
 
-// ===== COMMIT HISTORY MANAGEMENT =====
-bool NetworkManager::addCommit(const char* repo, const char* message, const char* author, const char* sha, unsigned long timestamp) {
-  if (commitCount >= MAX_COMMIT_HISTORY) {
-    // Shift array to make room (remove oldest)
-    for (int i = 0; i < MAX_COMMIT_HISTORY - 1; i++) {
-      commitHistory[i] = commitHistory[i + 1];
-    }
-    commitCount = MAX_COMMIT_HISTORY - 1;
+// ===== GITHUB CONTRIBUTION DATA MANAGEMENT =====
+void NetworkManager::setGitHubContributions(const uint8_t contributions[52][7], int total, int streak, int longest, const char* user) {
+  // Copy contribution grid
+  memcpy(githubData.contributions, contributions, sizeof(githubData.contributions));
+  
+  githubData.totalContributions = total;
+  githubData.currentStreak = streak;
+  githubData.longestStreak = longest;
+  
+  // Safe string copy
+  if (user) {
+    strncpy(githubData.username, user, 31);
+    githubData.username[31] = '\0';
+  } else {
+    strcpy(githubData.username, "user");
   }
   
-  // Validate input parameters
-  if (!repo) repo = "";
-  if (!message) message = "";
-  if (!author) author = "";
-  if (!sha) sha = "";
+  githubData.dataLoaded = true;
   
-  // Add new commit at end (most recent)
-  int index = commitCount;
-  
-  // Safe string copy with explicit null termination
-  strncpy(commitHistory[index].repo, repo, 31);
-  commitHistory[index].repo[31] = '\0';
-  
-  strncpy(commitHistory[index].message, message, 63);
-  commitHistory[index].message[63] = '\0';
-  
-  strncpy(commitHistory[index].author, author, 23);
-  commitHistory[index].author[23] = '\0';
-  
-  strncpy(commitHistory[index].sha, sha, 15);
-  commitHistory[index].sha[15] = '\0';
-  
-  commitHistory[index].timestamp = timestamp;
-  commitHistory[index].active = true;
-  commitCount++;
-  
-  return true;
+  Serial.printf("GitHub data loaded: %d contributions, %d day streak\n", total, streak);
 }
 
-CommitHistoryEntry* NetworkManager::getCommitAtIndex(int index) {
-  if (index < 0 || index >= commitCount) {
+GitHubContributionData* NetworkManager::getGitHubData() {
+  if (!githubData.dataLoaded) {
     return nullptr;
   }
-  
-  if (!commitHistory[index].active) {
-    return nullptr;
-  }
-  
-  return &commitHistory[index];
+  return &githubData;
 }
+
+bool NetworkManager::hasGitHubData() const {
+  return githubData.dataLoaded;
+}
+
+void NetworkManager::clearGitHubData() {
+  githubData.dataLoaded = false;
+  githubData.totalContributions = 0;
+  githubData.currentStreak = 0;
+  githubData.longestStreak = 0;
+  memset(githubData.username, 0, sizeof(githubData.username));
+  memset(githubData.contributions, 0, sizeof(githubData.contributions));
+  Serial.println("GitHub data cleared");
+}
+

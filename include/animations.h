@@ -23,7 +23,7 @@ public:
   void animateDead();
   void animateNotification(const char* title = "", const char* message = "");
   void animateCoding();
-  void animateCommitHistory();
+  void animateGitHubStats();
   
   // Reset animation frames when switching emotions
   void resetAnimation(EmotionState emotion);
@@ -43,7 +43,7 @@ private:
   unsigned long lastDeadAnim;
   unsigned long lastNotificationAnim;
   unsigned long lastCodingAnim;
-  unsigned long lastCommitHistoryAnim;
+  unsigned long lastGitHubStatsAnim;
   
   int sleepyFrame;
   int thinkFrame;
@@ -58,7 +58,7 @@ private:
   int deadFrame;
   int notificationFrame;
   int codingFrame;
-  int commitHistoryFrame;
+  int githubStatsFrame;
 };
 
 extern AnimationManager animationManager;
