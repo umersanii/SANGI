@@ -2420,40 +2420,44 @@ void AnimationManager::animateGitHubStats() {
       return;
     }
     
-    // MAXIMIZED LAYOUT: Full screen 14-day grid
+    // TWO-ROW LAYOUT: Full screen 14-day grid (like GitHub mobile view)
     // Display: 128x64 pixels
-    // Layout: 2 weeks (columns) x 7 days (rows)
+    // Layout: 2 rows x 7 columns (7 days per row = 14 days total)
     // BINARY: Filled box = commit that day, Empty box = no commits
     
-    int weeksToShow = 2;  // Last 2 weeks (14 days)
-    int daysPerWeek = 7;
+    int totalDays = 14;
+    int daysPerRow = 7;
+    int numRows = 2;
     
-    // Calculate maximum cell size to fill screen
-    // 128 pixels wide / 2 weeks = 64 pixels per week
-    // 64 pixels tall / 7 days = ~9 pixels per day
+    // Calculate cell size to perfectly fill screen
+    // 128 pixels wide / 7 days = ~18 pixels per day (with small gaps)
+    // 64 pixels tall / 2 rows = 32 pixels per row
     
-    int cellWidth = 62;   // Large boxes
-    int cellHeight = 9;   // Tall boxes to fill height
-    int cellGapX = 4;     // Small gap between weeks
-    int cellGapY = 0;     // No vertical gap to maximize height
+    int cellWidth = 17;   // Width per box
+    int cellHeight = 30;  // Height per box
+    int cellGapX = 1;     // Tiny gap between boxes horizontally
+    int cellGapY = 4;     // Small gap between rows
     
-    int gridStartX = 0;   // Start at edge
+    int gridStartX = 1;   // Small margin from left edge
     int gridStartY = 0;   // Start at top
     
-    // Get data from last 2 weeks
-    int startWeek = 50;  // Week 50 and 51 (last 2 weeks of the year)
+    // Get data from last 2 weeks (14 days)
+    int startWeek = 50;  // Week 50 and 51
     
-    // Draw the contribution grid - FULL SCREEN
-    for (int week = 0; week < weeksToShow; week++) {
-      int dataWeek = startWeek + week;
+    // Draw 14 days in 2 rows of 7
+    // Row 0: Days 0-6 (week 50)
+    // Row 1: Days 0-6 (week 51)
+    
+    for (int row = 0; row < numRows; row++) {
+      int dataWeek = startWeek + row;
       if (dataWeek >= 52) dataWeek = 51;  // Clamp to last week
       
-      for (int day = 0; day < daysPerWeek; day++) {
-        int x = gridStartX + (week * (cellWidth + cellGapX));
-        int y = gridStartY + (day * (cellHeight + cellGapY));
+      for (int col = 0; col < daysPerRow; col++) {
+        int x = gridStartX + (col * (cellWidth + cellGapX));
+        int y = gridStartY + (row * (cellHeight + cellGapY));
         
         // Get contribution level (0-4)
-        uint8_t level = githubData->contributions[dataWeek][day];
+        uint8_t level = githubData->contributions[dataWeek][col];
         
         // BINARY SYSTEM: Either had commits (any level > 0) or didn't (level 0)
         if (level > 0) {

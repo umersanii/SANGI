@@ -103,7 +103,8 @@ void setup() {
   inputManager.init();
   inputManager.updateLastInteraction(bootTime);
   batteryManager.init();
-  displayManager.showBootScreen();
+  #if !DEBUG_MODE_ENABLED
+    displayManager.showBootScreen();
   
   // Initialize non-blocking beep manager
   beepManager.init();
