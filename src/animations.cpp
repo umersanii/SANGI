@@ -2407,229 +2407,181 @@ void AnimationManager::animateGitHubStats() {
     extern NetworkManager networkManager;
     GitHubContributionData* githubData = networkManager.getGitHubData();
 
-  // PHASES (notification-style):
+  // PHASES (notification-style, 86 frames):
   // 0-5: Sangi surprise/scared (wide eyes, mouth, eyebrows)
   // 6-12: Sangi runs off-screen (moves right)
-  // 13-18: Text board slides in from left
-  // 19-70: Text board holds (centered)
-  // 71-76: Text board slides out to right
-  // 77-86: Stats boxes slide in from left
-  // 87-127: Stats boxes hold (centered)
-  // 128-133: Stats boxes slide out to right
-  // 134-144: Sangi returns using angry emotion
+  // 13-18: Board slides in from left
+  // 19-70: Board holds (centered) with stats
+  // 71-76: Board slides out to right
+  // 77-85: Sangi returns to center
 
 
-    // --- PHASE 1: Sangi surprise/scared ---
-    if (githubStatsFrame <= 5) {
-      int frame = githubStatsFrame;
-      // Notification-style: wide eyes, mouth, eyebrows
-      int eyeHeight = 22 - frame * 2;
-      displayManager.drawEyes(40, 28, 88, 28, eyeHeight);
-      if (frame < 2) {
+    switch (githubStatsFrame) {
+      // PHASE 1: Sangi surprise/scared (frames 0-5)
+      case 0:
+        displayManager.drawEyes(40, 28, 88, 28, 18);
+        displayManager.getDisplay().drawCircle(64, 48, 5, SSD1306_WHITE);
+        break;
+      case 1:
+        displayManager.drawEyes(40, 27, 88, 27, 22);
+        displayManager.getDisplay().fillCircle(40, 27, 2, SSD1306_BLACK);
+        displayManager.getDisplay().fillCircle(88, 27, 2, SSD1306_BLACK);
         displayManager.getDisplay().drawCircle(64, 48, 6, SSD1306_WHITE);
-      } else if (frame < 4) {
+        break;
+      case 2:
+      case 3:
+        displayManager.drawEyes(40, 26, 88, 26, 26);
+        displayManager.getDisplay().fillCircle(40, 26, 3, SSD1306_BLACK);
+        displayManager.getDisplay().fillCircle(88, 26, 3, SSD1306_BLACK);
         displayManager.getDisplay().fillCircle(64, 50, 8, SSD1306_WHITE);
-      } else {
+        break;
+      case 4:
+      case 5:
+        displayManager.drawEyes(40, 28, 88, 28, 12);
         displayManager.getDisplay().drawLine(52, 50, 76, 50, SSD1306_WHITE);
-      }
-      // Eyebrows up
-      displayManager.getDisplay().drawLine(30, 18, 60, 18, SSD1306_WHITE);
-      displayManager.getDisplay().drawLine(68, 18, 98, 18, SSD1306_WHITE);
-    }
+        break;
 
-    // --- PHASE 2: Sangi runs off-screen ---
-    else if (githubStatsFrame <= 12) {
-      int offset = (githubStatsFrame - 6) * 12;
-      displayManager.drawEyes(40 + offset, 28, 88 + offset, 28, 14);
-      displayManager.getDisplay().drawLine(62 + offset, 50, 86 + offset, 50, SSD1306_WHITE);
-      displayManager.getDisplay().drawLine(30 + offset, 18, 60 + offset, 18, SSD1306_WHITE);
-      displayManager.getDisplay().drawLine(68 + offset, 18, 98 + offset, 18, SSD1306_WHITE);
-    }
+      // PHASE 2: Sangi runs off-screen (frames 6-12)
+      case 6:
+        displayManager.drawEyes(50, 28, 98, 28, 14);
+        displayManager.getDisplay().drawLine(62, 50, 86, 50, SSD1306_WHITE);
+        break;
+      case 7:
+        displayManager.drawEyes(60, 28, 108, 28, 14);
+        displayManager.getDisplay().drawLine(72, 50, 96, 50, SSD1306_WHITE);
+        break;
+      case 8:
+        displayManager.drawEyes(75, 28, 123, 28, 14);
+        displayManager.getDisplay().drawLine(87, 50, 111, 50, SSD1306_WHITE);
+        break;
+      case 9:
+      case 10:
+      case 11:
+      case 12:
+        // Completely off-screen (blank)
+        break;
 
-    // --- PHASE 3: Text board slides in from left ---
-    else if (githubStatsFrame <= 18) {
-      int slide = 128 - ((githubStatsFrame - 13) * 21);
-      if (slide < 0) slide = 0;
-      // Draw board
-      displayManager.getDisplay().fillRect(slide, 8, 120, 48, SSD1306_WHITE);
-      // Centered text: 'Github' row 1, 'Stats' row 2
-      displayManager.getDisplay().setTextSize(2);
-      displayManager.getDisplay().setTextColor(SSD1306_BLACK);
-      displayManager.getDisplay().setCursor(slide + 32, 16);
-      displayManager.getDisplay().print("Github");
-      displayManager.getDisplay().setCursor(slide + 32, 36);
-      displayManager.getDisplay().print("Stats");
-    }
+      // PHASE 3: Board slides in from left (frames 13-18)
+      case 13:
+        displayManager.getDisplay().fillRect(0, 8, 10, 50, SSD1306_WHITE);
+        break;
+      case 14:
+        displayManager.getDisplay().drawRect(0, 8, 40, 50, SSD1306_WHITE);
+        displayManager.getDisplay().drawRect(1, 9, 38, 48, SSD1306_WHITE);
+        break;
+      case 15:
+        displayManager.getDisplay().drawRect(0, 8, 80, 50, SSD1306_WHITE);
+        displayManager.getDisplay().drawRect(1, 9, 78, 48, SSD1306_WHITE);
+        break;
+      case 16:
+        displayManager.getDisplay().drawRect(2, 8, 120, 50, SSD1306_WHITE);
+        displayManager.getDisplay().drawRect(3, 9, 118, 48, SSD1306_WHITE);
+        break;
+      case 17:
+      case 18:
+        displayManager.getDisplay().drawRect(4, 8, 120, 52, SSD1306_WHITE);
+        displayManager.getDisplay().drawRect(5, 9, 118, 50, SSD1306_WHITE);
+        break;
 
-    // --- PHASE 4: Text board holds center ---
-    else if (githubStatsFrame <= 70) {
-      // Draw board
-      displayManager.getDisplay().fillRect(4, 8, 120, 48, SSD1306_WHITE);
-      // Centered text: 'Github' row 1, 'Stats' row 2
-      displayManager.getDisplay().setTextSize(2);
-      displayManager.getDisplay().setTextColor(SSD1306_BLACK);
-      displayManager.getDisplay().setCursor(36, 16);
-      displayManager.getDisplay().print("Github");
-      displayManager.getDisplay().setCursor(36, 36);
-      displayManager.getDisplay().print("Stats");
-    }
-
-    // --- PHASE 5: Text board slides out to right ---
-    else if (githubStatsFrame <= 76) {
-      int slide = (githubStatsFrame - 71) * 21;
-      // Draw board
-      displayManager.getDisplay().fillRect(4 + slide, 8, 120, 48, SSD1306_WHITE);
-      // Centered text: 'Github' row 1, 'Stats' row 2
-      displayManager.getDisplay().setTextSize(2);
-      displayManager.getDisplay().setTextColor(SSD1306_BLACK);
-      displayManager.getDisplay().setCursor(36 + slide, 16);
-      displayManager.getDisplay().print("Github");
-      displayManager.getDisplay().setCursor(36 + slide, 36);
-      displayManager.getDisplay().print("Stats");
-    }
-
-    // --- PHASE 6: Stats boxes slide in from left ---
-    else if (githubStatsFrame <= 86) {
-      if (githubData == nullptr || !networkManager.hasGitHubData()) {
-        displayManager.getDisplay().setTextSize(1);
-        displayManager.getDisplay().setTextColor(SSD1306_WHITE);
-        displayManager.getDisplay().setCursor(8, 20);
-        displayManager.getDisplay().println("No GitHub data");
-        displayManager.getDisplay().setCursor(15, 35);
-        displayManager.getDisplay().println("Waiting...");
-        displayManager.updateDisplay();
-        lastGitHubStatsAnim = currentTime;
-        githubStatsFrame++;
-        return;
-      }
-      int slide = 128 - ((githubStatsFrame - 77) * 13);
-      if (slide < 0) slide = 0;
-      int totalDays = 21;
-      int daysPerRow = 7;
-      int numRows = 3;
-      int cellWidth = 17;
-      int cellHeight = 20;
-      int cellGapX = 1;
-      int cellGapY = 2;
-      int gridStartX = 1;
-      int gridStartY = 0;
-      int startWeek = 49;
-      for (int row = 0; row < numRows; row++) {
-        int dataWeek = startWeek + row;
-        if (dataWeek >= 52) dataWeek = 51;
-        for (int col = 0; col < daysPerRow; col++) {
-          int x = gridStartX + (col * (cellWidth + cellGapX)) - slide;
-          int y = gridStartY + (row * (cellHeight + cellGapY));
-          uint8_t level = githubData->contributions[dataWeek][col];
-          if (level > 0) {
-            displayManager.getDisplay().fillRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
+      // PHASE 4: Board holds (frames 19-70) - show stats boxes centered
+      default:
+        if (githubStatsFrame >= 19 && githubStatsFrame <= 70) {
+          displayManager.getDisplay().drawRect(4, 8, 120, 52, SSD1306_WHITE);
+          displayManager.getDisplay().drawRect(5, 9, 118, 50, SSD1306_WHITE);
+          // Draw stats boxes centered inside board
+          if (githubData == nullptr || !networkManager.hasGitHubData()) {
+            displayManager.getDisplay().setTextSize(1);
+            displayManager.getDisplay().setTextColor(SSD1306_WHITE);
+            displayManager.getDisplay().setCursor(8, 20);
+            displayManager.getDisplay().println("No GitHub data");
+            displayManager.getDisplay().setCursor(15, 35);
+            displayManager.getDisplay().println("Waiting...");
           } else {
-            displayManager.getDisplay().drawRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
+            int totalDays = 21;
+            int daysPerRow = 7;
+            int numRows = 3;
+            int cellWidth = 17;
+            int cellHeight = 20;
+            int cellGapX = 1;
+            int cellGapY = 2;
+            int gridStartX = 16; // Centered inside board
+            int gridStartY = 14;
+            int startWeek = 49;
+            for (int row = 0; row < numRows; row++) {
+              int dataWeek = startWeek + row;
+              if (dataWeek >= 52) dataWeek = 51;
+              for (int col = 0; col < daysPerRow; col++) {
+                int x = gridStartX + (col * (cellWidth + cellGapX));
+                int y = gridStartY + (row * (cellHeight + cellGapY));
+                uint8_t level = githubData->contributions[dataWeek][col];
+                if (level > 0) {
+                  displayManager.getDisplay().fillRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
+                } else {
+                  displayManager.getDisplay().drawRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
+                }
+              }
+            }
           }
         }
-      }
-    }
-
-    // --- PHASE 7: Stats boxes hold (centered) ---
-    else if (githubStatsFrame <= 127) {
-      if (githubData == nullptr || !networkManager.hasGitHubData()) {
-        displayManager.getDisplay().setTextSize(1);
-        displayManager.getDisplay().setTextColor(SSD1306_WHITE);
-        displayManager.getDisplay().setCursor(8, 20);
-        displayManager.getDisplay().println("No GitHub data");
-        displayManager.getDisplay().setCursor(15, 35);
-        displayManager.getDisplay().println("Waiting...");
-        displayManager.updateDisplay();
-        lastGitHubStatsAnim = currentTime;
-        githubStatsFrame++;
-        return;
-      }
-      int totalDays = 21;
-      int daysPerRow = 7;
-      int numRows = 3;
-      int cellWidth = 17;
-      int cellHeight = 20;
-      int cellGapX = 1;
-      int cellGapY = 2;
-      int gridStartX = 1;
-      int gridStartY = 0;
-      int startWeek = 49;
-      for (int row = 0; row < numRows; row++) {
-        int dataWeek = startWeek + row;
-        if (dataWeek >= 52) dataWeek = 51;
-        for (int col = 0; col < daysPerRow; col++) {
-          int x = gridStartX + (col * (cellWidth + cellGapX));
-          int y = gridStartY + (row * (cellHeight + cellGapY));
-          uint8_t level = githubData->contributions[dataWeek][col];
-          if (level > 0) {
-            displayManager.getDisplay().fillRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
+        // PHASE 5: Board slides out to right (frames 71-76)
+        else if (githubStatsFrame >= 71 && githubStatsFrame <= 76) {
+          int slide = (githubStatsFrame - 71) * 12;
+          displayManager.getDisplay().drawRect(4 + slide, 8, 120, 52, SSD1306_WHITE);
+          displayManager.getDisplay().drawRect(5 + slide, 9, 118, 50, SSD1306_WHITE);
+          // Draw stats boxes inside sliding board
+          if (githubData == nullptr || !networkManager.hasGitHubData()) {
+            displayManager.getDisplay().setTextSize(1);
+            displayManager.getDisplay().setTextColor(SSD1306_WHITE);
+            displayManager.getDisplay().setCursor(8 + slide, 20);
+            displayManager.getDisplay().println("No GitHub data");
+            displayManager.getDisplay().setCursor(15 + slide, 35);
+            displayManager.getDisplay().println("Waiting...");
           } else {
-            displayManager.getDisplay().drawRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
+            int totalDays = 21;
+            int daysPerRow = 7;
+            int numRows = 3;
+            int cellWidth = 17;
+            int cellHeight = 20;
+            int cellGapX = 1;
+            int cellGapY = 2;
+            int gridStartX = 16 + slide;
+            int gridStartY = 14;
+            int startWeek = 49;
+            for (int row = 0; row < numRows; row++) {
+              int dataWeek = startWeek + row;
+              if (dataWeek >= 52) dataWeek = 51;
+              for (int col = 0; col < daysPerRow; col++) {
+                int x = gridStartX + (col * (cellWidth + cellGapX));
+                int y = gridStartY + (row * (cellHeight + cellGapY));
+                uint8_t level = githubData->contributions[dataWeek][col];
+                if (level > 0) {
+                  displayManager.getDisplay().fillRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
+                } else {
+                  displayManager.getDisplay().drawRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
+                }
+              }
+            }
           }
         }
-      }
-    }
-
-    // --- PHASE 8: Stats boxes slide out to right ---
-    else if (githubStatsFrame <= 133) {
-      if (githubData == nullptr || !networkManager.hasGitHubData()) {
-        displayManager.getDisplay().setTextSize(1);
-        displayManager.getDisplay().setTextColor(SSD1306_WHITE);
-        displayManager.getDisplay().setCursor(8, 20);
-        displayManager.getDisplay().println("No GitHub data");
-        displayManager.getDisplay().setCursor(15, 35);
-        displayManager.getDisplay().println("Waiting...");
-        displayManager.updateDisplay();
-        lastGitHubStatsAnim = currentTime;
-        githubStatsFrame++;
-        return;
-      }
-      int slide = (githubStatsFrame - 128) * 13;
-      int totalDays = 21;
-      int daysPerRow = 7;
-      int numRows = 3;
-      int cellWidth = 17;
-      int cellHeight = 20;
-      int cellGapX = 1;
-      int cellGapY = 2;
-      int gridStartX = 1;
-      int gridStartY = 0;
-      int startWeek = 49;
-      for (int row = 0; row < numRows; row++) {
-        int dataWeek = startWeek + row;
-        if (dataWeek >= 52) dataWeek = 51;
-        for (int col = 0; col < daysPerRow; col++) {
-          int x = gridStartX + (col * (cellWidth + cellGapX)) + slide;
-          int y = gridStartY + (row * (cellHeight + cellGapY));
-          uint8_t level = githubData->contributions[dataWeek][col];
-          if (level > 0) {
-            displayManager.getDisplay().fillRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
-          } else {
-            displayManager.getDisplay().drawRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
-          }
+        // PHASE 6: Sangi returns to center (frames 77-85)
+        else if (githubStatsFrame >= 77 && githubStatsFrame <= 85) {
+          int offset = (githubStatsFrame - 77) * 10;
+          displayManager.drawEyes(10 + offset, 28, 58 + offset, 28, 14 + offset/10);
+          displayManager.getDisplay().drawCircle(34 + offset, 48, 4 + offset/20, SSD1306_WHITE);
         }
-      }
+        // PHASE 7: Hold idle Sangi
+        else {
+          displayManager.drawEyes(40, 28, 88, 28, 18);
+          displayManager.getDisplay().drawCircle(64, 48, 5, SSD1306_WHITE);
+        }
+        break;
     }
-
-    // --- PHASE 9: Sangi returns using angry emotion ---
-    else if (githubStatsFrame <= 144) {
-      int angryPhase = githubStatsFrame - 134;
-      int eyeY = 32 - angryPhase/2;
-      int browY = 16 + angryPhase/4;
-      int mouthY = 52 + angryPhase/4;
-      displayManager.drawEyes(40, eyeY, 88, eyeY, 11 + angryPhase/4);
-      for(int i = 0; i < 5; i++) {
-        displayManager.getDisplay().drawLine(22, browY + i, 52, browY + 6 + i, SSD1306_WHITE);
-        displayManager.getDisplay().drawLine(76, browY + 6 + i, 106, browY + i, SSD1306_WHITE);
-      }
-      displayManager.getDisplay().fillRoundRect(52, mouthY, 24, 5, 2, SSD1306_WHITE);
+    displayManager.updateDisplay();
+    if (githubStatsFrame < 85) {
+      githubStatsFrame++;
     }
-
-    // --- PHASE 10: Hold idle Sangi ---
-    else {
-      displayManager.drawEyes(40, 28, 88, 28, 18);
-      displayManager.getDisplay().drawCircle(64, 48, 5, SSD1306_WHITE);
-    }
+    lastGitHubStatsAnim = currentTime;
+  }
 
     displayManager.updateDisplay();
     githubStatsFrame++;
