@@ -2420,33 +2420,34 @@ void AnimationManager::animateGitHubStats() {
       return;
     }
     
-    // TWO-ROW LAYOUT: Full screen 14-day grid (like GitHub mobile view)
+    // THREE-ROW LAYOUT: Full screen 21-day grid (3 weeks)
     // Display: 128x64 pixels
-    // Layout: 2 rows x 7 columns (7 days per row = 14 days total)
+    // Layout: 3 rows x 7 columns (7 days per row = 21 days total)
     // BINARY: Filled box = commit that day, Empty box = no commits
     
-    int totalDays = 14;
+    int totalDays = 21;
     int daysPerRow = 7;
-    int numRows = 2;
+    int numRows = 3;
     
-    // Calculate cell size to perfectly fill screen
+    // Calculate cell size to perfectly fill screen with 3 rows
     // 128 pixels wide / 7 days = ~18 pixels per day (with small gaps)
-    // 64 pixels tall / 2 rows = 32 pixels per row
+    // 64 pixels tall / 3 rows = ~21 pixels per row
     
     int cellWidth = 17;   // Width per box
-    int cellHeight = 30;  // Height per box
+    int cellHeight = 20;  // Height per box (smaller to fit 3 rows)
     int cellGapX = 1;     // Tiny gap between boxes horizontally
-    int cellGapY = 4;     // Small gap between rows
+    int cellGapY = 2;     // Small gap between rows
     
     int gridStartX = 1;   // Small margin from left edge
     int gridStartY = 0;   // Start at top
     
-    // Get data from last 2 weeks (14 days)
-    int startWeek = 50;  // Week 50 and 51
+    // Get data from last 3 weeks (21 days)
+    int startWeek = 49;  // Week 49, 50, and 51
     
-    // Draw 14 days in 2 rows of 7
-    // Row 0: Days 0-6 (week 50)
-    // Row 1: Days 0-6 (week 51)
+    // Draw 21 days in 3 rows of 7
+    // Row 0: Days 0-6 (week 49)
+    // Row 1: Days 0-6 (week 50)
+    // Row 2: Days 0-6 (week 51)
     
     for (int row = 0; row < numRows; row++) {
       int dataWeek = startWeek + row;

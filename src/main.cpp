@@ -105,6 +105,11 @@ void setup() {
   batteryManager.init();
   #if !DEBUG_MODE_ENABLED
     displayManager.showBootScreen();
+  #else
+    Serial.println("Skipping boot screen in DEBUG MODE");
+  #endif
+  // Initialize non-blocking beep manager
+  beepManager.init();
   
   // Initialize non-blocking beep manager
   beepManager.init();
