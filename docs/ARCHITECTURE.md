@@ -320,9 +320,9 @@ Linux D-Bus System
 NotificationDetector (moved)
 
 Note: Desktop D-Bus notification capture has been moved to the standalone
-`pi-notification-service` (see `PC-setup/notification-service/README.md`). The
-workspace monitor no longer includes live notification capture to keep PC and
-Pi responsibilities separated.
+**Raspberry Pi Notification Service** (see `pi-setup/README.md`). The workspace
+monitor (PC-setup) focuses on workspace activity tracking, while the Pi service
+handles 24/7 notification monitoring with systemd integration.
     ↓ (formats: username + "new message")
 workspace_monitor._on_notification()
     ↓ (publishes)
@@ -384,6 +384,78 @@ animateNotification(offlineNotifTitle, offlineNotifMessage)
     ↓
 SANGI displays system info as notification
 ```
+
+## Raspberry Pi Notification Service
+
+**Location**: `pi-setup/`  
+**Purpose**: Standalone 24/7 notification monitoring daemon
+
+### Architecture
+
+The Pi notification service runs as a systemd user service and captures desktop notifications via D-Bus, forwarding them to SANGI via AWS IoT MQTT.
+
+**Components**:
+```
+pi-setup/
+├── notification_service.py       # Main orchestrator
+├── venv/                         # Python virtual environment
+│   └── (--system-site-packages) # Access to system PyGObject/D-Bus
+├── lib/
+│   ├── notification_monitor.py   # D-Bus notification capture
+│   ├── github_monitor.py         # GitHub API polling
+│   └── mqtt_publisher.py         # AWS IoT MQTT client
+├── config.json                   # User configuration
+└── certs/                        # AWS IoT certificates
+```
+
+**Setup Strategy**:
+- Uses virtual environment with `--system-site-packages` enabled
+- Avoids PEP 668 restrictions (no `--break-system-packages` needed)
+- System packages: `python3-gi` (PyGObject), `python3-dbus`
+- Venv packages: `awscrt`, `awsiotsdk`, `requests`
+- Prevents complex PyGObject builds (requires girepository-2.0 otherwise)
+
+**Installation**:
+```bash
+cd pi-setup
+./setup.sh
+# Installs dependencies, creates venv, configures systemd service
+```
+
+**Service Management**:
+```bash
+# Systemd template unit: sangi-notification-monitor@.service
+sudo systemctl start sangi-notification-monitor@$(whoami).service
+sudo systemctl enable sangi-notification-monitor@$(whoami).service
+journalctl -u sangi-notification-monitor@$(whoami).service -f
+```
+
+**Notification Flow**:
+```
+Desktop App (Discord/WhatsApp)
+    ↓ (D-Bus notification)
+notification_monitor.py
+    ↓ (capture + format)
+mqtt_publisher.py
+    ↓ (publish to AWS IoT)
+sangi/notification/push topic
+    ↓ (ESP32 subscribes)
+NetworkManager.addNotification()
+    ↓
+EmotionManager → EMOTION_NOTIFICATION
+    ↓
+animateNotification() displays on OLED
+```
+
+**Key Features**:
+- Runs as user service (not root)
+- Auto-starts on boot
+- Rate limiting (max 10/min)
+- GitHub API polling (60s interval)
+- Discord message simplification (username + "new message")
+- Logs to file and systemd journal
+
+> See `pi-setup/README.md` for detailed setup and troubleshooting
 
 ## Critical Rules
 

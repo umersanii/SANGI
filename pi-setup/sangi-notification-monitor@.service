@@ -6,8 +6,8 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=%i
-WorkingDirectory=/home/%i/SANGI/PC-setup/notification-service
-ExecStart=/usr/bin/python3 /home/%i/SANGI/PC-setup/notification-service/notification_service.py
+WorkingDirectory=/home/%i/SANGI/pi-setup
+ExecStart=/home/%i/SANGI/pi-setup/venv/bin/python /home/%i/SANGI/pi-setup/notification_service.py
 Restart=always
 RestartSec=10
 StandardOutput=journal

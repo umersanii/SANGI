@@ -165,34 +165,109 @@ The codebase uses a clean, modular design with separate components for each func
 
 > See [COPILOT.md](COPILOT.md) for detailed refactoring documentation and [REFACTORING_SUMMARY.md](REFACTORING_SUMMARY.md) for module descriptions.
 
-## � Notification Service (Raspberry Pi)
+## 🔔 Notification Service (Raspberry Pi)
 
 **NEW**: Standalone 24/7 notification monitoring service for Raspberry Pi!
 
 Monitor Discord, GitHub, and WhatsApp notifications and forward them to SANGI automatically.
 
-**Quick Setup**:
+### Quick Setup
+
 ```bash
-cd PC-setup/notification-service
+cd pi-setup
+chmod +x setup.sh
 ./setup.sh
 ```
 
-**Features**:
+The setup script will:
+1. ✅ Check Python installation (3.7+)
+2. ✅ Install system dependencies (D-Bus, GObject)
+3. ✅ Create virtual environment with system site-packages
+4. ✅ Install AWS IoT SDK and dependencies
+5. ✅ Create `config.json` from template
+6. ✅ Setup `certs/` and `logs/` directories
+7. ✅ Install and configure systemd service
+
+### Post-Setup Configuration
+
+After running `setup.sh`, you need to:
+
+1. **Configure AWS IoT endpoint** - Edit `pi-setup/config.json`:
+   ```json
+   {
+     "mqtt": {
+       "endpoint": "xxxxx-ats.iot.us-east-1.amazonaws.com",
+       "client_id": "sangi-notification-monitor"
+     }
+   }
+   ```
+
+2. **Copy AWS IoT certificates** to `pi-setup/certs/`:
+   ```bash
+   cp ~/path/to/AmazonRootCA1.pem pi-setup/certs/
+   cp ~/path/to/certificate.pem pi-setup/certs/cert.pem
+   cp ~/path/to/private.key pi-setup/certs/private.key
+   ```
+
+3. **(Optional) Configure GitHub** - Add your token to `config.json`:
+   ```json
+   {
+     "notifications": {
+       "github": {
+         "enabled": true,
+         "token": "ghp_your_token_here",
+         "username": "your_github_username"
+       }
+     }
+   }
+   ```
+
+4. **Start the service**:
+   ```bash
+   sudo systemctl start sangi-notification-monitor@$(whoami).service
+   sudo systemctl enable sangi-notification-monitor@$(whoami).service  # Auto-start on boot
+   ```
+
+### Features
+
 - 🎮 **Discord** - Desktop app notifications via D-Bus
 - 🐙 **GitHub** - API polling for PRs, issues, mentions
 - 💬 **WhatsApp** - Desktop app notifications via D-Bus
 - 🔄 **Auto-start** - Runs as systemd service on boot
 - 📊 **Rate limiting** - Prevents notification spam
 - 📝 **Logging** - Comprehensive logs to file and journal
+- 🐍 **Virtual Environment** - Isolated Python dependencies with system PyGObject/D-Bus access
 
-**Service Commands**:
+### Service Management
+
 ```bash
 sudo systemctl start sangi-notification-monitor@$(whoami).service    # Start
+sudo systemctl stop sangi-notification-monitor@$(whoami).service     # Stop
 sudo systemctl status sangi-notification-monitor@$(whoami).service   # Status
 journalctl -u sangi-notification-monitor@$(whoami).service -f        # Logs
 ```
 
-> 📚 See [PC-setup/notification-service/README.md](PC-setup/notification-service/README.md) for detailed documentation
+### Troubleshooting
+
+**Test the service manually**:
+```bash
+cd pi-setup
+./venv/bin/python notification_service.py
+```
+
+**Check Python dependencies**:
+```bash
+cd pi-setup
+./venv/bin/python -c "import gi; import dbus; import awsiotsdk; print('✓ All imports OK')"
+```
+
+**Verify certificates**:
+```bash
+ls -l pi-setup/certs/
+# Should show: AmazonRootCA1.pem, cert.pem, private.key
+```
+
+> 📚 See [pi-setup/README.md](pi-setup/README.md) for detailed documentation
 
 ## �📐 Future Plans
 

@@ -772,32 +772,52 @@ python3 workspace_monitor.py
 - Audio playing → MUSIC
 - Idle >10min → SLEEPY
 
-### Notification Service (Standalone 24/7)
+### Raspberry Pi Notification Service (Standalone 24/7)
 
-**Location**: `PC-setup/notification-service/`
+**Location**: `pi-setup/`
 
 Standalone systemd service for Raspberry Pi that monitors Discord, GitHub, and WhatsApp notifications 24/7 and forwards them to SANGI via MQTT.
 
 **Architecture**:
 - **notification_service.py** - Main orchestrator
+- **venv/** - Python virtual environment with `--system-site-packages`
 - **lib/notification_monitor.py** - D-Bus notification capture (Discord, WhatsApp)
 - **lib/github_monitor.py** - GitHub API polling
 - **lib/mqtt_publisher.py** - AWS IoT MQTT publisher
 
 **Installation**:
 ```bash
-cd PC-setup/notification-service
+cd pi-setup
+chmod +x setup.sh
 ./setup.sh
 ```
 
-**Configuration** (`config.json`):
+The setup script:
+1. Checks Python 3.7+ installation
+2. Installs system dependencies (python3-gi, python3-dbus, build-essential)
+3. Creates virtual environment with `--system-site-packages`
+4. Installs AWS IoT SDK (awscrt, awsiotsdk) and requests
+5. Creates config.json from template
+6. Sets up certs/ and logs/ directories
+7. Installs systemd service
+
+**Virtual Environment Strategy**:
+- Uses `--system-site-packages` to access system PyGObject and D-Bus
+- Avoids PEP 668 restrictions (no `--break-system-packages` needed)
+- Prevents complex PyGObject builds (requires girepository-2.0)
+- System packages: python3-gi, python3-dbus
+- Venv packages: awscrt>=0.16.0, awsiotsdk>=1.11.0, requests>=2.28.0
+
+**Configuration** (`pi-setup/config.json`):
 ```json
 {
   "mqtt": {
     "endpoint": "xxxxx-ats.iot.us-east-1.amazonaws.com",
+    "client_id": "sangi-notification-monitor",
     "certificate_path": "./certs/cert.pem",
     "private_key_path": "./certs/private.key",
-    "root_ca_path": "./certs/AmazonRootCA1.pem"
+    "root_ca_path": "./certs/AmazonRootCA1.pem",
+    "topic": "sangi/notification/push"
   },
   "notifications": {
     "discord": {
@@ -808,7 +828,8 @@ cd PC-setup/notification-service
       "enabled": true,
       "token": "ghp_your_token_here",
       "username": "your_github_username",
-      "check_interval": 60
+      "check_interval": 60,
+      "monitor_types": ["pull_requests", "issues", "mentions"]
     },
     "whatsapp": {
       "enabled": false,
@@ -830,12 +851,44 @@ sudo systemctl start sangi-notification-monitor@$(whoami).service
 # Stop service
 sudo systemctl stop sangi-notification-monitor@$(whoami).service
 
-# View logs
+# Check status
+sudo systemctl status sangi-notification-monitor@$(whoami).service
+
+# View logs (real-time)
 journalctl -u sangi-notification-monitor@$(whoami).service -f
 
 # Enable auto-start on boot
 sudo systemctl enable sangi-notification-monitor@$(whoami).service
 ```
+
+**Manual Testing**:
+```bash
+cd pi-setup
+./venv/bin/python notification_service.py
+```
+
+**Verify Dependencies**:
+```bash
+cd pi-setup
+./venv/bin/python -c "import gi; import dbus; import awsiotsdk; print('✓ All imports OK')"
+```
+
+**Post-Setup**:
+1. Edit `pi-setup/config.json` with AWS IoT endpoint
+2. Copy certificates to `pi-setup/certs/`:
+   - AmazonRootCA1.pem
+   - cert.pem
+   - private.key
+3. (Optional) Add GitHub token
+4. Start the service
+
+**Notification Types**:
+- `discord` - Discord messages (simplified: username + "new message")
+- `github` - Pull requests, issues, mentions
+- `system` - System notifications
+- `generic` - Fallback for unknown sources
+
+> See `pi-setup/README.md` for detailed setup and troubleshooting
 
 **Supported Notifications**:
 - **Discord**: D-Bus capture from desktop app (username + "new message")
