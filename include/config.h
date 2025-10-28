@@ -64,6 +64,7 @@
 #define MQTT_TOPIC_WORKSPACE_PI "workspace/pi/activity"   // Subscribe: Pi activity data
 #define MQTT_TOPIC_PC_STATUS "workspace/pc/status"        // Subscribe: PC online/offline
 #define MQTT_TOPIC_PI_STATUS "workspace/pi/status"        // Subscribe: Pi online/offline
+#define MQTT_TOPIC_GITHUB_COMMITS "sangi/github/commits"  // Subscribe: GitHub commit history updates
 
 // Network timing
 #define MQTT_RECONNECT_INTERVAL 5000      // 5 seconds between reconnection attempts
@@ -88,6 +89,6 @@
 
 // ===== DEBUG MODE =====
 #define DEBUG_MODE_ENABLED false            // Set to true to enable debug mode (shows only DEBUG_MODE_EMOTION)
-#define DEBUG_MODE_EMOTION EMOTION_CODING  // Which emotion to show in debug mode
+#define DEBUG_MODE_EMOTION EMOTION_COMMIT_HISTORY  // Which emotion to show in debug mode
 
 #endif // CONFIG_H

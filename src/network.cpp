@@ -25,11 +25,17 @@ NetworkManager::NetworkManager()
     piOnline(false),
     notificationCount(0),
     currentNotificationIndex(0),
+    commitCount(0),
     workspaceMode(false),
     lastMQTTMessageTime(0) {
   // Initialize notification queue
   for (int i = 0; i < MAX_NOTIFICATION_QUEUE; i++) {
     notificationQueue[i].active = false;
+  }
+  
+  // Initialize commit history
+  for (int i = 0; i < MAX_COMMIT_HISTORY; i++) {
+    commitHistory[i].active = false;
   }
   
   // Initialize SSID storage
@@ -81,6 +87,35 @@ bool NetworkManager::init() {
   Serial.println("=== Network Manager Ready ===\n");
   return true;
 #endif
+}
+
+// ===== HARDCODED COMMIT HISTORY (for testing) =====
+// This will be replaced by real GitHub API data from Pi service via MQTT
+void NetworkManager::clearCommitHistory() {
+  for (int i = 0; i < MAX_COMMIT_HISTORY; i++) {
+    commitHistory[i].active = false;
+  }
+  commitCount = 0;
+  Serial.println("Commit history cleared");
+}
+
+void loadHardcodedCommitHistory() {
+  // Clear existing history
+  networkManager.clearCommitHistory();
+  
+  // Add sample commits (most recent first)
+  // In production, this data will come from GitHub API via MQTT topic "sangi/github/commits"
+  networkManager.addCommit("SANGI", "Add commit history display", "umersanii", "a1b2c3d", millis());
+  delay(1);
+  networkManager.addCommit("SANGI", "Fix MQTT notification queue", "umersanii", "e4f5g6h", millis() - 3600000);
+  delay(1);
+  networkManager.addCommit("DotFiles", "Update tmux config", "umersanii", "i7j8k9l", millis() - 7200000);
+  delay(1);
+  networkManager.addCommit("SANGI", "Add workspace monitor", "umersanii", "m1n2o3p", millis() - 10800000);
+  delay(1);
+  networkManager.addCommit("Portfolio", "Optimize images", "umersanii", "q4r5s6t", millis() - 14400000);
+  
+  Serial.printf("Loaded %d hardcoded commits for testing\n", networkManager.getCommitCount());
 }
 
 // ===== WiFi CONNECTION =====
@@ -155,6 +190,14 @@ bool NetworkManager::connectMQTT() {
       Serial.println("Subscribed to: sangi/notification/push");
     } else {
       Serial.println("Failed to subscribe to notification topic");
+    }
+    
+    // Subscribe to GitHub commit history topic
+    if (mqttClient.subscribe(MQTT_TOPIC_GITHUB_COMMITS)) {
+      Serial.print("Subscribed to: ");
+      Serial.println(MQTT_TOPIC_GITHUB_COMMITS);
+    } else {
+      Serial.println("Failed to subscribe to commit history topic");
     }
     
     // Don't publish immediately - causes disconnects
@@ -429,7 +472,54 @@ void NetworkManager::handleIncomingMessage(const char* topic, const char* payloa
     } else {
       Serial.println("⚠️  Notification queue full - dropped");
     }
-  } else {
+  }
+  // Handle GitHub commit history updates
+  else if (strcmp(topic, MQTT_TOPIC_GITHUB_COMMITS) == 0) {
+    // Expected JSON format:
+    // {
+    //   "commits": [
+    //     {
+    //       "repo": "SANGI",
+    //       "message": "Add new feature",
+    //       "author": "umersanii",
+    //       "sha": "a1b2c3d",
+    //       "timestamp": 1234567890
+    //     },
+    //     ...
+    //   ]
+    // }
+    
+    if (doc.containsKey("commits") && doc["commits"].is<JsonArray>()) {
+      JsonArray commits = doc["commits"].as<JsonArray>();
+      
+      // Clear existing history before loading new data
+      clearCommitHistory();
+      
+      int addedCount = 0;
+      for (JsonVariant commit : commits) {
+        const char* repo = commit["repo"] | "";
+        const char* message = commit["message"] | "";
+        const char* author = commit["author"] | "";
+        const char* sha = commit["sha"] | "";
+        unsigned long timestamp = commit["timestamp"] | millis();
+        
+        if (addCommit(repo, message, author, sha, timestamp)) {
+          addedCount++;
+        }
+      }
+      
+      Serial.printf("📊 Updated commit history: %d commits loaded\n", addedCount);
+      
+      // Optionally trigger commit history emotion
+      if (addedCount > 0 && emotionManager.getCurrentEmotion() != EMOTION_COMMIT_HISTORY) {
+        // Could auto-switch to commit history view
+        // emotionManager.setTargetEmotion(EMOTION_COMMIT_HISTORY);
+      }
+    } else {
+      Serial.println("⚠️  Invalid commit history format");
+    }
+  }
+  else {
     Serial.printf("Unknown topic: %s\n", topic);
   }
 }
@@ -628,4 +718,55 @@ void NetworkManager::testConnectivity() {
 #endif
   
   Serial.println("\n════════════════════════════════════\n");
+}
+
+// ===== COMMIT HISTORY MANAGEMENT =====
+bool NetworkManager::addCommit(const char* repo, const char* message, const char* author, const char* sha, unsigned long timestamp) {
+  if (commitCount >= MAX_COMMIT_HISTORY) {
+    // Shift array to make room (remove oldest)
+    for (int i = 0; i < MAX_COMMIT_HISTORY - 1; i++) {
+      commitHistory[i] = commitHistory[i + 1];
+    }
+    commitCount = MAX_COMMIT_HISTORY - 1;
+  }
+  
+  // Validate input parameters
+  if (!repo) repo = "";
+  if (!message) message = "";
+  if (!author) author = "";
+  if (!sha) sha = "";
+  
+  // Add new commit at end (most recent)
+  int index = commitCount;
+  
+  // Safe string copy with explicit null termination
+  strncpy(commitHistory[index].repo, repo, 31);
+  commitHistory[index].repo[31] = '\0';
+  
+  strncpy(commitHistory[index].message, message, 63);
+  commitHistory[index].message[63] = '\0';
+  
+  strncpy(commitHistory[index].author, author, 23);
+  commitHistory[index].author[23] = '\0';
+  
+  strncpy(commitHistory[index].sha, sha, 15);
+  commitHistory[index].sha[15] = '\0';
+  
+  commitHistory[index].timestamp = timestamp;
+  commitHistory[index].active = true;
+  commitCount++;
+  
+  return true;
+}
+
+CommitHistoryEntry* NetworkManager::getCommitAtIndex(int index) {
+  if (index < 0 || index >= commitCount) {
+    return nullptr;
+  }
+  
+  if (!commitHistory[index].active) {
+    return nullptr;
+  }
+  
+  return &commitHistory[index];
 }

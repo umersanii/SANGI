@@ -17,6 +17,7 @@ AnimationManager::AnimationManager()
     lastDeadAnim(0),
     lastNotificationAnim(0),
     lastCodingAnim(0),
+    lastCommitHistoryAnim(0),
     sleepyFrame(0),
     thinkFrame(0),
     exciteFrame(0),
@@ -29,7 +30,8 @@ AnimationManager::AnimationManager()
     musicFrame(0),
     deadFrame(0),
     notificationFrame(0),
-    codingFrame(0) {
+    codingFrame(0),
+    commitHistoryFrame(0) {
 }
 
 // Reset animation frame to start smoothly from beginning
@@ -86,6 +88,10 @@ void AnimationManager::resetAnimation(EmotionState emotion) {
     case EMOTION_CODING:
       codingFrame = 0;
       lastCodingAnim = 0;
+      break;
+    case EMOTION_COMMIT_HISTORY:
+      commitHistoryFrame = 0;
+      lastCommitHistoryAnim = 0;
       break;
     default:
       break;
@@ -2389,6 +2395,158 @@ void AnimationManager::animateCoding() {
     
     codingFrame++;
     lastCodingAnim = currentTime;
+  }
+}
+
+// Animated commit history display - scrolling GitHub commits
+void AnimationManager::animateCommitHistory() {
+  unsigned long currentTime = millis();
+  
+  // Animate every 100ms for smooth scrolling
+  if (currentTime - lastCommitHistoryAnim > 100) {
+    displayManager.clearDisplay();
+    
+    // Import network manager to access commit data
+    extern NetworkManager networkManager;
+    
+    int commitCount = networkManager.getCommitCount();
+    
+    if (commitCount == 0) {
+      // No commits available - show message
+      displayManager.getDisplay().setTextSize(1);
+      displayManager.getDisplay().setTextColor(SSD1306_WHITE);
+      displayManager.getDisplay().setCursor(10, 20);
+      displayManager.getDisplay().println("No commits yet");
+      displayManager.getDisplay().setCursor(15, 35);
+      displayManager.getDisplay().println("Waiting for data...");
+      displayManager.updateDisplay();
+      return;
+    }
+    
+    // Calculate which commit to show based on frame
+    // Each commit displays for 40 frames (4 seconds at 100ms)
+    int currentCommitIndex = (commitHistoryFrame / 40) % commitCount;
+    
+    // Get current commit
+    CommitHistoryEntry* commit = networkManager.getCommitAtIndex(currentCommitIndex);
+    
+    if (commit == nullptr) {
+      displayManager.getDisplay().setTextSize(1);
+      displayManager.getDisplay().setTextColor(SSD1306_WHITE);
+      displayManager.getDisplay().setCursor(20, 28);
+      displayManager.getDisplay().println("Loading...");
+      displayManager.updateDisplay();
+      return;
+    }
+    
+    // Scrolling offset within current commit (10 frames = 1 second per scroll phase)
+    int scrollPhase = (commitHistoryFrame % 40) / 10;  // 0-3
+    
+    // Draw GitHub icon (simple git branch icon)
+    displayManager.getDisplay().setTextSize(1);
+    displayManager.getDisplay().setTextColor(SSD1306_WHITE);
+    displayManager.getDisplay().setCursor(2, 2);
+    displayManager.getDisplay().print("git");
+    
+    // Draw repo name at top
+    displayManager.getDisplay().setTextSize(1);
+    displayManager.getDisplay().setCursor(25, 2);
+    displayManager.getDisplay().print(commit->repo);
+    
+    // Draw commit SHA on right
+    displayManager.getDisplay().setCursor(95, 2);
+    displayManager.getDisplay().print(commit->sha);
+    
+    // Draw separator line
+    displayManager.getDisplay().drawLine(0, 12, 127, 12, SSD1306_WHITE);
+    
+    // Draw author
+    displayManager.getDisplay().setTextSize(1);
+    displayManager.getDisplay().setCursor(2, 16);
+    displayManager.getDisplay().print("@");
+    displayManager.getDisplay().print(commit->author);
+    
+    // Draw time ago (simplified - just show "recent")
+    unsigned long currentMillis = millis();
+    unsigned long commitAge = 0;
+    
+    // Handle millis() overflow
+    if (currentMillis >= commit->timestamp) {
+      commitAge = currentMillis - commit->timestamp;
+    } else {
+      commitAge = 0;
+    }
+    
+    int hoursAgo = commitAge / 3600000;
+    displayManager.getDisplay().setCursor(80, 16);
+    if (hoursAgo < 1) {
+      displayManager.getDisplay().print("now");
+    } else if (hoursAgo < 24) {
+      displayManager.getDisplay().print(hoursAgo);
+      displayManager.getDisplay().print("h ago");
+    } else {
+      int daysAgo = hoursAgo / 24;
+      displayManager.getDisplay().print(daysAgo);
+      displayManager.getDisplay().print("d ago");
+    }
+    
+    // Draw commit message (scrolling if too long)
+    displayManager.getDisplay().setTextSize(1);
+    int messageY = 28;
+    
+    // Calculate message length
+    int messageLen = strlen(commit->message);
+    int maxChars = 21;  // Max characters per line at size 1
+    
+    if (messageLen <= maxChars) {
+      // Message fits on one line
+      displayManager.getDisplay().setCursor(2, messageY);
+      displayManager.getDisplay().print(commit->message);
+    } else {
+      // Scroll message based on scroll phase
+      int startChar = scrollPhase * 5;  // Scroll 5 chars at a time
+      if (startChar >= messageLen) startChar = 0;
+      
+      char displayMsg[22];
+      int charsToCopy = min(maxChars, messageLen - startChar);
+      strncpy(displayMsg, commit->message + startChar, charsToCopy);
+      displayMsg[charsToCopy] = '\0';
+      
+      displayManager.getDisplay().setCursor(2, messageY);
+      displayManager.getDisplay().print(displayMsg);
+      
+      // Show ellipsis if truncated
+      if (startChar + charsToCopy < messageLen) {
+        displayManager.getDisplay().print("...");
+      }
+    }
+    
+    // Draw commit indicator at bottom (shows progress through commits)
+    int indicatorY = 54;
+    int indicatorWidth = 128 / commitCount;
+    if (indicatorWidth < 2) indicatorWidth = 2;
+    
+    for (int i = 0; i < commitCount; i++) {
+      int x = i * indicatorWidth;
+      if (i == currentCommitIndex) {
+        displayManager.getDisplay().fillRect(x, indicatorY, indicatorWidth - 1, 3, SSD1306_WHITE);
+      } else {
+        displayManager.getDisplay().drawRect(x, indicatorY, indicatorWidth - 1, 3, SSD1306_WHITE);
+      }
+    }
+    
+    // Draw navigation hint
+    displayManager.getDisplay().setTextSize(1);
+    displayManager.getDisplay().setCursor(25, 58);
+    displayManager.getDisplay().print(currentCommitIndex + 1);
+    displayManager.getDisplay().print("/");
+    displayManager.getDisplay().print(commitCount);
+    displayManager.getDisplay().print(" commits");
+    
+    displayManager.updateDisplay();
+    
+    commitHistoryFrame++;
+    lastCommitHistoryAnim = currentTime;
   }
 }
 

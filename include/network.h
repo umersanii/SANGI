@@ -31,8 +31,21 @@ struct Notification {
   bool active;
 };
 
+// ===== GITHUB COMMIT STRUCTURE =====
+struct CommitHistoryEntry {
+  char repo[32];          // Repository name (e.g., "SANGI")
+  char message[64];       // Commit message
+  char author[24];        // Author name
+  char sha[16];           // Short commit SHA (first 7 chars)
+  unsigned long timestamp; // Commit timestamp
+  bool active;            // Entry is valid
+};
+
 // Maximum notifications in queue
 #define MAX_NOTIFICATION_QUEUE 5
+
+// Maximum commit history entries
+#define MAX_COMMIT_HISTORY 10
 
 // ===== NETWORK STATE =====
 enum NetworkState {
@@ -90,6 +103,13 @@ public:
   void clearCurrentNotification();
   int getNotificationCount() const { return notificationCount; }
   
+  // Commit history management
+  bool addCommit(const char* repo, const char* message, const char* author, const char* sha, unsigned long timestamp);
+  bool hasCommits() const { return commitCount > 0; }
+  CommitHistoryEntry* getCommitAtIndex(int index);
+  int getCommitCount() const { return commitCount; }
+  void clearCommitHistory();
+  
   // Offline mode detection
   bool isInWorkspaceMode() const { return workspaceMode; }
   unsigned long getLastMQTTMessageTime() const { return lastMQTTMessageTime; }
@@ -114,6 +134,10 @@ private:
   Notification notificationQueue[MAX_NOTIFICATION_QUEUE];
   int notificationCount;
   int currentNotificationIndex;
+  
+  // Commit history storage
+  CommitHistoryEntry commitHistory[MAX_COMMIT_HISTORY];
+  int commitCount;
   
   // Offline mode detection
   bool workspaceMode;

@@ -11,6 +11,9 @@
 // ===== GLOBAL STATE =====
 unsigned long bootTime = 0;
 
+// Forward declaration for hardcoded commit loading
+void loadHardcodedCommitHistory();
+
 // ===== OFFLINE NOTIFICATION GENERATOR =====
 // Stores generated notification data for offline mode
 static char offlineNotifTitle[32] = "";
@@ -117,6 +120,9 @@ void setup() {
   Serial.println("MQTT disabled - running in autonomous mode");
 #endif
 
+  // Load hardcoded commit history for testing (will be replaced by MQTT data in production)
+  loadHardcodedCommitHistory();
+
   // Show boot screen
 //  displayManager.showBootScreen();
 
@@ -135,7 +141,8 @@ void setup() {
                 DEBUG_MODE_EMOTION == EMOTION_SURPRISED ? "SURPRISED" :
                 DEBUG_MODE_EMOTION == EMOTION_MUSIC ? "MUSIC" :
                 DEBUG_MODE_EMOTION == EMOTION_NOTIFICATION ? "NOTIFICATION" :
-                DEBUG_MODE_EMOTION == EMOTION_CODING ? "CODING" : "IDLE");
+                DEBUG_MODE_EMOTION == EMOTION_CODING ? "CODING" :
+                DEBUG_MODE_EMOTION == EMOTION_COMMIT_HISTORY ? "COMMIT_HISTORY" : "IDLE");
   emotionManager.setTargetEmotion(DEBUG_MODE_EMOTION);
 #else
   // Ensure final face is rendered (only when not in debug mode)
@@ -183,7 +190,8 @@ void loop() {
     EMOTION_SURPRISED,
     EMOTION_DEAD,
     EMOTION_MUSIC,
-    EMOTION_NOTIFICATION
+    EMOTION_NOTIFICATION,
+    EMOTION_COMMIT_HISTORY
   };
   static const int numEmotions = sizeof(testEmotions) / sizeof(testEmotions[0]);
 
@@ -352,6 +360,9 @@ void loop() {
         break;
       case EMOTION_CODING:
         animationManager.animateCoding();
+        break;
+      case EMOTION_COMMIT_HISTORY:
+        animationManager.animateCommitHistory();
         break;
       default:
         // Static display for other emotions

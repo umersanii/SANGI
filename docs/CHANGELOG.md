@@ -5,6 +5,33 @@ All notable changes to the SANGI robot project.
 ## [Unreleased]
 
 ### Added
+- **NEW: EMOTION_COMMIT_HISTORY - GitHub Commit Display** (2025-10-28)
+  - Scrolling display of recent GitHub commits on OLED
+  - Shows repo name, commit message, author, SHA, and time ago
+  - Supports up to 10 commits in history with automatic cycling
+  - **Hardcoded test data** for immediate use (5 sample commits)
+  - **MQTT Integration Ready**: Topic `sangi/github/commits` for real-time updates
+  - Designed for Pi service to push real GitHub API data via MQTT
+  - Visual progress indicator shows position in commit list
+  - Smooth scrolling for long commit messages (21 char limit per line)
+  - Auto-calculates time ago (hours/days) from commit timestamp
+  - **JSON Format for Pi Service**:
+    ```json
+    {
+      "commits": [
+        {
+          "repo": "SANGI",
+          "message": "Add commit history display",
+          "author": "umersanii",
+          "sha": "a1b2c3d",
+          "timestamp": 1234567890
+        }
+      ]
+    }
+    ```
+  - Frame rate: 100ms, displays each commit for 4 seconds
+  - Trigger via MQTT: `{"emotion": 15}` or `emotionManager.setTargetEmotion(EMOTION_COMMIT_HISTORY)`
+
 - **NEW: EMOTION_CODING - Matrix-Inspired Coding Animation** (2025-10-21)
   - Focused coder face with thick rectangular glasses (28×24px lenses, 3-layer thickness)
   - Squinted eyes (height 14) for concentrated expression

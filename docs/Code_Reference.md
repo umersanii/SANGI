@@ -122,6 +122,7 @@ void animateSurprised();
 void animateMusic();
 void animateNotification(const char* title = "", const char* message = "");
 void animateCoding();
+void animateCommitHistory();
 void resetAnimationState();
 ```
 
@@ -156,11 +157,29 @@ void resetAnimationState();
   - Auto-reset when off-screen
 - **Behavior**: Continuous loop, streams perpetually fall
 
+**Commit History Animation Details**:
+- **Theme**: Scrolling GitHub commit log display
+- **Update rate**: 100ms per frame for smooth scrolling
+- **Display duration**: 4 seconds per commit (40 frames)
+- **Visual elements**:
+  - Git icon and repo name in header
+  - Commit SHA (7 chars) on right
+  - Author name with @ prefix
+  - Time ago (hours/days)
+  - Commit message (scrolls if > 21 chars)
+  - Progress indicator bar at bottom
+  - Commit counter (e.g., "2/5 commits")
+- **Scrolling**: Message scrolls 5 chars every second if too long
+- **Data source**: Reads from `networkManager.getCommitAtIndex()`
+- **Fallback**: Shows "No commits yet" if empty
+- **Behavior**: Cycles through all commits, 4 seconds each
+
 **Usage**:
 ```cpp
 // Call continuously in loop
 animationManager.animateMusic();
 animationManager.animateCoding();
+animationManager.animateCommitHistory();
 
 // Reset when changing emotions
 animationManager.resetAnimationState();
@@ -216,6 +235,13 @@ void clearCurrentNotification();
 bool hasNotifications();
 int getNotificationCount();
 
+// Commit History
+bool addCommit(const char* repo, const char* message, const char* author, const char* sha, unsigned long timestamp);
+CommitHistoryEntry* getCommitAtIndex(int index);
+bool hasCommits();
+int getCommitCount();
+void clearCommitHistory();
+
 // Offline mode
 bool isInWorkspaceMode();
 unsigned long getLastMQTTMessageTime();
@@ -233,6 +259,15 @@ if (networkManager.hasNotifications()) {
   Notification* notif = networkManager.getCurrentNotification();
   // Display notification...
   networkManager.clearCurrentNotification();
+}
+
+// Handle commit history
+if (networkManager.hasCommits()) {
+  int count = networkManager.getCommitCount();
+  for (int i = 0; i < count; i++) {
+    CommitHistoryEntry* commit = networkManager.getCommitAtIndex(i);
+    // Display commit data...
+  }
 }
 
 // Check workspace mode status
@@ -254,12 +289,31 @@ Offline mode triggers when:
 
 **Offline Emotion Cycling**:
 - Random selection from all emotions every 20 seconds (`OFFLINE_EMOTION_INTERVAL`)
-- Includes: IDLE, HAPPY, SLEEPY, EXCITED, SAD, ANGRY, CONFUSED, THINKING, LOVE, SURPRISED, DEAD, MUSIC, NOTIFICATION
+- Includes: IDLE, HAPPY, SLEEPY, EXCITED, SAD, ANGRY, CONFUSED, THINKING, LOVE, SURPRISED, DEAD, MUSIC, NOTIFICATION, COMMIT_HISTORY
 - Excludes: BLINK (handled separately by blink interval system)
 - When EMOTION_NOTIFICATION is randomly selected, displays random system info:
   - Battery status: "Battery Status / 3.85V (75%)"
   - System uptime: "System Uptime / 2h 15m 43s"
   - 50/50 random selection between battery and uptime
+
+**Commit History Data Structure**:
+
+`CommitHistoryEntry` struct (defined in `include/network.h`):
+```cpp
+struct CommitHistoryEntry {
+  char repo[32];          // Repository name (e.g., "SANGI")
+  char message[64];       // Commit message
+  char author[24];        // Author name
+  char sha[16];           // Short commit SHA (first 7 chars)
+  unsigned long timestamp; // Commit timestamp (millis)
+  bool active;            // Entry is valid
+};
+```
+
+**Hardcoded Test Data**:
+- 5 sample commits loaded at boot via `loadHardcodedCommitHistory()`
+- Provides immediate functionality without Pi service running
+- Real data will replace hardcoded values when Pi publishes to `sangi/github/commits`
 
 **Offline Notification Generator**:
 ```cpp
@@ -287,6 +341,28 @@ Notification (`sangi/notification/push`):
   "message": "new message",
   "ssid": "YourWiFiNetwork",
   "timestamp": 1729180800
+}
+```
+
+GitHub Commit History (`sangi/github/commits`):
+```json
+{
+  "commits": [
+    {
+      "repo": "SANGI",
+      "message": "Add commit history display",
+      "author": "umersanii",
+      "sha": "a1b2c3d",
+      "timestamp": 1234567890
+    },
+    {
+      "repo": "DotFiles",
+      "message": "Update tmux config",
+      "author": "umersanii",
+      "sha": "e4f5g6h",
+      "timestamp": 1234560000
+    }
+  ]
 }
 ```
 
@@ -438,13 +514,14 @@ enum EmotionState {
   EMOTION_MUSIC = 11,
   EMOTION_BLINK = 12,
   EMOTION_NOTIFICATION = 13,
-  EMOTION_CODING = 14
+  EMOTION_CODING = 14,
+  EMOTION_COMMIT_HISTORY = 15
 };
 ```
 
 **Static vs Animated**:
 - Static: IDLE, SAD, ANGRY, SURPRISED, CONFUSED, DEAD, BLINK
-- Animated: SLEEPY, THINKING, EXCITED, HAPPY, LOVE, MUSIC, NOTIFICATION, CODING
+- Animated: SLEEPY, THINKING, EXCITED, HAPPY, LOVE, MUSIC, NOTIFICATION, CODING, COMMIT_HISTORY
 
 ## Configuration
 
