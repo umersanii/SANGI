@@ -90,10 +90,6 @@ void AnimationManager::resetAnimation(EmotionState emotion) {
       codingFrame = 0;
       lastCodingAnim = 0;
       break;
-    case EMOTION_COMMIT_HISTORY:
-      commitHistoryFrame = 0;
-      lastCommitHistoryAnim = 0;
-      break;
     default:
       break;
   }

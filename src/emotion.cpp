@@ -23,7 +23,7 @@ void EmotionManager::init(unsigned long currentTime) {
 
 void EmotionManager::setTargetEmotion(EmotionState newEmotion) {
   // Validate emotion state is within valid range
-  if (newEmotion < EMOTION_IDLE || newEmotion > EMOTION_CODING) {
+  if (newEmotion < EMOTION_IDLE || newEmotion > EMOTION_GITHUB_STATS) {
     Serial.printf("ERROR: Invalid emotion state %d\n", newEmotion);
     return;
   }

@@ -88,7 +88,7 @@
 #define OFFLINE_EMOTION_INTERVAL 100     // ms between emotion changes in offline autonomous mode (20s)
 
 // ===== DEBUG MODE =====
-#define DEBUG_MODE_ENABLED false            // Set to true to enable debug mode (shows only DEBUG_MODE_EMOTION)
-#define DEBUG_MODE_EMOTION EMOTION_COMMIT_HISTORY  // Which emotion to show in debug mode
+#define DEBUG_MODE_ENABLED true            // Set to true to enable debug mode (shows only DEBUG_MODE_EMOTION)
+#define DEBUG_MODE_EMOTION EMOTION_GITHUB_STATS  // Which emotion to show in debug mode
 
 #endif // CONFIG_H
