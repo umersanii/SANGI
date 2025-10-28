@@ -2407,50 +2407,48 @@ void AnimationManager::animateGitHubStats() {
     extern NetworkManager networkManager;
     GitHubContributionData* githubData = networkManager.getGitHubData();
 
-    // PHASES:
-    // 0-4: Sangi transitions from neutral to scared (wide eyes, squint, mouth)
-    // 5-9: Sangi runs off-screen (moves right)
-    // 10-14: 'github stats' text slides in from left
-    // 15-19: Text holds center
-    // 20-24: Text slides out to right
-    // 25-29: Stats boxes slide in from left
-    // 30-39: Stats boxes hold
-    // 40-44: Stats boxes slide out to right
-    // 45-55: Sangi returns using angry emotion
+  // PHASES (extended):
+  // 0-9: Sangi transitions from neutral to scared (wide eyes, squint, mouth)
+  // 10-19: Sangi runs off-screen (moves right)
+  // 20-29: 'github stats' text slides in from left
+  // 30-49: Text holds center
+  // 50-59: Text slides out to right
+  // 60-69: Stats boxes slide in from left
+  // 70-109: Stats boxes hold
+  // 110-119: Stats boxes slide out to right
+  // 120-139: Sangi returns using angry emotion
+
 
     // --- PHASE 1: Sangi transitions to scared ---
-    if (githubStatsFrame <= 4) {
+    if (githubStatsFrame <= 9) {
       int frame = githubStatsFrame;
-      // Transition: neutral -> wide eyes -> squint -> mouth line -> frown
-      int eyeHeight = 18 - frame * 2;
-      int mouthY = 48 + frame;
-      int mouthR = 5 + frame;
+      int eyeHeight = 18 - frame;
+      int mouthY = 48 + frame/2;
+      int mouthR = 5 + frame/2;
       displayManager.drawEyes(40, 28, 88, 28, eyeHeight);
-      if (frame < 2) {
+      if (frame < 4) {
         displayManager.getDisplay().drawCircle(64, mouthY, mouthR, SSD1306_WHITE);
-      } else if (frame == 2) {
+      } else if (frame < 7) {
         displayManager.getDisplay().drawLine(54, mouthY, 74, mouthY, SSD1306_WHITE);
       } else {
         displayManager.getDisplay().fillRoundRect(54, mouthY, 20, 5, 2, SSD1306_WHITE);
       }
-      // Eyebrows up for scared
       displayManager.getDisplay().drawLine(30, 18, 60, 18, SSD1306_WHITE);
       displayManager.getDisplay().drawLine(68, 18, 98, 18, SSD1306_WHITE);
     }
 
     // --- PHASE 2: Sangi runs off-screen ---
-    else if (githubStatsFrame <= 9) {
-      int offset = (githubStatsFrame - 5) * 16; // Move 0 to 64px right
+    else if (githubStatsFrame <= 19) {
+      int offset = (githubStatsFrame - 10) * 7; // Move 0 to 70px right
       displayManager.drawEyes(40 + offset, 28, 88 + offset, 28, 10);
       displayManager.getDisplay().fillRoundRect(54 + offset, 52, 20, 5, 2, SSD1306_WHITE);
-      // Eyebrows up
       displayManager.getDisplay().drawLine(30 + offset, 18, 60 + offset, 18, SSD1306_WHITE);
       displayManager.getDisplay().drawLine(68 + offset, 18, 98 + offset, 18, SSD1306_WHITE);
     }
 
     // --- PHASE 3: 'github stats' text slides in ---
-    else if (githubStatsFrame <= 14) {
-      int slide = 128 - ((githubStatsFrame - 10) * 24);
+    else if (githubStatsFrame <= 29) {
+      int slide = 128 - ((githubStatsFrame - 20) * 6);
       if (slide < 0) slide = 0;
       displayManager.getDisplay().setTextSize(2);
       displayManager.getDisplay().setTextColor(SSD1306_WHITE);
@@ -2459,7 +2457,7 @@ void AnimationManager::animateGitHubStats() {
     }
 
     // --- PHASE 4: Text holds center ---
-    else if (githubStatsFrame <= 19) {
+    else if (githubStatsFrame <= 49) {
       displayManager.getDisplay().setTextSize(2);
       displayManager.getDisplay().setTextColor(SSD1306_WHITE);
       displayManager.getDisplay().setCursor(10, 10);
@@ -2467,8 +2465,8 @@ void AnimationManager::animateGitHubStats() {
     }
 
     // --- PHASE 5: Text slides out ---
-    else if (githubStatsFrame <= 24) {
-      int slide = (githubStatsFrame - 20) * 24;
+    else if (githubStatsFrame <= 59) {
+      int slide = (githubStatsFrame - 50) * 6;
       displayManager.getDisplay().setTextSize(2);
       displayManager.getDisplay().setTextColor(SSD1306_WHITE);
       displayManager.getDisplay().setCursor(10 + slide, 10);
@@ -2476,7 +2474,7 @@ void AnimationManager::animateGitHubStats() {
     }
 
     // --- PHASE 6: Stats boxes slide in ---
-    else if (githubStatsFrame <= 29) {
+    else if (githubStatsFrame <= 69) {
       if (githubData == nullptr || !networkManager.hasGitHubData()) {
         displayManager.getDisplay().setTextSize(1);
         displayManager.getDisplay().setTextColor(SSD1306_WHITE);
@@ -2489,7 +2487,7 @@ void AnimationManager::animateGitHubStats() {
         githubStatsFrame++;
         return;
       }
-      int slide = 128 - ((githubStatsFrame - 25) * 25);
+      int slide = 128 - ((githubStatsFrame - 60) * 13);
       if (slide < 0) slide = 0;
       int totalDays = 21;
       int daysPerRow = 7;
@@ -2518,7 +2516,7 @@ void AnimationManager::animateGitHubStats() {
     }
 
     // --- PHASE 7: Stats boxes hold ---
-    else if (githubStatsFrame <= 39) {
+    else if (githubStatsFrame <= 109) {
       if (githubData == nullptr || !networkManager.hasGitHubData()) {
         displayManager.getDisplay().setTextSize(1);
         displayManager.getDisplay().setTextColor(SSD1306_WHITE);
@@ -2558,7 +2556,7 @@ void AnimationManager::animateGitHubStats() {
     }
 
     // --- PHASE 8: Stats boxes slide out ---
-    else if (githubStatsFrame <= 44) {
+    else if (githubStatsFrame <= 119) {
       if (githubData == nullptr || !networkManager.hasGitHubData()) {
         displayManager.getDisplay().setTextSize(1);
         displayManager.getDisplay().setTextColor(SSD1306_WHITE);
@@ -2571,7 +2569,7 @@ void AnimationManager::animateGitHubStats() {
         githubStatsFrame++;
         return;
       }
-      int slide = (githubStatsFrame - 40) * 25;
+      int slide = (githubStatsFrame - 110) * 13;
       int totalDays = 21;
       int daysPerRow = 7;
       int numRows = 3;
@@ -2599,19 +2597,16 @@ void AnimationManager::animateGitHubStats() {
     }
 
     // --- PHASE 9: Sangi returns using angry emotion ---
-    else if (githubStatsFrame <= 55) {
-      int angryPhase = githubStatsFrame - 45;
-      // Use angry emotion frames 0-10 for return
-      int eyeY = 32 - angryPhase;
-      int browY = 16 + angryPhase/2;
-      int mouthY = 52 + angryPhase/2;
-      displayManager.drawEyes(40, eyeY, 88, eyeY, 11 + angryPhase/2);
-      // Eyebrows
+    else if (githubStatsFrame <= 139) {
+      int angryPhase = githubStatsFrame - 120;
+      int eyeY = 32 - angryPhase/2;
+      int browY = 16 + angryPhase/4;
+      int mouthY = 52 + angryPhase/4;
+      displayManager.drawEyes(40, eyeY, 88, eyeY, 11 + angryPhase/4);
       for(int i = 0; i < 5; i++) {
         displayManager.getDisplay().drawLine(22, browY + i, 52, browY + 6 + i, SSD1306_WHITE);
         displayManager.getDisplay().drawLine(76, browY + 6 + i, 106, browY + i, SSD1306_WHITE);
       }
-      // Frown
       displayManager.getDisplay().fillRoundRect(52, mouthY, 24, 5, 2, SSD1306_WHITE);
     }
 
