@@ -2400,47 +2400,83 @@ void AnimationManager::animateGitHubStats() {
   unsigned long currentTime = millis();
   
 
+
   // Animation timing: 50ms per frame for smoothness
   if (currentTime - lastGitHubStatsAnim > 50) {
     displayManager.clearDisplay();
-
     extern NetworkManager networkManager;
     GitHubContributionData* githubData = networkManager.getGitHubData();
 
-    // Animation phases:
-    // 0-7: Sangi scared, 'github stats' text appears, Sangi runs off
-    // 8-11: Text fades out, Sangi off-screen
-    // 12-23: Boxes animate in (slide in from left)
-    // 24-35: Boxes animate out (slide out to right)
-    // 36-43: Sangi returns to center
+    // PHASES:
+    // 0-4: Sangi transitions from neutral to scared (wide eyes, squint, mouth)
+    // 5-9: Sangi runs off-screen (moves right)
+    // 10-14: 'github stats' text slides in from left
+    // 15-19: Text holds center
+    // 20-24: Text slides out to right
+    // 25-29: Stats boxes slide in from left
+    // 30-39: Stats boxes hold
+    // 40-44: Stats boxes slide out to right
+    // 45-55: Sangi returns using angry emotion
 
-    // --- PHASE 1: Sangi scared, text appears, Sangi runs off ---
-    if (githubStatsFrame <= 7) {
-      // Sangi face (center, then moves right)
-      int offset = githubStatsFrame * 12; // Move 0 to 84px right
-      displayManager.drawEyes(40 + offset, 28, 88 + offset, 28, 18 - githubStatsFrame*2);
-      displayManager.getDisplay().drawCircle(64 + offset, 48, 5, SSD1306_WHITE);
-      // 'github stats' text
+    // --- PHASE 1: Sangi transitions to scared ---
+    if (githubStatsFrame <= 4) {
+      int frame = githubStatsFrame;
+      // Transition: neutral -> wide eyes -> squint -> mouth line -> frown
+      int eyeHeight = 18 - frame * 2;
+      int mouthY = 48 + frame;
+      int mouthR = 5 + frame;
+      displayManager.drawEyes(40, 28, 88, 28, eyeHeight);
+      if (frame < 2) {
+        displayManager.getDisplay().drawCircle(64, mouthY, mouthR, SSD1306_WHITE);
+      } else if (frame == 2) {
+        displayManager.getDisplay().drawLine(54, mouthY, 74, mouthY, SSD1306_WHITE);
+      } else {
+        displayManager.getDisplay().fillRoundRect(54, mouthY, 20, 5, 2, SSD1306_WHITE);
+      }
+      // Eyebrows up for scared
+      displayManager.getDisplay().drawLine(30, 18, 60, 18, SSD1306_WHITE);
+      displayManager.getDisplay().drawLine(68, 18, 98, 18, SSD1306_WHITE);
+    }
+
+    // --- PHASE 2: Sangi runs off-screen ---
+    else if (githubStatsFrame <= 9) {
+      int offset = (githubStatsFrame - 5) * 16; // Move 0 to 64px right
+      displayManager.drawEyes(40 + offset, 28, 88 + offset, 28, 10);
+      displayManager.getDisplay().fillRoundRect(54 + offset, 52, 20, 5, 2, SSD1306_WHITE);
+      // Eyebrows up
+      displayManager.getDisplay().drawLine(30 + offset, 18, 60 + offset, 18, SSD1306_WHITE);
+      displayManager.getDisplay().drawLine(68 + offset, 18, 98 + offset, 18, SSD1306_WHITE);
+    }
+
+    // --- PHASE 3: 'github stats' text slides in ---
+    else if (githubStatsFrame <= 14) {
+      int slide = 128 - ((githubStatsFrame - 10) * 24);
+      if (slide < 0) slide = 0;
+      displayManager.getDisplay().setTextSize(2);
+      displayManager.getDisplay().setTextColor(SSD1306_WHITE);
+      displayManager.getDisplay().setCursor(slide, 10);
+      displayManager.getDisplay().print("github stats");
+    }
+
+    // --- PHASE 4: Text holds center ---
+    else if (githubStatsFrame <= 19) {
       displayManager.getDisplay().setTextSize(2);
       displayManager.getDisplay().setTextColor(SSD1306_WHITE);
       displayManager.getDisplay().setCursor(10, 10);
       displayManager.getDisplay().print("github stats");
     }
 
-    // --- PHASE 2: Text fades out, Sangi off-screen ---
-    else if (githubStatsFrame <= 11) {
-      // Fade out text (reduce brightness by drawing with black over)
+    // --- PHASE 5: Text slides out ---
+    else if (githubStatsFrame <= 24) {
+      int slide = (githubStatsFrame - 20) * 24;
       displayManager.getDisplay().setTextSize(2);
       displayManager.getDisplay().setTextColor(SSD1306_WHITE);
-      displayManager.getDisplay().setCursor(10, 10);
+      displayManager.getDisplay().setCursor(10 + slide, 10);
       displayManager.getDisplay().print("github stats");
-      // Overlay black rectangle to fade out
-      int fade = (githubStatsFrame - 8) * 32;
-      displayManager.getDisplay().fillRect(10, 10, fade, 20, SSD1306_BLACK);
     }
 
-    // --- PHASE 3: Boxes animate in (slide in from left) ---
-    else if (githubStatsFrame <= 23) {
+    // --- PHASE 6: Stats boxes slide in ---
+    else if (githubStatsFrame <= 29) {
       if (githubData == nullptr || !networkManager.hasGitHubData()) {
         displayManager.getDisplay().setTextSize(1);
         displayManager.getDisplay().setTextColor(SSD1306_WHITE);
@@ -2453,7 +2489,8 @@ void AnimationManager::animateGitHubStats() {
         githubStatsFrame++;
         return;
       }
-      // Animate boxes sliding in
+      int slide = 128 - ((githubStatsFrame - 25) * 25);
+      if (slide < 0) slide = 0;
       int totalDays = 21;
       int daysPerRow = 7;
       int numRows = 3;
@@ -2464,9 +2501,6 @@ void AnimationManager::animateGitHubStats() {
       int gridStartX = 1;
       int gridStartY = 0;
       int startWeek = 49;
-      // Slide in offset
-      int slide = 128 - ((githubStatsFrame - 12) * 12);
-      if (slide < 0) slide = 0;
       for (int row = 0; row < numRows; row++) {
         int dataWeek = startWeek + row;
         if (dataWeek >= 52) dataWeek = 51;
@@ -2483,8 +2517,8 @@ void AnimationManager::animateGitHubStats() {
       }
     }
 
-    // --- PHASE 4: Boxes animate out (slide out to right) ---
-    else if (githubStatsFrame <= 35) {
+    // --- PHASE 7: Stats boxes hold ---
+    else if (githubStatsFrame <= 39) {
       if (githubData == nullptr || !networkManager.hasGitHubData()) {
         displayManager.getDisplay().setTextSize(1);
         displayManager.getDisplay().setTextColor(SSD1306_WHITE);
@@ -2497,7 +2531,6 @@ void AnimationManager::animateGitHubStats() {
         githubStatsFrame++;
         return;
       }
-      // Animate boxes sliding out
       int totalDays = 21;
       int daysPerRow = 7;
       int numRows = 3;
@@ -2508,7 +2541,47 @@ void AnimationManager::animateGitHubStats() {
       int gridStartX = 1;
       int gridStartY = 0;
       int startWeek = 49;
-      int slide = (githubStatsFrame - 24) * 12;
+      for (int row = 0; row < numRows; row++) {
+        int dataWeek = startWeek + row;
+        if (dataWeek >= 52) dataWeek = 51;
+        for (int col = 0; col < daysPerRow; col++) {
+          int x = gridStartX + (col * (cellWidth + cellGapX));
+          int y = gridStartY + (row * (cellHeight + cellGapY));
+          uint8_t level = githubData->contributions[dataWeek][col];
+          if (level > 0) {
+            displayManager.getDisplay().fillRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
+          } else {
+            displayManager.getDisplay().drawRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
+          }
+        }
+      }
+    }
+
+    // --- PHASE 8: Stats boxes slide out ---
+    else if (githubStatsFrame <= 44) {
+      if (githubData == nullptr || !networkManager.hasGitHubData()) {
+        displayManager.getDisplay().setTextSize(1);
+        displayManager.getDisplay().setTextColor(SSD1306_WHITE);
+        displayManager.getDisplay().setCursor(8, 20);
+        displayManager.getDisplay().println("No GitHub data");
+        displayManager.getDisplay().setCursor(15, 35);
+        displayManager.getDisplay().println("Waiting...");
+        displayManager.updateDisplay();
+        lastGitHubStatsAnim = currentTime;
+        githubStatsFrame++;
+        return;
+      }
+      int slide = (githubStatsFrame - 40) * 25;
+      int totalDays = 21;
+      int daysPerRow = 7;
+      int numRows = 3;
+      int cellWidth = 17;
+      int cellHeight = 20;
+      int cellGapX = 1;
+      int cellGapY = 2;
+      int gridStartX = 1;
+      int gridStartY = 0;
+      int startWeek = 49;
       for (int row = 0; row < numRows; row++) {
         int dataWeek = startWeek + row;
         if (dataWeek >= 52) dataWeek = 51;
@@ -2525,14 +2598,24 @@ void AnimationManager::animateGitHubStats() {
       }
     }
 
-    // --- PHASE 5: Sangi returns to center ---
-    else if (githubStatsFrame <= 43) {
-      int offset = (43 - githubStatsFrame) * 12; // Move from right to center
-      displayManager.drawEyes(40 + offset, 28, 88 + offset, 28, 18);
-      displayManager.getDisplay().drawCircle(64 + offset, 48, 5, SSD1306_WHITE);
+    // --- PHASE 9: Sangi returns using angry emotion ---
+    else if (githubStatsFrame <= 55) {
+      int angryPhase = githubStatsFrame - 45;
+      // Use angry emotion frames 0-10 for return
+      int eyeY = 32 - angryPhase;
+      int browY = 16 + angryPhase/2;
+      int mouthY = 52 + angryPhase/2;
+      displayManager.drawEyes(40, eyeY, 88, eyeY, 11 + angryPhase/2);
+      // Eyebrows
+      for(int i = 0; i < 5; i++) {
+        displayManager.getDisplay().drawLine(22, browY + i, 52, browY + 6 + i, SSD1306_WHITE);
+        displayManager.getDisplay().drawLine(76, browY + 6 + i, 106, browY + i, SSD1306_WHITE);
+      }
+      // Frown
+      displayManager.getDisplay().fillRoundRect(52, mouthY, 24, 5, 2, SSD1306_WHITE);
     }
 
-    // --- PHASE 6: Hold idle Sangi ---
+    // --- PHASE 10: Hold idle Sangi ---
     else {
       displayManager.drawEyes(40, 28, 88, 28, 18);
       displayManager.getDisplay().drawCircle(64, 48, 5, SSD1306_WHITE);
