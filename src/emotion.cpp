@@ -1,6 +1,7 @@
 #include "emotion.h"
 #include "animations.h"
 #include "speaker.h"
+#include "network.h"
 
 EmotionManager emotionManager;
 
@@ -35,6 +36,13 @@ void EmotionManager::setTargetEmotion(EmotionState newEmotion) {
     transitionFrame = 0;
     
     Serial.printf("Emotion transition: %d → %d\n", currentEmotion, newEmotion);
+    
+    // Log emotion change to wireless serial monitor
+#if ENABLE_MQTT
+    char logMsg[64];
+    snprintf(logMsg, sizeof(logMsg), "Emotion transition: %d → %d", currentEmotion, newEmotion);
+    networkManager.logInfo(logMsg);
+#endif
     
     // Queue emotion-specific beep sound (non-blocking)
 #if ENABLE_EMOTION_BEEP

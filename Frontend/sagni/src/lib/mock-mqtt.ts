@@ -88,6 +88,48 @@ export class MockMQTTClient {
         this.publish("sangi/status/emotion", emotionPayload)
       }
     }, 5000)
+
+    // Simulate serial logs every 1-3 seconds
+    const serialInterval = setInterval(() => {
+      if (!this.isConnected) return
+
+      const mockSerialLines = [
+        "=== Network Manager Initializing ===",
+        "Connecting to WiFi: MyNetwork",
+        "✅ WiFi connected - IP: 192.168.1.42",
+        "📡 MQTT connecting...",
+        "✅ MQTT connected to AWS IoT Core",
+        "🔊 BeepManager initialized on GPIO 9",
+        "Battery: 85% (4.12V)",
+        "Emotion transition: NEUTRAL → HAPPY",
+        "GitHub stats loaded: umersanii - 42 repos, 156 followers, 397 contributions",
+        "⚠️  Warning: Heap low (142KB free)",
+        "❌ Error: Failed to parse JSON payload",
+        "System uptime: 3600 seconds",
+        "Received command: EMOTION_EXCITED",
+        "Display frame rendered in 12ms",
+        "Audio detection: Music playing"
+      ]
+
+      const randomLine = mockSerialLines[Math.floor(Math.random() * mockSerialLines.length)]
+      const serialPayload = JSON.stringify({
+        line: randomLine,
+        timestamp: Date.now()
+      })
+      this.publish("sangi/logs/serial", serialPayload)
+    }, 1000 + Math.random() * 2000)
+
+    // Store interval for cleanup
+    if (this.simulationInterval) {
+      const originalInterval = this.simulationInterval
+      this.simulationInterval = {
+        ...originalInterval,
+        [Symbol.dispose]: () => {
+          clearInterval(originalInterval)
+          clearInterval(serialInterval)
+        }
+      } as any
+    }
   }
 
   isConnectedStatus(): boolean {

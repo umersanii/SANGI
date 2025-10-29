@@ -16,6 +16,8 @@ NetworkManager::NetworkManager()
     currentState(NET_DISCONNECTED),
     lastReconnectAttempt(0),
     lastStatusPublish(0),
+    logBufferPos(0),
+    lastLogFlush(0),
     pcActivityScore(0),
     piActivityScore(0),
     combinedActivityScore(0),
@@ -31,6 +33,9 @@ NetworkManager::NetworkManager()
   for (int i = 0; i < MAX_NOTIFICATION_QUEUE; i++) {
     notificationQueue[i].active = false;
   }
+  
+  // Initialize log buffer
+  memset(logBuffer, 0, MAX_LOG_BUFFER_SIZE);
   
   // Initialize GitHub contribution data
   githubData.dataLoaded = false;
@@ -412,6 +417,12 @@ void NetworkManager::update() {
   // Process MQTT messages - THIS IS CRITICAL!
   mqttClient.loop();
   
+  // Auto-flush serial logs every 5 seconds
+  bool logFlushOverflow = currentTime < lastLogFlush;
+  if (logBufferPos > 0 && (logFlushOverflow || (currentTime - lastLogFlush >= LOG_FLUSH_INTERVAL))) {
+    flushLogs();
+  }
+  
   // Handle publish timing overflow
   bool publishOverflow = currentTime < lastStatusPublish;
   
@@ -488,6 +499,78 @@ void NetworkManager::publishEmotionChange(int emotionState) {
   serializeJson(doc, buffer);
   
   mqttClient.publish("sangi/emotion/current", buffer);
+#endif
+}
+
+// ===== SERIAL LOG BUFFERING (Sends every 5 seconds) =====
+void NetworkManager::log(const char* message) {
+  // Always print to USB serial for debugging
+  Serial.println(message);
+  
+#if ENABLE_MQTT
+  if (!message) return;
+  
+  int msgLen = strlen(message);
+  
+  // Check if adding this message would overflow buffer
+  if (logBufferPos + msgLen + 2 > MAX_LOG_BUFFER_SIZE - 1) {
+    // Buffer full - flush immediately
+    flushLogs();
+  }
+  
+  // Add message to buffer with newline
+  if (logBufferPos > 0) {
+    logBuffer[logBufferPos++] = '\n';
+  }
+  strncpy(logBuffer + logBufferPos, message, MAX_LOG_BUFFER_SIZE - logBufferPos - 1);
+  logBufferPos += msgLen;
+  logBuffer[logBufferPos] = '\0';
+#endif
+}
+
+void NetworkManager::logDebug(const char* message) {
+  char prefixed[256];
+  snprintf(prefixed, sizeof(prefixed), "[DEBUG] %s", message);
+  log(prefixed);
+}
+
+void NetworkManager::logInfo(const char* message) {
+  char prefixed[256];
+  snprintf(prefixed, sizeof(prefixed), "[INFO] %s", message);
+  log(prefixed);
+}
+
+void NetworkManager::logWarn(const char* message) {
+  char prefixed[256];
+  snprintf(prefixed, sizeof(prefixed), "[WARN] %s", message);
+  log(prefixed);
+}
+
+void NetworkManager::logError(const char* message) {
+  char prefixed[256];
+  snprintf(prefixed, sizeof(prefixed), "[ERROR] %s", message);
+  log(prefixed);
+}
+
+void NetworkManager::flushLogs() {
+#if ENABLE_MQTT
+  if (!isMQTTConnected() || logBufferPos == 0) return;
+  
+  // Create JSON payload with buffered logs
+  StaticJsonDocument<600> doc;
+  doc["line"] = logBuffer;
+  doc["timestamp"] = millis();
+  
+  char jsonBuffer[650];
+  serializeJson(doc, jsonBuffer);
+  
+  // Publish to MQTT
+  if (mqttClient.publish(MQTT_TOPIC_SERIAL_LOGS, jsonBuffer)) {
+    // Clear buffer after successful publish
+    logBufferPos = 0;
+    memset(logBuffer, 0, MAX_LOG_BUFFER_SIZE);
+    lastLogFlush = millis();
+  }
 #endif
 }
 

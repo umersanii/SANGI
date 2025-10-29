@@ -122,6 +122,10 @@ void setup() {
   Serial.println("\n>>> Running Network Diagnostics <<<");
   delay(500);
   networkManager.testConnectivity();
+  
+  // Test wireless serial logging
+  networkManager.logInfo("SANGI Robot initialized successfully");
+  networkManager.logInfo("Wireless serial logging active");
 #else
   Serial.println("MQTT disabled - running in autonomous mode");
 #endif

@@ -1,7 +1,18 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-// ===== HARDWARE CONFIGURATION =====
+// ===== HARDWARE CON#define MQTT_TOPIC_EMOTION_SET "sangi/emotion/set"        // Subscribe: receive emotion commands
+#define MQTT_TOPIC_STATUS "sangi/status"                  // Publish: device status
+#define MQTT_TOPIC_BATTERY "sangi/battery"                // Publish: battery voltage
+#define MQTT_TOPIC_UPTIME "sangi/uptime"                  // Publish: uptime in seconds
+#define MQTT_TOPIC_SERIAL_LOGS "sangi/logs/serial"        // Publish: buffered serial logs (every 5s)
+
+// Workspace MQTT topics
+#define MQTT_TOPIC_WORKSPACE_PC "workspace/pc/activity"   // Subscribe: PC activity data
+#define MQTT_TOPIC_WORKSPACE_PI "workspace/pi/activity"   // Subscribe: Pi activity data
+#define MQTT_TOPIC_PC_STATUS "workspace/pc/status"        // Subscribe: PC online/offline
+#define MQTT_TOPIC_PI_STATUS "workspace/pi/status"        // Subscribe: Pi online/offline
+#define MQTT_TOPIC_GITHUB_COMMITS "sangi/github/commits"  // Subscribe: GitHub commit history updates=====
 // OLED display configuration
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64

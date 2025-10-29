@@ -1,5 +1,5 @@
 import { create } from "zustand"
-import type { MQTTState, EmotionState, BatteryStatus, SystemStatus, EmotionStatus } from "@/types/sangi"
+import type { MQTTState, EmotionState, BatteryStatus, SystemStatus, EmotionStatus, SerialLog } from "@/types/sangi"
 import { MockMQTTClient } from "@/lib/mock-mqtt"
 import { RealMQTTClient } from "@/lib/mqtt-client"
 
@@ -15,6 +15,10 @@ interface MQTTStore extends MQTTState {
   // Message handling
   addMessage: (topic: string, payload: string) => void
   clearMessages: () => void
+
+  // Serial log handling
+  addSerialLog: (log: SerialLog) => void
+  clearSerialLogs: () => void
 
   // Status updates
   updateBattery: (battery: BatteryStatus) => void
@@ -33,6 +37,7 @@ export const useMQTTStore = create<MQTTStore>((set, get) => ({
   connecting: false,
   error: null,
   messages: [],
+  serialLogs: [],
   battery: null,
   system: null,
   emotion: null,
@@ -44,7 +49,7 @@ export const useMQTTStore = create<MQTTStore>((set, get) => ({
       if (useMock) {
         mqttClient = new MockMQTTClient()
       } else {
-        const endpoint = import.meta.env.VITE_MQTT_ENDPOINT || "wss://localhost:8883"
+        const endpoint = process.env.NEXT_PUBLIC_MQTT_ENDPOINT || "wss://localhost:8883"
         const clientId = `sangi-web-${Date.now()}`
         mqttClient = new RealMQTTClient(endpoint, clientId)
       }
@@ -79,6 +84,16 @@ export const useMQTTStore = create<MQTTStore>((set, get) => ({
           get().addMessage("sangi/status/emotion", payload)
         } catch (e) {
           console.error("[MQTT] Failed to parse emotion message:", e)
+        }
+      })
+
+      // Subscribe to serial logs
+      mqttClient.subscribe("sangi/logs/serial", (payload) => {
+        try {
+          const log = JSON.parse(payload)
+          get().addSerialLog(log)
+        } catch (e) {
+          console.error("[MQTT] Failed to parse serial log:", e)
         }
       })
 
@@ -131,6 +146,19 @@ export const useMQTTStore = create<MQTTStore>((set, get) => ({
 
   clearMessages: () => {
     set({ messages: [] })
+  },
+
+  addSerialLog: (log: SerialLog) => {
+    set((state) => ({
+      serialLogs: [
+        log,
+        ...state.serialLogs.slice(0, 499), // Keep last 500 log lines
+      ],
+    }))
+  },
+
+  clearSerialLogs: () => {
+    set({ serialLogs: [] })
   },
 
   updateBattery: (battery: BatteryStatus) => {

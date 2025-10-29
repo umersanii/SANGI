@@ -9,6 +9,7 @@ import { MessageLog } from "@/components/mqtt/message-log"
 import { PublishPanel } from "@/components/mqtt/publish-panel"
 import { EmotionGrid } from "@/components/emotion/emotion-grid"
 import { SystemStats } from "@/components/system/system-stats"
+import { SerialMonitor } from "@/components/system/serial-monitor"
 // Fallback Button component if the project's UI button is not available
 function Button(props: any) {
   const { variant, size, className, onClick, children, ...rest } = props
@@ -121,6 +122,11 @@ export default function Home() {
               <EmotionGrid />
             </div>
           </div>
+        </div>
+
+        {/* Serial Monitor - Full Width */}
+        <div className="mt-6">
+          <SerialMonitor />
         </div>
       </main>
 

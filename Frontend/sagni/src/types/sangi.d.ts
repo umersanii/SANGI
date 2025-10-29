@@ -36,11 +36,17 @@ export interface MQTTMessage {
   timestamp: number
 }
 
+export interface SerialLog {
+  line: string
+  timestamp: number
+}
+
 export interface MQTTState {
   connected: boolean
   connecting: boolean
   error: string | null
   messages: MQTTMessage[]
+  serialLogs: SerialLog[]
   battery: BatteryStatus | null
   system: SystemStatus | null
   emotion: EmotionStatus | null

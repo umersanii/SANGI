@@ -95,6 +95,14 @@ public:
   void publishUptime(unsigned long seconds);
   void publishEmotionChange(int emotionState);
   
+  // Serial logging (buffered, sends every 5 seconds)
+  void log(const char* message);
+  void logDebug(const char* message);
+  void logInfo(const char* message);
+  void logWarn(const char* message);
+  void logError(const char* message);
+  void flushLogs();  // Force send buffered logs immediately
+  
   // State getters
   NetworkState getState() const { return currentState; }
   unsigned long getLastReconnectAttempt() const { return lastReconnectAttempt; }
@@ -139,6 +147,13 @@ private:
   NetworkState currentState;
   unsigned long lastReconnectAttempt;
   unsigned long lastStatusPublish;
+  
+  // Serial log buffering (sends every 5 seconds)
+  static const int MAX_LOG_BUFFER_SIZE = 512;  // Max characters per batch
+  char logBuffer[MAX_LOG_BUFFER_SIZE];
+  int logBufferPos;
+  unsigned long lastLogFlush;
+  static const unsigned long LOG_FLUSH_INTERVAL = 5000;  // 5 seconds
   
   // Workspace activity state
   int pcActivityScore;

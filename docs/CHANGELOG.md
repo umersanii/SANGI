@@ -5,6 +5,27 @@ All notable changes to the SANGI robot project.
 ## [Unreleased]
 
 ### Added
+- **NEW: Wireless Serial Logging (Native ESP32)** (2025-10-29)
+  - **Built-in MQTT Serial Logging** - No USB or PC bridge required
+    - `NetworkManager::log()`, `logDebug()`, `logInfo()`, `logWarn()`, `logError()`
+    - Logs buffered in ESP32 memory (512 bytes)
+    - Auto-published to `sangi/logs/serial` every 5 seconds
+    - Reduces AWS IoT costs (~500K msgs/month, within FREE tier)
+  - **Frontend SerialMonitor Component** (unchanged from USB version)
+    - Live display with color-coded log levels
+    - Filter, pause, download capabilities
+    - Subscribes to `sangi/logs/serial` MQTT topic
+  - **Implementation Details**:
+    - Added to `include/network.h` and `src/network.cpp`
+    - Topic defined in `include/config.h`: `MQTT_TOPIC_SERIAL_LOGS`
+    - Buffer management prevents memory overflow
+    - Falls back to USB Serial if MQTT unavailable
+  - **Removed**: USB serial bridge scripts (obsolete)
+    - Deleted `PC-setup/serial_monitor_bridge.py`
+    - Deleted `PC-setup/setup-serial-bridge.sh`
+  - **Benefits**: Completely wireless debugging after firmware upload
+  - Full documentation in `docs/Code_Reference.md`
+
 - **NEW: Discord Message Monitoring** (2025-10-29)
   - **Personal Discord Account Integration** via selfbot approach
   - Monitors DMs and mentions in real-time

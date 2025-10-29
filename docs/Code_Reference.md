@@ -899,6 +899,52 @@ python3 workspace_monitor.py
 - Audio playing → MUSIC
 - Idle >10min → SLEEPY
 
+### Wireless Serial Logging (ESP32 Native)
+
+**Built-in to ESP32 firmware** - No PC bridge required!
+
+The ESP32 publishes serial logs directly to AWS IoT MQTT, eliminating the need for USB connection after initial firmware upload.
+
+**How It Works**:
+```cpp
+// In your ESP32 code (any .cpp file):
+#include "network.h"
+
+networkManager.log("Battery level: 85%");           // Plain log
+networkManager.logDebug("Checking sensor data");    // [DEBUG] prefix
+networkManager.logInfo("WiFi connected");           // [INFO] prefix  
+networkManager.logWarn("Heap memory low");          // [WARN] prefix
+networkManager.logError("Sensor read failed");      // [ERROR] prefix
+```
+
+**Log Buffering**:
+- Logs buffered in ESP32 memory (512 bytes max)
+- Auto-published to MQTT every **5 seconds**
+- Reduces AWS IoT message count by ~5x
+- Falls back to USB Serial if MQTT fails
+
+**MQTT Topic**: `sangi/logs/serial`  
+**Payload Format**:
+```json
+{
+  "line": "Multiple lines\nseparated by\nnewlines",
+  "timestamp": 1730000000000
+}
+```
+
+**Frontend Integration**:
+- SerialMonitor component auto-subscribes
+- Displays logs with color-coded levels
+- Filter, pause, download capabilities
+- Keeps last 500 lines in memory
+
+**AWS IoT Costs**:
+- Buffered approach: ~500K messages/month
+- Within **FREE tier** (250K/month free)
+- Excess: $1 per million messages
+
+**Note**: USB Serial still works for initial debugging via `pio device monitor`
+
 ### Raspberry Pi Notification Service (Standalone 24/7)
 
 **Location**: `pi-setup/`
