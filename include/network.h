@@ -42,6 +42,22 @@ struct GitHubContributionData {
   bool dataLoaded;               // Data is valid
 };
 
+// ===== GITHUB STATS STRUCTURE =====
+// Stores current GitHub profile statistics (from GitHub API)
+struct GitHubStatsData {
+  char username[32];             // GitHub username
+  int repos;                     // Public repositories
+  int followers;                 // Follower count
+  int following;                 // Following count
+  int contributions;             // Total contributions (last year)
+  int commits;                   // Total commits (last year)
+  int prs;                       // Total pull requests
+  int issues;                    // Total issues
+  int stars;                     // Total stars received
+  unsigned long timestamp;       // Last update time
+  bool dataLoaded;               // Data is valid
+};
+
 // Maximum notifications in queue
 #define MAX_NOTIFICATION_QUEUE 5
 
@@ -107,6 +123,12 @@ public:
   bool hasGitHubData() const;
   void clearGitHubData();
   
+  // GitHub stats data management
+  void setGitHubStats(const char* user, int repos, int followers, int following, 
+                      int contributions, int commits, int prs, int issues, int stars);
+  GitHubStatsData* getGitHubStats();
+  bool hasGitHubStats() const;
+  
   // Offline mode detection
   bool isInWorkspaceMode() const { return workspaceMode; }
   unsigned long getLastMQTTMessageTime() const { return lastMQTTMessageTime; }
@@ -134,6 +156,9 @@ private:
   
   // GitHub contribution data
   GitHubContributionData githubData;
+  
+  // GitHub stats data
+  GitHubStatsData githubStats;
   
   // Offline mode detection
   bool workspaceMode;

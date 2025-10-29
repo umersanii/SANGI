@@ -29,6 +29,7 @@ class MQTTPublisher:
         self.key_path = mqtt_config.get('private_key_path')
         self.ca_path = mqtt_config.get('root_ca_path')
         self.topic = mqtt_config.get('topic', 'sangi/notification/push')
+        self.stats_topic = mqtt_config.get('stats_topic', 'sangi/github/stats')
         
         self.mqtt_connection = None
         self.is_connected = False
@@ -149,3 +150,112 @@ class MQTTPublisher:
             'Notification Monitor',
             'Service started'
         )
+    
+    def publish_github_stats(self, stats):
+        """
+        Publish GitHub statistics to SANGI
+        
+        Args:
+            stats: Dictionary containing GitHub statistics
+        
+        Returns:
+            bool: True if published successfully
+        """
+        if not self.is_connected:
+            self.logger.warning("Not connected to MQTT, attempting reconnect...")
+            if not self.connect():
+                return False
+        
+        try:
+            # Build compact payload optimized for ESP32
+            # Only include essential stats to fit in buffer
+            payload = {
+                'type': 'github_stats',
+                'username': stats.get('username', 'unknown'),
+                'repos': stats.get('public_repos', 0),
+                'followers': stats.get('followers', 0),
+                'following': stats.get('following', 0),
+                'contributions': stats.get('total_contributions', 0),
+                'commits': stats.get('total_commits', 0),
+                'prs': stats.get('total_prs', 0),
+                'issues': stats.get('total_issues', 0),
+                'stars': stats.get('total_stars', 0),
+                'timestamp': int(time.time())
+            }
+            
+            payload_json = json.dumps(payload)
+            
+            # Check payload size (ESP32 MQTT buffer is 1024 bytes)
+            if len(payload_json) > 900:
+                self.logger.warning(f"Payload size ({len(payload_json)} bytes) is large, may cause issues")
+            
+            # Publish
+            self.logger.debug(f"Publishing to {self.stats_topic}: {payload_json}")
+            
+            publish_future, packet_id = self.mqtt_connection.publish(
+                topic=self.stats_topic,
+                payload=payload_json,
+                qos=mqtt.QoS.AT_LEAST_ONCE
+            )
+            
+            # Wait for publish to complete
+            publish_future.result()
+            
+            self.logger.info(f"Published GitHub stats for user: {stats.get('username', 'unknown')}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to publish GitHub stats: {e}", exc_info=True)
+            self.is_connected = False
+            return False
+    
+    def publish_emotion(self, emotion_id, ssid=None):
+        """
+        Publish emotion change command to SANGI
+        
+        Args:
+            emotion_id: Emotion ID (0-15)
+            ssid: Optional SSID for validation
+        
+        Returns:
+            bool: True if published successfully
+        """
+        if not self.is_connected:
+            self.logger.warning("Not connected to MQTT, attempting reconnect...")
+            if not self.connect():
+                return False
+        
+        try:
+            # Build payload
+            payload = {
+                'emotion': emotion_id,
+                'timestamp': int(time.time())
+            }
+            
+            # Add SSID if provided
+            if ssid:
+                payload['ssid'] = ssid
+            
+            payload_json = json.dumps(payload)
+            
+            # Publish to emotion topic
+            emotion_topic = 'sangi/emotion/set'
+            
+            self.logger.debug(f"Publishing to {emotion_topic}: {payload_json}")
+            
+            publish_future, packet_id = self.mqtt_connection.publish(
+                topic=emotion_topic,
+                payload=payload_json,
+                qos=mqtt.QoS.AT_LEAST_ONCE
+            )
+            
+            # Wait for publish to complete
+            publish_future.result()
+            
+            self.logger.info(f"Published emotion change: {emotion_id}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to publish emotion: {e}", exc_info=True)
+            self.is_connected = False
+            return False

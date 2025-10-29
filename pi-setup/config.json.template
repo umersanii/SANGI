@@ -5,7 +5,8 @@
     "certificate_path": "./certs/cert.pem",
     "private_key_path": "./certs/private.key",
     "root_ca_path": "./certs/AmazonRootCA1.pem",
-    "topic": "sangi/notification/push"
+    "topic": "sangi/notification/push",
+    "stats_topic": "sangi/github/stats"
   },
   "notifications": {
     "discord": {
@@ -26,6 +27,20 @@
       "monitor_method": "dbus",
       "note": "WhatsApp API requires business account - uses D-Bus for desktop notifications"
     }
+  },
+  "github_stats": {
+    "enabled": true,
+    "token": "ghp_your_token_here",
+    "username": "your_github_username",
+    "poll_interval": 300,
+    "stats_types": ["repos", "followers", "contributions", "commits", "prs", "issues", "stars"],
+    "note": "Fetches GitHub profile statistics every 5 minutes (300s). Requires same token as notifications."
+  },
+  "random_stats_trigger": {
+    "enabled": true,
+    "interval": 300,
+    "trigger_types": ["github_stats"],
+    "note": "Randomly triggers stats display on SANGI every 5 minutes. Can trigger github_stats or notifications."
   },
   "filters": {
     "min_notification_interval": 5,

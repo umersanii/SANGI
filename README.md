@@ -22,7 +22,7 @@ This project creates a Dasai Mochi-style robot with cute animated facial express
 ## ✨ Features
 
 ### Animated Expressions
-The robot displays 15 different emotions with smooth multi-frame animations:
+The robot displays 16 different emotions with smooth multi-frame animations:
 
 1. 😊 **Normal** - Calm resting face
 2. 😄 **Happy** - Slightly squinted eyes with smile
@@ -36,9 +36,10 @@ The robot displays 15 different emotions with smooth multi-frame animations:
 10. 😕 **Confused** - Asymmetric eyes with wavy mouth
 11. 💀 **Dead** - X eyes forming with tongue sticking out (51 frames)
 12. 🎵 **Music** - Closed eyes with smooth swaying motion and floating music notes (51 frames)
-13. 🔔 **Notification** - Alert state with notification indicator
+13. 🔔 **Notification** - Alert state with notification indicator (86 frames)
 14. 🎯 **Focus** - Concentrated expression with enhanced attention
 15. 💻 **Coding** - Matrix-style with thick glasses, squinted eyes, and falling binary digits (25 frames)
+16. 📊 **GitHub Stats** - Dynamic stats display showing real-time GitHub activity (130 frames)
 
 ### Animations
 - **Smooth Blinking** - Eyes gradually close and open (3-frame transition)
@@ -52,6 +53,8 @@ The robot displays 15 different emotions with smooth multi-frame animations:
 - **Tongue Animation** - Tongue extends and retracts smoothly (frames 16-50)
 - **Ghost Effects** - Subtle floating particles during dead emotion hold phase
 - **Natural Timing** - Consistent 30ms frame delay (~20 FPS) across all animations
+- **Dynamic GitHub Stats** - Cycles through 8 stat screens (repos, followers, contributions, commits, PRs, issues, stars, summary)
+- **Real-time API Integration** - Fetches live GitHub data via Raspberry Pi service every 5 minutes
 
 ### Debug Mode
 - **Isolated Testing** - Set `DEBUG_MODE_ENABLED true` in `config.h` to test specific emotions
@@ -68,7 +71,10 @@ The robot displays 15 different emotions with smooth multi-frame animations:
 
 **MQTT Topics**:
 - 📥 Subscribe: `sangi/emotion/set` - Remote emotion commands
-- 📤 Publish: `sangi/status` - Connection status
+- � Subscribe: `sangi/notification/push` - Notification messages
+- 📥 Subscribe: `sangi/github/commits` - GitHub contribution heatmap data
+- 📥 Subscribe: `sangi/github/stats` - GitHub profile statistics (real-time)
+- �📤 Publish: `sangi/status` - Connection status
 - 📤 Publish: `sangi/battery` - Battery telemetry (every 30s)
 - 📤 Publish: `sangi/emotion/current` - Current emotion state (every 30s)
 

@@ -5,6 +5,25 @@ All notable changes to the SANGI robot project.
 ## [Unreleased]
 
 ### Added
+- **NEW: Dynamic GitHub Stats Display System** (2025-10-29)
+  - **Real-time GitHub API Integration** via Raspberry Pi service
+  - Fetches live statistics: repos, followers, contributions, commits, PRs, issues, stars
+  - `GitHubStatsData` struct in NetworkManager for storing current stats
+  - MQTT topic `sangi/github/stats` for receiving stats updates
+  - **animateGitHubStats()** completely rewritten to display dynamic data:
+    - 8 stat screens cycling every ~10 frames (repos, followers, contributions, commits, PRs, issues, stars, summary)
+    - Large text displays with proper sizing (3x for numbers, 2x for summaries)
+    - Maintains original animation flow (surprise → run off → text scroll → stats → return)
+  - **Pi-Setup Service Enhancements**:
+    - `lib/github_stats.py`: Fetches stats using REST & GraphQL APIs
+    - `lib/random_stats_trigger.py`: Randomly triggers stats display every 5 minutes
+    - `lib/mqtt_publisher.py`: Optimized payload (< 900 bytes for ESP32 buffer)
+    - Automatic `EMOTION_GITHUB_STATS` triggering when stats received
+  - **Random Stats Trigger**: Non-intrusive 5-minute intervals during workspace mode
+  - Configuration via `github_stats` and `random_stats_trigger` sections in config.json
+  - Expandable to trigger Discord/WhatsApp summaries
+  - Full documentation in pi-setup/README.md
+
 - **NEW: EMOTION_GITHUB_STATS - GitHub Contribution Graph Display** (2025-10-28)
   - Clean, focused display of last 14 days (2 weeks) of GitHub contributions
   - Large 8x8 pixel boxes for clear visibility on 128x64 OLED

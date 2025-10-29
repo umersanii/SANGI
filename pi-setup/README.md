@@ -6,9 +6,10 @@ Standalone 24/7 notification monitoring service for Raspberry Pi that forwards D
 
 - **Discord Notifications**: Monitors desktop Discord notifications via D-Bus
 - **GitHub Notifications**: Polls GitHub API for pull requests, issues, and mentions
+- **GitHub Statistics**: Fetches real-time GitHub profile stats (contributions, repos, stars, followers)
 - **WhatsApp Notifications**: Monitors desktop WhatsApp notifications via D-Bus (requires desktop app)
 - **Auto-Start**: Runs as systemd service, starts on boot
-- **MQTT Integration**: Forwards notifications to SANGI via AWS IoT Core
+- **MQTT Integration**: Forwards notifications and stats to SANGI via AWS IoT Core
 - **Rate Limiting**: Prevents notification spam
 - **Logging**: Comprehensive logging to file and console
 - **Virtual Environment**: Isolated dependencies with system PyGObject/D-Bus access
@@ -65,6 +66,12 @@ Edit `config.json`:
       "token": "ghp_your_token_here",
       "username": "your_github_username"
     }
+  },
+  "github_stats": {
+    "enabled": true,
+    "token": "ghp_your_token_here",
+    "username": "your_github_username",
+    "poll_interval": 300
   }
 }
 ```
@@ -146,6 +153,80 @@ WhatsApp notifications are captured via D-Bus from WhatsApp desktop app.
 
 **Note**: WhatsApp Business API is also supported but requires business account setup.
 
+### GitHub Statistics
+
+GitHub statistics are fetched periodically via GitHub REST API and GraphQL API.
+
+**Setup**:
+1. Use the same GitHub token as notifications (or generate a new one)
+2. Required scopes: `repo`, `read:user` (for private repo stats and user data)
+3. Add token and username to `config.json` under `github_stats`
+
+**Statistics Collected**:
+- **Profile Stats**: Public repos, followers, following
+- **Contributions**: Total contributions in last 365 days
+- **Commits**: Total commit contributions in last year
+- **Pull Requests**: PRs opened and reviews submitted
+- **Issues**: Issues created/commented on
+- **Stars**: Total stars received across all repos
+
+**Polling Interval**: 300 seconds (5 minutes) - configurable
+
+**Customization**:
+Choose which stats to fetch by modifying `stats_types` in config:
+```json
+"github_stats": {
+  "stats_types": ["repos", "followers", "contributions", "commits", "prs", "issues", "stars"]
+}
+```
+
+**Example Stats Payload**:
+```json
+{
+  "username": "your_username",
+  "followers": 42,
+  "following": 15,
+  "public_repos": 25,
+  "total_stars": 150,
+  "total_contributions": 1247,
+  "total_commits": 856,
+  "total_prs": 45,
+  "total_issues": 23,
+  "timestamp": "2025-10-29T12:00:00Z"
+}
+```
+
+**MQTT Topic**: Stats are published to `sangi/github/stats` (configurable in `mqtt.stats_topic`)
+
+### Random Stats Display Trigger
+
+The service can automatically trigger SANGI to display stats randomly during workspace mode.
+
+**How it Works**:
+1. Every 5 minutes (configurable), randomly sends emotion command to SANGI
+2. Triggers `EMOTION_GITHUB_STATS` to display the latest fetched stats
+3. Can be expanded to show notifications, Discord messages, etc.
+
+**Configuration**:
+```json
+"random_stats_trigger": {
+  "enabled": true,
+  "interval": 300,
+  "trigger_types": ["github_stats"]
+}
+```
+
+**Trigger Types**:
+- `github_stats`: Display GitHub statistics animation
+- `notifications`: (Planned) Review recent notifications
+- `discord`: (Planned) Show Discord message summary
+- `whatsapp`: (Planned) Show WhatsApp message summary
+
+**Benefits**:
+- Keeps SANGI engaging during long coding sessions
+- Provides motivational stats updates
+- Non-intrusive (respects workspace mode timing)
+
 ## Service Management
 
 ```bash
@@ -216,6 +297,44 @@ headers = {
 
 response = requests.get('https://api.github.com/notifications', headers=headers)
 print(response.json())
+```
+
+### Test GitHub Stats API
+
+```python
+import requests
+
+# Test REST API
+headers = {
+    'Authorization': 'token ghp_your_token',
+    'Accept': 'application/vnd.github.v3+json'
+}
+response = requests.get('https://api.github.com/users/your_username', headers=headers)
+print("User data:", response.json())
+
+# Test GraphQL API
+graphql_headers = {
+    'Authorization': 'bearer ghp_your_token',
+    'Content-Type': 'application/json'
+}
+query = """
+{
+  viewer {
+    login
+    contributionsCollection {
+      contributionCalendar {
+        totalContributions
+      }
+    }
+  }
+}
+"""
+response = requests.post(
+    'https://api.github.com/graphql',
+    json={'query': query},
+    headers=graphql_headers
+)
+print("GraphQL data:", response.json())
 ```
 
 ### Test D-Bus Notifications
@@ -291,6 +410,18 @@ sudo apt install -y python3-gi python3-dbus
 - Test API manually (see Testing section)
 - Check rate limiting (5000 requests/hour for authenticated)
 
+### GitHub Statistics Not Working
+
+- Verify token has `repo` and `read:user` scopes
+- Check username matches your GitHub login
+- Test GraphQL endpoint (requires `bearer` token format)
+- Review logs for API errors:
+  ```bash
+  journalctl -u sangi-notification-monitor@$(whoami).service | grep GitHubStats
+  ```
+- Verify polling interval isn't too aggressive (minimum 60s recommended)
+- Check for API rate limits (5000 requests/hour, GraphQL has separate quota)
+
 ## File Structure
 
 ```
@@ -312,6 +443,7 @@ pi-setup/
 │   ├── __init__.py
 │   ├── notification_monitor.py      # D-Bus notification capture
 │   ├── github_monitor.py            # GitHub API polling
+│   ├── github_stats.py              # GitHub statistics fetcher
 │   └── mqtt_publisher.py            # AWS IoT MQTT publisher
 ├── certs/                           # AWS IoT certificates (created by setup.sh)
 │   ├── AmazonRootCA1.pem           # (copy manually)

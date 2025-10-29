@@ -13,10 +13,11 @@ ESP32-C3 companion robot with modular singleton architecture for emotion states,
 ### EmotionManager (`emotion.h/cpp`)
 **Responsibility**: State machine for emotion transitions
 
-- 13 emotion states (IDLE, HAPPY, SAD, ANGRY, SURPRISED, CONFUSED, SLEEPY, THINKING, EXCITED, LOVE, DEAD, MUSIC, NOTIFICATION)
+- 16 emotion states (IDLE, HAPPY, SAD, ANGRY, SURPRISED, CONFUSED, SLEEPY, THINKING, EXCITED, LOVE, DEAD, MUSIC, NOTIFICATION, CODING, BLINK, GITHUB_STATS)
 - 7-frame transition system (current → blink → target)
 - Autonomous emotion selection based on time/battery
 - MQTT-driven emotion control
+- Dynamic GitHub stats display with real-time API data
 
 **API**:
 ```cpp
@@ -85,6 +86,7 @@ void drawFace_X();  // X = emotion name
 - Certificate-based TLS 1.2 authentication
 - NTP time synchronization
 - Notification queue (max 5)
+- **GitHub stats data storage** (repos, followers, contributions, commits, PRs, issues, stars)
 - Automatic reconnection (5s interval)
 - **SSID validation** for cross-network isolation
 - **Offline mode**: Autonomous emotion cycling when MQTT unavailable with notification generation
@@ -114,7 +116,7 @@ void drawFace_X();  // X = emotion name
   - Content displayed via `animateNotification()` with offline data
 
 **Topics**:
-- Subscribe: `sangi/emotion/set`, `sangi/notification/push`
+- Subscribe: `sangi/emotion/set`, `sangi/notification/push`, `sangi/github/commits`, `sangi/github/stats`
 - Publish: `sangi/status`, `sangi/battery`, `sangi/emotion/current`
 
 **API**:

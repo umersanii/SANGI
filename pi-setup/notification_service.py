@@ -16,6 +16,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / 'lib'))
 
 from lib import NotificationMonitor, MQTTPublisher, GitHubMonitor
+from lib.github_stats import GitHubStatsMonitor
+from lib.random_stats_trigger import RandomStatsTrigger
 
 
 class NotificationService:
@@ -34,6 +36,8 @@ class NotificationService:
         self.mqtt_publisher = MQTTPublisher(self.config)
         self.notification_monitor = NotificationMonitor(self.config, self._handle_notification)
         self.github_monitor = GitHubMonitor(self.config, self._handle_notification)
+        self.github_stats_monitor = GitHubStatsMonitor(self.config, self._handle_stats)
+        self.random_trigger = RandomStatsTrigger(self.config, self._trigger_stats_display, self._send_emotion)
         
         # Shutdown flag
         self.shutdown_flag = threading.Event()
@@ -92,6 +96,44 @@ class NotificationService:
         else:
             self.logger.warning(f"Failed to forward {notif_type} notification to SANGI")
     
+    def _handle_stats(self, stats):
+        """
+        Handle incoming GitHub statistics
+        
+        Args:
+            stats: Dictionary of GitHub statistics
+        """
+        self.logger.info(f"Received GitHub stats update: {stats}")
+        
+        # Publish stats to MQTT
+        success = self.mqtt_publisher.publish_github_stats(stats)
+        
+        if success:
+            self.logger.debug("Successfully forwarded GitHub stats to SANGI")
+        else:
+            self.logger.warning("Failed to forward GitHub stats to SANGI")
+    
+    def _trigger_stats_display(self):
+        """Trigger stats display on SANGI (placeholder for future expansion)"""
+        pass
+    
+    def _send_emotion(self, emotion_id):
+        """
+        Send emotion change command to SANGI
+        
+        Args:
+            emotion_id: Emotion ID (0-15)
+        """
+        # Get WiFi SSID for validation (if available)
+        ssid = self.config.get('mqtt', {}).get('ssid', None)
+        
+        success = self.mqtt_publisher.publish_emotion(emotion_id, ssid)
+        
+        if success:
+            self.logger.debug(f"Successfully sent emotion {emotion_id} to SANGI")
+        else:
+            self.logger.warning(f"Failed to send emotion {emotion_id} to SANGI")
+    
     def _signal_handler(self, signum, frame):
         """Handle shutdown signals"""
         self.logger.info(f"Received signal {signum}, shutting down...")
@@ -119,6 +161,20 @@ class NotificationService:
                 self.logger.info("Starting GitHub monitor...")
                 github_thread = threading.Thread(target=self.github_monitor.start_polling, daemon=True)
                 github_thread.start()
+            
+            # Start GitHub stats monitor in separate thread
+            github_stats_thread = None
+            if self.config.get('github_stats', {}).get('enabled', False):
+                self.logger.info("Starting GitHub stats monitor...")
+                github_stats_thread = threading.Thread(target=self.github_stats_monitor.start_polling, daemon=True)
+                github_stats_thread.start()
+            
+            # Start random stats trigger in separate thread
+            random_trigger_thread = None
+            if self.config.get('random_stats_trigger', {}).get('enabled', True):
+                self.logger.info("Starting random stats trigger...")
+                random_trigger_thread = threading.Thread(target=self.random_trigger.start_monitoring, daemon=True)
+                random_trigger_thread.start()
             
             # Start D-Bus notification monitor (blocking)
             self.logger.info("Starting D-Bus notification monitor...")

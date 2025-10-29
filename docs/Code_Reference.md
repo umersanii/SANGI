@@ -243,6 +243,12 @@ GitHubContributionData* getGitHubData();
 bool hasGitHubData();
 void clearGitHubData();
 
+// GitHub Stats Data
+void setGitHubStats(const char* user, int repos, int followers, int following,
+                    int contributions, int commits, int prs, int issues, int stars);
+GitHubStatsData* getGitHubStats();
+bool hasGitHubStats();
+
 // Offline mode
 bool isInWorkspaceMode();
 unsigned long getLastMQTTMessageTime();
@@ -267,6 +273,12 @@ if (networkManager.hasGitHubData()) {
   GitHubContributionData* data = networkManager.getGitHubData();
   // Display contribution graph...
   // Access: data->contributions[week][day], data->totalContributions, etc.
+}
+
+// Handle GitHub stats
+if (networkManager.hasGitHubStats()) {
+  GitHubStatsData* stats = networkManager.getGitHubStats();
+  // Display stats: stats->repos, stats->followers, stats->contributions, etc.
 }
 
 // Check workspace mode status
@@ -305,6 +317,25 @@ struct GitHubContributionData {
   int currentStreak;             // Current consecutive days
   int longestStreak;             // Longest streak this year
   char username[32];             // GitHub username
+  bool dataLoaded;               // Data is valid
+};
+```
+
+**GitHub Stats Data Structure**:
+
+`GitHubStatsData` struct (defined in `include/network.h`):
+```cpp
+struct GitHubStatsData {
+  char username[32];             // GitHub username
+  int repos;                     // Public repositories
+  int followers;                 // Follower count
+  int following;                 // Following count
+  int contributions;             // Total contributions (last year)
+  int commits;                   // Total commits (last year)
+  int prs;                       // Total pull requests
+  int issues;                    // Total issues
+  int stars;                     // Total stars received
+  unsigned long timestamp;       // Last update time
   bool dataLoaded;               // Data is valid
 };
 ```
@@ -366,6 +397,24 @@ GitHub Contribution Graph (`sangi/github/commits`):
 ```
 *Note: `contributions` array contains 52 weeks, each with 7 days (Sunday-Saturday).  
 Values: 0=none, 1=1-3, 2=4-6, 3=7-9, 4=10+ contributions per day.*
+
+GitHub Stats (`sangi/github/stats`):
+```json
+{
+  "type": "github_stats",
+  "username": "umersanii",
+  "repos": 25,
+  "followers": 42,
+  "following": 15,
+  "contributions": 1247,
+  "commits": 856,
+  "prs": 45,
+  "issues": 23,
+  "stars": 150,
+  "timestamp": 1729180800
+}
+```
+*Note: Stats are fetched from GitHub API every 5 minutes and automatically trigger `EMOTION_GITHUB_STATS` display.*
 
 **SSID Validation**:
 - All MQTT messages from workspace monitor include the WiFi SSID

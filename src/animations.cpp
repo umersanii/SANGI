@@ -2396,52 +2396,60 @@ void AnimationManager::animateCoding() {
 }
 
 // Animated GitHub contribution graph - displays heat map like GitHub
+
+// Animated GitHub contribution graph - displays heat map like GitHub
 void AnimationManager::animateGitHubStats() {
   unsigned long currentTime = millis();
   
-
-
-  // Animation timing: 50ms per frame for smoothness
-  if (currentTime - lastGitHubStatsAnim > 50) {
+  // Animation timing: 80ms per frame for slower, smoother animation
+  if (currentTime - lastGitHubStatsAnim > 80) {
     displayManager.clearDisplay();
     extern NetworkManager networkManager;
-    GitHubContributionData* githubData = networkManager.getGitHubData();
+    GitHubStatsData* statsData = networkManager.getGitHubStats();
 
-  // PHASES (notification-style, 86 frames):
-  // 0-5: Sangi surprise/scared (wide eyes, mouth, eyebrows)
-  // 6-12: Sangi runs off-screen (moves right)
-  // 13-18: Board slides in from left
-  // 19-70: Board holds (centered) with stats
-  // 71-76: Board slides out to right
-  // 77-85: Sangi returns to center
-
+    // PHASES (130 frames total):
+    // 0-5: Sangi surprise/scared
+    // 6-12: Sangi runs off-screen right
+    // 13-27: "GitHub Stats" text scrolls right to left
+    // 28-33: Blank transition
+    // 34-110: Cycle through stats (each stat shows for ~10 frames)
+    // 111-115: Stats fade out
+    // 116-124: Sangi returns from left
+    // 125-130: Hold idle
 
     switch (githubStatsFrame) {
-      // PHASE 1: Sangi surprise/scared (frames 0-5)
+      // ===== PHASE 1: SURPRISE/SCARED REACTION (frames 0-5) =====
       case 0:
+        // Normal idle state
         displayManager.drawEyes(40, 28, 88, 28, 18);
         displayManager.getDisplay().drawCircle(64, 48, 5, SSD1306_WHITE);
         break;
+        
       case 1:
+        // Eyes start widening (notification alert!)
         displayManager.drawEyes(40, 27, 88, 27, 22);
         displayManager.getDisplay().fillCircle(40, 27, 2, SSD1306_BLACK);
         displayManager.getDisplay().fillCircle(88, 27, 2, SSD1306_BLACK);
         displayManager.getDisplay().drawCircle(64, 48, 6, SSD1306_WHITE);
         break;
+        
       case 2:
       case 3:
+        // Eyes WIDE (startled!)
         displayManager.drawEyes(40, 26, 88, 26, 26);
         displayManager.getDisplay().fillCircle(40, 26, 3, SSD1306_BLACK);
         displayManager.getDisplay().fillCircle(88, 26, 3, SSD1306_BLACK);
         displayManager.getDisplay().fillCircle(64, 50, 8, SSD1306_WHITE);
         break;
+        
       case 4:
       case 5:
+        // Eyes squinting (preparing to run!)
         displayManager.drawEyes(40, 28, 88, 28, 12);
         displayManager.getDisplay().drawLine(52, 50, 76, 50, SSD1306_WHITE);
         break;
 
-      // PHASE 2: Sangi runs off-screen (frames 6-12)
+      // ===== PHASE 2: SANGI RUNS OFF-SCREEN RIGHT (frames 6-12) =====
       case 6:
         displayManager.drawEyes(50, 28, 98, 28, 14);
         displayManager.getDisplay().drawLine(62, 50, 86, 50, SSD1306_WHITE);
@@ -2454,138 +2462,191 @@ void AnimationManager::animateGitHubStats() {
         displayManager.drawEyes(75, 28, 123, 28, 14);
         displayManager.getDisplay().drawLine(87, 50, 111, 50, SSD1306_WHITE);
         break;
-      case 9:
-      case 10:
-      case 11:
-      case 12:
-        // Completely off-screen (blank)
+      case 9: case 10: case 11: case 12:
+        // Completely off-screen
         break;
 
-      // PHASE 3: Board slides in from left (frames 13-18)
-      case 13:
-        displayManager.getDisplay().fillRect(0, 8, 10, 50, SSD1306_WHITE);
-        break;
-      case 14:
-        displayManager.getDisplay().drawRect(0, 8, 40, 50, SSD1306_WHITE);
-        displayManager.getDisplay().drawRect(1, 9, 38, 48, SSD1306_WHITE);
-        break;
-      case 15:
-        displayManager.getDisplay().drawRect(0, 8, 80, 50, SSD1306_WHITE);
-        displayManager.getDisplay().drawRect(1, 9, 78, 48, SSD1306_WHITE);
-        break;
-      case 16:
-        displayManager.getDisplay().drawRect(2, 8, 120, 50, SSD1306_WHITE);
-        displayManager.getDisplay().drawRect(3, 9, 118, 48, SSD1306_WHITE);
-        break;
-      case 17:
-      case 18:
-        displayManager.getDisplay().drawRect(4, 8, 120, 52, SSD1306_WHITE);
-        displayManager.getDisplay().drawRect(5, 9, 118, 50, SSD1306_WHITE);
+      // ===== PHASE 3: "GITHUB STATS" TEXT SCROLLS (frames 13-27) =====
+      case 13: case 14: case 15: case 16: case 17: case 18: case 19: case 20:
+      case 21: case 22: case 23: case 24: case 25: case 26: case 27:
+        {
+          int textOffset = 128 - ((githubStatsFrame - 13) * 14);
+          displayManager.getDisplay().setTextSize(2);
+          displayManager.getDisplay().setTextColor(SSD1306_WHITE);
+          displayManager.getDisplay().setCursor(textOffset, 18);
+          displayManager.getDisplay().print("GitHub");
+          displayManager.getDisplay().setCursor(textOffset + 12, 38);
+          displayManager.getDisplay().print("Stats");
+        }
         break;
 
-      // PHASE 4: Board holds (frames 19-70) - show stats boxes centered
+      // ===== PHASE 4: BLANK TRANSITION (frames 28-33) =====
+      case 28: case 29: case 30: case 31: case 32: case 33:
+        break;
+        
+      // ===== PHASE 5 & 6: DISPLAY ACTUAL STATS (frames 34-110) =====
+      case 34: case 35: case 36: case 37: case 38: case 39: case 40:
+      case 41: case 42: case 43: case 44: case 45: case 46: case 47:
+      case 48: case 49: case 50: case 51: case 52: case 53: case 54:
+      case 55: case 56: case 57: case 58: case 59: case 60: case 61:
+      case 62: case 63: case 64: case 65: case 66: case 67: case 68:
+      case 69: case 70: case 71: case 72: case 73: case 74: case 75:
+      case 76: case 77: case 78: case 79: case 80: case 81: case 82:
+      case 83: case 84: case 85: case 86: case 87: case 88: case 89:
+      case 90: case 91: case 92: case 93: case 94: case 95: case 96:
+      case 97: case 98: case 99: case 100: case 101: case 102: case 103:
+      case 104: case 105: case 106: case 107: case 108: case 109: case 110:
+        {
+          if (statsData == nullptr || !networkManager.hasGitHubStats()) {
+            // No data available
+            displayManager.getDisplay().setTextSize(2);
+            displayManager.getDisplay().setTextColor(SSD1306_WHITE);
+            displayManager.getDisplay().setCursor(10, 20);
+            displayManager.getDisplay().println("No Data");
+          } else {
+            // Cycle through different stats (each shows for ~10 frames)
+            int statIndex = (githubStatsFrame - 34) / 10;  // 0-7 (8 different stats)
+            
+            displayManager.getDisplay().setTextSize(1);
+            displayManager.getDisplay().setTextColor(SSD1306_WHITE);
+            
+            switch (statIndex) {
+              case 0:  // Repositories
+                displayManager.getDisplay().setCursor(10, 10);
+                displayManager.getDisplay().println("Repositories");
+                displayManager.getDisplay().setTextSize(3);
+                displayManager.getDisplay().setCursor(30, 30);
+                displayManager.getDisplay().print(statsData->repos);
+                break;
+                
+              case 1:  // Followers
+                displayManager.getDisplay().setCursor(20, 10);
+                displayManager.getDisplay().println("Followers");
+                displayManager.getDisplay().setTextSize(3);
+                displayManager.getDisplay().setCursor(30, 30);
+                displayManager.getDisplay().print(statsData->followers);
+                break;
+                
+              case 2:  // Contributions
+                displayManager.getDisplay().setCursor(5, 10);
+                displayManager.getDisplay().println("Contributions");
+                displayManager.getDisplay().setTextSize(2);
+                displayManager.getDisplay().setCursor(20, 35);
+                displayManager.getDisplay().print(statsData->contributions);
+                break;
+                
+              case 3:  // Commits
+                displayManager.getDisplay().setCursor(25, 10);
+                displayManager.getDisplay().println("Commits");
+                displayManager.getDisplay().setTextSize(3);
+                displayManager.getDisplay().setCursor(30, 30);
+                displayManager.getDisplay().print(statsData->commits);
+                break;
+                
+              case 4:  // Pull Requests
+                displayManager.getDisplay().setCursor(5, 10);
+                displayManager.getDisplay().println("Pull Requests");
+                displayManager.getDisplay().setTextSize(3);
+                displayManager.getDisplay().setCursor(30, 30);
+                displayManager.getDisplay().print(statsData->prs);
+                break;
+                
+              case 5:  // Issues
+                displayManager.getDisplay().setCursor(30, 10);
+                displayManager.getDisplay().println("Issues");
+                displayManager.getDisplay().setTextSize(3);
+                displayManager.getDisplay().setCursor(30, 30);
+                displayManager.getDisplay().print(statsData->issues);
+                break;
+                
+              case 6:  // Stars
+                displayManager.getDisplay().setCursor(15, 10);
+                displayManager.getDisplay().println("Stars Earned");
+                displayManager.getDisplay().setTextSize(3);
+                displayManager.getDisplay().setCursor(30, 30);
+                displayManager.getDisplay().print(statsData->stars);
+                break;
+                
+              case 7:  // Username summary
+                displayManager.getDisplay().setTextSize(1);
+                displayManager.getDisplay().setCursor(5, 5);
+                displayManager.getDisplay().println(statsData->username);
+                displayManager.getDisplay().setCursor(5, 18);
+                displayManager.getDisplay().printf("Repos: %d", statsData->repos);
+                displayManager.getDisplay().setCursor(5, 30);
+                displayManager.getDisplay().printf("Followers: %d", statsData->followers);
+                displayManager.getDisplay().setCursor(5, 42);
+                displayManager.getDisplay().printf("Commits: %d", statsData->commits);
+                displayManager.getDisplay().setCursor(5, 54);
+                displayManager.getDisplay().printf("Stars: %d", statsData->stars);
+                break;
+            }
+          }
+        }
+        break;
+
+      // ===== PHASE 7: GRID FADE OUT (frames 111-115) =====
+      case 111:
+      case 112:
+      case 113:
+      case 114:
+      case 115:
+        // Blank transition out
+        break;
+
+      // ===== PHASE 8: SANGI RETURNS FROM LEFT (frames 116-124) - EXACT FROM NOTIFICATION =====
+      case 116:
+        // Eyes appear from left
+        displayManager.drawEyes(10, 28, 58, 28, 14);
+        displayManager.getDisplay().drawCircle(34, 48, 4, SSD1306_WHITE);
+        break;
+        
+      case 117:
+        // Moving to center
+        displayManager.drawEyes(20, 28, 68, 28, 16);
+        displayManager.getDisplay().drawCircle(44, 48, 4, SSD1306_WHITE);
+        break;
+        
+      case 118:
+      case 119:
+        // Almost centered
+        displayManager.drawEyes(30, 28, 78, 28, 17);
+        displayManager.getDisplay().drawCircle(54, 48, 5, SSD1306_WHITE);
+        break;
+        
+      case 120:
+      case 121:
+      case 122:
+      case 123:
+      case 124:
+        // Fully centered - return to idle state
+        displayManager.drawEyes(40, 28, 88, 28, 18);
+        displayManager.getDisplay().drawCircle(64, 48, 5, SSD1306_WHITE);
+        break;
+
+      // ===== PHASE 9: HOLD IDLE (frames 125-130) =====
+      case 125:
+      case 126:
+      case 127:
+      case 128:
+      case 129:
+      case 130:
       default:
-        if (githubStatsFrame >= 19 && githubStatsFrame <= 70) {
-          displayManager.getDisplay().drawRect(4, 8, 120, 52, SSD1306_WHITE);
-          displayManager.getDisplay().drawRect(5, 9, 118, 50, SSD1306_WHITE);
-          // Draw stats boxes centered inside board
-          if (githubData == nullptr || !networkManager.hasGitHubData()) {
-            displayManager.getDisplay().setTextSize(1);
-            displayManager.getDisplay().setTextColor(SSD1306_WHITE);
-            displayManager.getDisplay().setCursor(8, 20);
-            displayManager.getDisplay().println("No GitHub data");
-            displayManager.getDisplay().setCursor(15, 35);
-            displayManager.getDisplay().println("Waiting...");
-          } else {
-            int totalDays = 21;
-            int daysPerRow = 7;
-            int numRows = 3;
-            int cellWidth = 17;
-            int cellHeight = 20;
-            int cellGapX = 1;
-            int cellGapY = 2;
-            int gridStartX = 16; // Centered inside board
-            int gridStartY = 14;
-            int startWeek = 49;
-            for (int row = 0; row < numRows; row++) {
-              int dataWeek = startWeek + row;
-              if (dataWeek >= 52) dataWeek = 51;
-              for (int col = 0; col < daysPerRow; col++) {
-                int x = gridStartX + (col * (cellWidth + cellGapX));
-                int y = gridStartY + (row * (cellHeight + cellGapY));
-                uint8_t level = githubData->contributions[dataWeek][col];
-                if (level > 0) {
-                  displayManager.getDisplay().fillRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
-                } else {
-                  displayManager.getDisplay().drawRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
-                }
-              }
-            }
-          }
-        }
-        // PHASE 5: Board slides out to right (frames 71-76)
-        else if (githubStatsFrame >= 71 && githubStatsFrame <= 76) {
-          int slide = (githubStatsFrame - 71) * 12;
-          displayManager.getDisplay().drawRect(4 + slide, 8, 120, 52, SSD1306_WHITE);
-          displayManager.getDisplay().drawRect(5 + slide, 9, 118, 50, SSD1306_WHITE);
-          // Draw stats boxes inside sliding board
-          if (githubData == nullptr || !networkManager.hasGitHubData()) {
-            displayManager.getDisplay().setTextSize(1);
-            displayManager.getDisplay().setTextColor(SSD1306_WHITE);
-            displayManager.getDisplay().setCursor(8 + slide, 20);
-            displayManager.getDisplay().println("No GitHub data");
-            displayManager.getDisplay().setCursor(15 + slide, 35);
-            displayManager.getDisplay().println("Waiting...");
-          } else {
-            int totalDays = 21;
-            int daysPerRow = 7;
-            int numRows = 3;
-            int cellWidth = 17;
-            int cellHeight = 20;
-            int cellGapX = 1;
-            int cellGapY = 2;
-            int gridStartX = 16 + slide;
-            int gridStartY = 14;
-            int startWeek = 49;
-            for (int row = 0; row < numRows; row++) {
-              int dataWeek = startWeek + row;
-              if (dataWeek >= 52) dataWeek = 51;
-              for (int col = 0; col < daysPerRow; col++) {
-                int x = gridStartX + (col * (cellWidth + cellGapX));
-                int y = gridStartY + (row * (cellHeight + cellGapY));
-                uint8_t level = githubData->contributions[dataWeek][col];
-                if (level > 0) {
-                  displayManager.getDisplay().fillRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
-                } else {
-                  displayManager.getDisplay().drawRect(x, y, cellWidth, cellHeight, SSD1306_WHITE);
-                }
-              }
-            }
-          }
-        }
-        // PHASE 6: Sangi returns to center (frames 77-85)
-        else if (githubStatsFrame >= 77 && githubStatsFrame <= 85) {
-          int offset = (githubStatsFrame - 77) * 10;
-          displayManager.drawEyes(10 + offset, 28, 58 + offset, 28, 14 + offset/10);
-          displayManager.getDisplay().drawCircle(34 + offset, 48, 4 + offset/20, SSD1306_WHITE);
-        }
-        // PHASE 7: Hold idle Sangi
-        else {
-          displayManager.drawEyes(40, 28, 88, 28, 18);
-          displayManager.getDisplay().drawCircle(64, 48, 5, SSD1306_WHITE);
-        }
+        // Hold idle state
+        displayManager.drawEyes(40, 28, 88, 28, 18);
+        displayManager.getDisplay().drawCircle(64, 48, 5, SSD1306_WHITE);
         break;
     }
+    
     displayManager.updateDisplay();
-    if (githubStatsFrame < 85) {
+    
+    // Loop animation (reset after frame 130)
+    if (githubStatsFrame < 130) {
       githubStatsFrame++;
+    } else {
+      githubStatsFrame = 0;  // Loop back to beginning
     }
-    lastGitHubStatsAnim = currentTime;
-  }
-
-    displayManager.updateDisplay();
-    githubStatsFrame++;
+    
     lastGitHubStatsAnim = currentTime;
   }
 }
-

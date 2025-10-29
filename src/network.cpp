@@ -33,12 +33,73 @@ NetworkManager::NetworkManager()
   }
   
   // Initialize GitHub data
+  githubData.dataLoadebool NetworkManager::hasGitHubData() const {
+  return githubData.dataLoaded;
+}
+
+void NetworkManager::clearGitHubData() {
   githubData.dataLoaded = false;
   githubData.totalContributions = 0;
   githubData.currentStreak = 0;
   githubData.longestStreak = 0;
   memset(githubData.username, 0, sizeof(githubData.username));
   memset(githubData.contributions, 0, sizeof(githubData.contributions));
+  Serial.println("GitHub contribution data cleared");
+}
+
+// ===== GITHUB STATS DATA MANAGEMENT =====
+void NetworkManager::setGitHubStats(const char* user, int repos, int followers, int following,
+                                     int contributions, int commits, int prs, int issues, int stars) {
+  // Safe string copy
+  if (user) {
+    strncpy(githubStats.username, user, 31);
+    githubStats.username[31] = '\0';
+  } else {
+    strcpy(githubStats.username, "user");
+  }
+  
+  githubStats.repos = repos;
+  githubStats.followers = followers;
+  githubStats.following = following;
+  githubStats.contributions = contributions;
+  githubStats.commits = commits;
+  githubStats.prs = prs;
+  githubStats.issues = issues;
+  githubStats.stars = stars;
+  githubStats.timestamp = millis();
+  githubStats.dataLoaded = true;
+  
+  Serial.printf("GitHub stats loaded: %s - %d repos, %d followers, %d contributions\n", 
+                user, repos, followers, contributions);
+}
+
+GitHubStatsData* NetworkManager::getGitHubStats() {
+  if (!githubStats.dataLoaded) {
+    return nullptr;
+  }
+  return &githubStats;
+}
+
+bool NetworkManager::hasGitHubStats() const {
+  return githubStats.dataLoaded;
+}githubData.totalContributions = 0;
+  githubData.currentStreak = 0;
+  githubData.longestStreak = 0;
+  memset(githubData.username, 0, sizeof(githubData.username));
+  memset(githubData.contributions, 0, sizeof(githubData.contributions));
+  
+  // Initialize GitHub stats
+  githubStats.dataLoaded = false;
+  githubStats.repos = 0;
+  githubStats.followers = 0;
+  githubStats.following = 0;
+  githubStats.contributions = 0;
+  githubStats.commits = 0;
+  githubStats.prs = 0;
+  githubStats.issues = 0;
+  githubStats.stars = 0;
+  githubStats.timestamp = 0;
+  memset(githubStats.username, 0, sizeof(githubStats.username));
   
   // Initialize SSID storage
   memset(connectedSSID, 0, sizeof(connectedSSID));
@@ -263,6 +324,13 @@ bool NetworkManager::connectMQTT() {
       Serial.println(MQTT_TOPIC_GITHUB_COMMITS);
     } else {
       Serial.println("Failed to subscribe to commit history topic");
+    }
+    
+    // Subscribe to GitHub stats topic
+    if (mqttClient.subscribe("sangi/github/stats")) {
+      Serial.println("Subscribed to: sangi/github/stats");
+    } else {
+      Serial.println("Failed to subscribe to GitHub stats topic");
     }
     
     // Don't publish immediately - causes disconnects
@@ -490,12 +558,12 @@ void NetworkManager::handleIncomingMessage(const char* topic, const char* payloa
       
       Serial.printf(">>> MQTT EMOTION: %d <<<\n", emotionValue);
       
-      // Validate emotion range (0-14) - matches EmotionState enum
-      if (emotionValue >= EMOTION_IDLE && emotionValue <= EMOTION_CODING) {
+      // Validate emotion range (0-15) - matches EmotionState enum
+      if (emotionValue >= EMOTION_IDLE && emotionValue <= EMOTION_GITHUB_STATS) {
         emotionManager.setTargetEmotion((EmotionState)emotionValue);
         Serial.printf("✓ Emotion set to: %d\n", emotionValue);
       } else {
-        Serial.printf("✗ Invalid emotion: %d (valid range: 0-14)\n", emotionValue);
+        Serial.printf("✗ Invalid emotion: %d (valid range: 0-15)\n", emotionValue);
       }
     } else {
       Serial.println("✗ Missing 'emotion' field in JSON");
@@ -589,6 +657,43 @@ void NetworkManager::handleIncomingMessage(const char* topic, const char* payloa
       }
     } else {
       Serial.println("⚠️  Invalid GitHub contribution format");
+    }
+  }
+  // Handle GitHub stats updates
+  else if (strcmp(topic, "sangi/github/stats") == 0) {
+    // Expected JSON format:
+    // {
+    //   "type": "github_stats",
+    //   "username": "umersanii",
+    //   "repos": 25,
+    //   "followers": 42,
+    //   "following": 15,
+    //   "contributions": 1247,
+    //   "commits": 856,
+    //   "prs": 45,
+    //   "issues": 23,
+    //   "stars": 150
+    // }
+    
+    const char* username = doc["username"] | "user";
+    int repos = doc["repos"] | 0;
+    int followers = doc["followers"] | 0;
+    int following = doc["following"] | 0;
+    int contributions = doc["contributions"] | 0;
+    int commits = doc["commits"] | 0;
+    int prs = doc["prs"] | 0;
+    int issues = doc["issues"] | 0;
+    int stars = doc["stars"] | 0;
+    
+    // Set the stats data
+    setGitHubStats(username, repos, followers, following, contributions, commits, prs, issues, stars);
+    
+    Serial.printf("📊 Updated GitHub stats: %s - %d repos, %d followers, %d contributions\n", 
+                  username, repos, followers, contributions);
+    
+    // Automatically trigger GitHub stats emotion
+    if (emotionManager.getCurrentEmotion() != EMOTION_GITHUB_STATS) {
+      emotionManager.setTargetEmotion(EMOTION_GITHUB_STATS);
     }
   }
   else {
