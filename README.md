@@ -6,7 +6,15 @@ A custom square-based Mochi robot with animated OLED expressions, built with ESP
 
 ## 🤖 Project Overview
 
-This project creates a Dasai Mochi-style robot with cute animated facial expressions displayed on an SSD1306 OLED screen. The robot features 11 different emotions with smooth blinking and eye movement animations.
+This project creates a Dasai M### Features
+
+- 💬 **Discord Messages** - Personal account DM and mention monitoring every 5 minutes (selfbot ⚠️)
+- 🐙 **GitHub** - API polling for PRs, issues, mentions
+- 📊 **GitHub Stats** - Real-time profile statistics (contributions, repos, stars, followers) every 5 minutes
+- 🔄 **Auto-start** - Runs as systemd service on boot
+- 📊 **Rate limiting** - Prevents notification spam
+- 📝 **Logging** - Comprehensive logs to file and journal
+- 🐍 **Virtual Environment** - Isolated Python dependenciesrobot with cute animated facial expressions displayed on an SSD1306 OLED screen. The robot features 11 different emotions with smooth blinking and eye movement animations.
 
 **Architecture**: The codebase uses a clean modular design with separate manager classes for display, emotions, animations, battery, and input handling. See the [Modular Architecture](#️-modular-architecture) section below for details.
 
@@ -175,7 +183,7 @@ The codebase uses a clean, modular design with separate components for each func
 
 **NEW**: Standalone 24/7 notification monitoring service for Raspberry Pi!
 
-Monitor Discord, GitHub, and WhatsApp notifications and forward them to SANGI automatically.
+Monitor Discord messages and GitHub activity and forward them to SANGI automatically.
 
 ### Quick Setup
 
@@ -187,9 +195,9 @@ chmod +x setup.sh
 
 The setup script will:
 1. ✅ Check Python installation (3.7+)
-2. ✅ Install system dependencies (D-Bus, GObject)
-3. ✅ Create virtual environment with system site-packages
-4. ✅ Install AWS IoT SDK and dependencies
+2. ✅ Install system dependencies
+3. ✅ Create virtual environment
+4. ✅ Install AWS IoT SDK, Discord.py, and dependencies
 5. ✅ Create `config.json` from template
 6. ✅ Setup `certs/` and `logs/` directories
 7. ✅ Install and configure systemd service
@@ -224,11 +232,31 @@ After running `setup.sh`, you need to:
          "token": "ghp_your_token_here",
          "username": "your_github_username"
        }
+     },
+     "github_stats": {
+       "enabled": true,
+       "token": "ghp_your_token_here",
+       "username": "your_github_username",
+       "poll_interval": 300
      }
    }
    ```
 
-4. **Start the service**:
+4. **(Optional) Configure Discord Messages** - ⚠️ WARNING: Violates Discord ToS!
+   ```json
+   {
+     "discord_messages": {
+       "enabled": false,
+       "user_token": "YOUR_DISCORD_USER_TOKEN",
+       "poll_interval": 300,
+       "monitor_dms": true,
+       "monitor_mentions": true
+     }
+   }
+   ```
+   > See [pi-setup/README.md](pi-setup/README.md) for how to obtain your user token.
+
+5. **Start the service**:
    ```bash
    sudo systemctl start sangi-notification-monitor@$(whoami).service
    sudo systemctl enable sangi-notification-monitor@$(whoami).service  # Auto-start on boot
@@ -237,7 +265,9 @@ After running `setup.sh`, you need to:
 ### Features
 
 - 🎮 **Discord** - Desktop app notifications via D-Bus
-- 🐙 **GitHub** - API polling for PRs, issues, mentions
+- � **Discord Messages** - Personal account DM and mention monitoring every 5 minutes (selfbot)
+- �🐙 **GitHub** - API polling for PRs, issues, mentions
+- 📊 **GitHub Stats** - Real-time profile statistics (contributions, repos, stars, followers) every 5 minutes
 - 💬 **WhatsApp** - Desktop app notifications via D-Bus
 - 🔄 **Auto-start** - Runs as systemd service on boot
 - 📊 **Rate limiting** - Prevents notification spam

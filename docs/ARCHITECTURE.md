@@ -405,7 +405,10 @@ pi-setup/
 ├── lib/
 │   ├── notification_monitor.py   # D-Bus notification capture
 │   ├── github_monitor.py         # GitHub API polling
-│   └── mqtt_publisher.py         # AWS IoT MQTT client
+│   ├── github_stats.py           # GitHub statistics fetcher (REST & GraphQL)
+│   ├── discord_monitor.py        # Discord message monitor (selfbot)
+│   ├── mqtt_publisher.py         # AWS IoT MQTT client
+│   └── random_stats_trigger.py   # Random stats display trigger
 ├── config.json                   # User configuration
 └── certs/                        # AWS IoT certificates
 ```
@@ -414,7 +417,7 @@ pi-setup/
 - Uses virtual environment with `--system-site-packages` enabled
 - Avoids PEP 668 restrictions (no `--break-system-packages` needed)
 - System packages: `python3-gi` (PyGObject), `python3-dbus`
-- Venv packages: `awscrt`, `awsiotsdk`, `requests`
+- Venv packages: `awscrt`, `awsiotsdk`, `requests`, `discord.py-self`
 - Prevents complex PyGObject builds (requires girepository-2.0 otherwise)
 
 **Installation**:
@@ -449,12 +452,49 @@ EmotionManager → EMOTION_NOTIFICATION
 animateNotification() displays on OLED
 ```
 
+**Discord Message Flow** (⚠️ Selfbot):
+```
+Discord Account (DMs/Mentions)
+    ↓ (discord.py-self connection)
+discord_monitor.py
+    ↓ (track messages, every 5 min)
+mqtt_publisher.py
+    ↓ (publish stats to AWS IoT)
+sangi/discord/stats topic
+    ↓ (ESP32 subscribes)
+NetworkManager processes stats
+    ↓
+Trigger EMOTION_NOTIFICATION
+```
+
+**GitHub Stats Flow**:
+```
+GitHub API (REST + GraphQL)
+    ↓ (fetch every 5 min)
+github_stats.py
+    ↓ (calculate statistics)
+mqtt_publisher.py
+    ↓ (publish to AWS IoT)
+sangi/github/stats topic
+    ↓ (ESP32 subscribes)
+NetworkManager.updateGitHubStats()
+    ↓
+random_stats_trigger.py randomly triggers
+    ↓
+EmotionManager → EMOTION_GITHUB_STATS
+    ↓
+animateGitHubStats() displays dynamic data
+```
+
 **Key Features**:
 - Runs as user service (not root)
 - Auto-starts on boot
 - Rate limiting (max 10/min)
-- GitHub API polling (60s interval)
+- GitHub API polling (60s interval for notifications, 300s for stats)
+- Discord message monitoring (300s interval, selfbot ⚠️)
 - Discord message simplification (username + "new message")
+- Real-time GitHub stats display
+- Random stats triggering during workspace mode
 - Logs to file and systemd journal
 
 > See `pi-setup/README.md` for detailed setup and troubleshooting

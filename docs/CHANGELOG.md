@@ -5,6 +5,33 @@ All notable changes to the SANGI robot project.
 ## [Unreleased]
 
 ### Added
+- **NEW: Discord Message Monitoring** (2025-10-29)
+  - **Personal Discord Account Integration** via selfbot approach
+  - Monitors DMs and mentions in real-time
+  - Sends statistics every 5 minutes via MQTT topic `sangi/discord/stats`
+  - **DiscordMessageMonitor** class in `pi-setup/lib/discord_monitor.py`:
+    - Tracks new messages, DMs, mentions, and unique senders
+    - Message buffer with previews (last 3-5 messages)
+    - Automatic cleanup (keeps last 100 messages in memory)
+  - **MQTTPublisher Enhancement**: `publish_discord_stats()` method
+  - Payload optimization for ESP32 (< 900 bytes)
+  - **Statistics Collected**:
+    - Total new messages count
+    - DM vs mention breakdown
+    - Unique sender count
+    - Message previews with sender and timestamp
+  - **Configuration Options**:
+    - Enable/disable DM monitoring
+    - Enable/disable mention monitoring
+    - Configurable polling interval (default 300s)
+  - **Security Features**:
+    - Token stored locally only
+    - Automatic token expiration detection
+    - Graceful error handling on invalid token
+  - ⚠️ **WARNING**: Uses Discord selfbot approach which violates Discord ToS
+  - Full documentation in pi-setup/README.md with token extraction guide
+  - Dependencies: `discord.py-self>=1.9.2`
+
 - **NEW: Dynamic GitHub Stats Display System** (2025-10-29)
   - **Real-time GitHub API Integration** via Raspberry Pi service
   - Fetches live statistics: repos, followers, contributions, commits, PRs, issues, stars

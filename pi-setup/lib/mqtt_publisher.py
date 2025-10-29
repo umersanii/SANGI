@@ -34,6 +34,9 @@ class MQTTPublisher:
         self.mqtt_connection = None
         self.is_connected = False
         
+        # Discord stats topic
+        self.discord_stats_topic = mqtt_config.get('discord_stats_topic', 'sangi/discord/stats')
+        
         self.logger.info("MQTTPublisher initialized")
     
     def _on_connection_interrupted(self, connection, error, **kwargs):
@@ -259,3 +262,62 @@ class MQTTPublisher:
             self.logger.error(f"Failed to publish emotion: {e}", exc_info=True)
             self.is_connected = False
             return False
+    
+    def publish_discord_stats(self, stats):
+        """
+        Publish Discord message statistics to SANGI
+        
+        Args:
+            stats: Dictionary containing Discord message statistics
+        
+        Returns:
+            bool: True if published successfully
+        """
+        if not self.is_connected:
+            self.logger.warning("Not connected to MQTT, attempting reconnect...")
+            if not self.connect():
+                return False
+        
+        try:
+            # Build compact payload optimized for ESP32
+            payload = {
+                'type': 'discord_stats',
+                'username': stats.get('username', 'unknown'),
+                'user_id': stats.get('user_id', 0),
+                'total_new_messages': stats.get('total_new_messages', 0),
+                'dms': stats.get('dms', 0),
+                'mentions': stats.get('mentions', 0),
+                'unique_senders': stats.get('unique_senders', 0),
+                'timestamp': int(time.time()),
+                'messages': stats.get('messages', [])[:3]  # Only send last 3 messages for preview
+            }
+            
+            payload_json = json.dumps(payload)
+            
+            # Check payload size (ESP32 MQTT buffer is 1024 bytes)
+            if len(payload_json) > 900:
+                self.logger.warning(f"Discord payload size ({len(payload_json)} bytes) is large, truncating messages")
+                # Remove message previews if too large
+                payload['messages'] = []
+                payload_json = json.dumps(payload)
+            
+            # Publish
+            self.logger.debug(f"Publishing to {self.discord_stats_topic}: {payload_json}")
+            
+            publish_future, packet_id = self.mqtt_connection.publish(
+                topic=self.discord_stats_topic,
+                payload=payload_json,
+                qos=mqtt.QoS.AT_LEAST_ONCE
+            )
+            
+            # Wait for publish to complete
+            publish_future.result()
+            
+            self.logger.info(f"Published Discord stats: {stats.get('total_new_messages', 0)} new messages")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to publish Discord stats: {e}", exc_info=True)
+            self.is_connected = False
+            return False
+

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 SANGI Notification Service
-Monitors Discord, GitHub, and WhatsApp notifications and forwards them to SANGI robot via MQTT
+Monitors Discord messages and GitHub activity, forwards them to SANGI robot via MQTT
 """
 
 import json
@@ -15,8 +15,10 @@ from pathlib import Path
 # Add lib to path
 sys.path.insert(0, str(Path(__file__).parent / 'lib'))
 
-from lib import NotificationMonitor, MQTTPublisher, GitHubMonitor
+from lib.mqtt_publisher import MQTTPublisher
+from lib.github_monitor import GitHubMonitor
 from lib.github_stats import GitHubStatsMonitor
+from lib.discord_monitor import DiscordMessageMonitor
 from lib.random_stats_trigger import RandomStatsTrigger
 
 
@@ -34,9 +36,9 @@ class NotificationService:
         
         # Initialize components
         self.mqtt_publisher = MQTTPublisher(self.config)
-        self.notification_monitor = NotificationMonitor(self.config, self._handle_notification)
         self.github_monitor = GitHubMonitor(self.config, self._handle_notification)
         self.github_stats_monitor = GitHubStatsMonitor(self.config, self._handle_stats)
+        self.discord_message_monitor = DiscordMessageMonitor(self.config, self._handle_discord_stats)
         self.random_trigger = RandomStatsTrigger(self.config, self._trigger_stats_display, self._send_emotion)
         
         # Shutdown flag
@@ -113,6 +115,23 @@ class NotificationService:
         else:
             self.logger.warning("Failed to forward GitHub stats to SANGI")
     
+    def _handle_discord_stats(self, stats):
+        """
+        Handle incoming Discord message statistics
+        
+        Args:
+            stats: Dictionary of Discord message statistics
+        """
+        self.logger.info(f"Received Discord stats update: {stats}")
+        
+        # Publish stats to MQTT using dedicated Discord topic
+        success = self.mqtt_publisher.publish_discord_stats(stats)
+        
+        if success:
+            self.logger.debug("Successfully forwarded Discord stats to SANGI")
+        else:
+            self.logger.warning("Failed to forward Discord stats to SANGI")
+    
     def _trigger_stats_display(self):
         """Trigger stats display on SANGI (placeholder for future expansion)"""
         pass
@@ -169,6 +188,13 @@ class NotificationService:
                 github_stats_thread = threading.Thread(target=self.github_stats_monitor.start_polling, daemon=True)
                 github_stats_thread.start()
             
+            # Start Discord message monitor in separate thread
+            discord_thread = None
+            if self.config.get('discord_messages', {}).get('enabled', False):
+                self.logger.info("Starting Discord message monitor...")
+                discord_thread = threading.Thread(target=self.discord_message_monitor.start_monitoring, daemon=True)
+                discord_thread.start()
+            
             # Start random stats trigger in separate thread
             random_trigger_thread = None
             if self.config.get('random_stats_trigger', {}).get('enabled', True):
@@ -176,13 +202,8 @@ class NotificationService:
                 random_trigger_thread = threading.Thread(target=self.random_trigger.start_monitoring, daemon=True)
                 random_trigger_thread.start()
             
-            # Start D-Bus notification monitor (blocking)
-            self.logger.info("Starting D-Bus notification monitor...")
-            self.logger.info("Notification service is running. Press Ctrl+C to stop.")
-            
-            # Run notification monitor in main thread
-            monitor_thread = threading.Thread(target=self.notification_monitor.start, daemon=True)
-            monitor_thread.start()
+            # Main service is now running
+            self.logger.info("SANGI Notification Service is running. Press Ctrl+C to stop.")
             
             # Wait for shutdown signal
             self.shutdown_flag.wait()
@@ -197,9 +218,6 @@ class NotificationService:
     def shutdown(self):
         """Shutdown the service gracefully"""
         self.logger.info("Shutting down notification service...")
-        
-        # Stop monitors
-        self.notification_monitor.stop()
         
         # Disconnect MQTT
         self.mqtt_publisher.disconnect()

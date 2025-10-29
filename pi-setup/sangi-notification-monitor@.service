@@ -1,5 +1,5 @@
 [Unit]
-Description=SANGI Notification Monitor Service
+Description=SANGI Discord & GitHub Monitor Service
 After=network-online.target
 Wants=network-online.target
 
@@ -15,7 +15,6 @@ StandardError=journal
 
 # Environment
 Environment="PYTHONUNBUFFERED=1"
-Environment="DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/%U/bus"
 
 [Install]
 WantedBy=default.target

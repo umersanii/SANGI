@@ -6,26 +6,16 @@
     "private_key_path": "./certs/private.key",
     "root_ca_path": "./certs/AmazonRootCA1.pem",
     "topic": "sangi/notification/push",
-    "stats_topic": "sangi/github/stats"
+    "stats_topic": "sangi/github/stats",
+    "discord_stats_topic": "sangi/discord/stats"
   },
   "notifications": {
-    "discord": {
-      "enabled": true,
-      "webhook_url": "",
-      "bot_token": "",
-      "monitor_method": "dbus"
-    },
     "github": {
       "enabled": true,
       "token": "ghp_your_token_here",
       "username": "your_github_username",
       "check_interval": 60,
       "monitor_types": ["pull_requests", "issues", "mentions"]
-    },
-    "whatsapp": {
-      "enabled": false,
-      "monitor_method": "dbus",
-      "note": "WhatsApp API requires business account - uses D-Bus for desktop notifications"
     }
   },
   "github_stats": {
@@ -36,6 +26,14 @@
     "stats_types": ["repos", "followers", "contributions", "commits", "prs", "issues", "stars"],
     "note": "Fetches GitHub profile statistics every 5 minutes (300s). Requires same token as notifications."
   },
+  "discord_messages": {
+    "enabled": false,
+    "user_token": "YOUR_DISCORD_USER_TOKEN_HERE",
+    "poll_interval": 300,
+    "monitor_dms": true,
+    "monitor_mentions": true,
+    "note": "⚠️ WARNING: Using Discord user tokens (selfbot) VIOLATES Discord Terms of Service! Use at your own risk. Monitors personal Discord account for DMs and mentions, sends stats every 5 minutes (300s). To get your user token: 1) Open Discord in browser, 2) Press F12, 3) Go to Network tab, 4) Type a message, 5) Find 'messages' request, 6) Copy 'authorization' header value."
+  },
   "random_stats_trigger": {
     "enabled": true,
     "interval": 300,
@@ -44,8 +42,7 @@
   },
   "filters": {
     "min_notification_interval": 5,
-    "max_notifications_per_minute": 10,
-    "ignore_apps": ["notify-send"]
+    "max_notifications_per_minute": 10
   },
   "logging": {
     "level": "INFO",

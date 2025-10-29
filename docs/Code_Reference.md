@@ -910,7 +910,10 @@ Standalone systemd service for Raspberry Pi that monitors Discord, GitHub, and W
 - **venv/** - Python virtual environment with `--system-site-packages`
 - **lib/notification_monitor.py** - D-Bus notification capture (Discord, WhatsApp)
 - **lib/github_monitor.py** - GitHub API polling
+- **lib/github_stats.py** - GitHub statistics fetcher (REST & GraphQL)
+- **lib/discord_monitor.py** - Discord message monitor (selfbot)
 - **lib/mqtt_publisher.py** - AWS IoT MQTT publisher
+- **lib/random_stats_trigger.py** - Random stats display trigger
 
 **Installation**:
 ```bash
@@ -933,7 +936,7 @@ The setup script:
 - Avoids PEP 668 restrictions (no `--break-system-packages` needed)
 - Prevents complex PyGObject builds (requires girepository-2.0)
 - System packages: python3-gi, python3-dbus
-- Venv packages: awscrt>=0.16.0, awsiotsdk>=1.11.0, requests>=2.28.0
+- Venv packages: awscrt>=0.16.0, awsiotsdk>=1.11.0, requests>=2.28.0, discord.py-self>=1.9.2
 
 **Configuration** (`pi-setup/config.json`):
 ```json
@@ -962,6 +965,25 @@ The setup script:
       "enabled": false,
       "monitor_method": "dbus"
     }
+  },
+  "github_stats": {
+    "enabled": true,
+    "token": "ghp_your_token_here",
+    "username": "your_github_username",
+    "poll_interval": 300,
+    "stats_types": ["repos", "followers", "contributions", "commits", "prs", "issues", "stars"]
+  },
+  "discord_messages": {
+    "enabled": false,
+    "user_token": "YOUR_DISCORD_USER_TOKEN",
+    "poll_interval": 300,
+    "monitor_dms": true,
+    "monitor_mentions": true
+  },
+  "random_stats_trigger": {
+    "enabled": true,
+    "interval": 300,
+    "trigger_types": ["github_stats"]
   },
   "filters": {
     "min_notification_interval": 5,
@@ -1018,9 +1040,47 @@ cd pi-setup
 > See `pi-setup/README.md` for detailed setup and troubleshooting
 
 **Supported Notifications**:
-- **Discord**: D-Bus capture from desktop app (username + "new message")
-- **GitHub**: API polling for PRs, issues, mentions (requires token)
+- **Discord (D-Bus)**: Desktop app notifications (username + "new message")
+- **Discord (Messages)**: Personal account DMs and mentions via selfbot (⚠️ violates ToS)
+- **GitHub (Notifications)**: API polling for PRs, issues, mentions (requires token)
+- **GitHub (Stats)**: Real-time profile statistics every 5 minutes
 - **WhatsApp**: D-Bus capture from desktop app (contact + message preview)
+
+**Discord Message Monitoring** (⚠️ Selfbot - Violates Discord ToS):
+```json
+"discord_messages": {
+  "enabled": true,
+  "user_token": "YOUR_USER_TOKEN_HERE",
+  "poll_interval": 300,
+  "monitor_dms": true,
+  "monitor_mentions": true
+}
+```
+
+**Getting Discord User Token**:
+1. Open Discord in web browser (not desktop app)
+2. Press F12 → Network tab
+3. Send any message in a channel
+4. Find request named "messages"
+5. Click it → Headers tab → Request Headers
+6. Copy value of "authorization" header
+
+**Token Expiration**: Discord user tokens expire when:
+- Password is changed
+- 2FA is enabled/disabled
+- Manual logout from all devices
+- Discord detects suspicious activity
+
+**When token expires**:
+```bash
+journalctl -u sangi-notification-monitor@$(whoami).service | grep "LoginFailure"
+# Get new token and update config.json, then restart service
+```
+
+**MQTT Topics Published**:
+- `sangi/notification/push` - Notification messages (Discord D-Bus, GitHub, WhatsApp)
+- `sangi/github/stats` - GitHub profile statistics
+- `sangi/discord/stats` - Discord message statistics
 
 **Testing**:
 ```bash
