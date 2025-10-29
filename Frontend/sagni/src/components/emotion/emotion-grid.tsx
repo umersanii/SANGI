@@ -2,18 +2,22 @@ import type { EmotionState } from "@/types/sangi"
 import { EmotionButton } from "./emotion-button"
 
 const EMOTIONS: EmotionState[] = [
+  "IDLE",
   "HAPPY",
+  "SLEEPY",
+  "EXCITED",
   "SAD",
   "ANGRY",
-  "SURPRISED",
-  "SLEEPY",
   "CONFUSED",
-  "LOVING",
-  "EXCITED",
-  "BORED",
-  "CURIOUS",
-  "SCARED",
-  "PROUD",
+  "THINKING",
+  "LOVE",
+  "SURPRISED",
+  "DEAD",
+  "MUSIC",
+  "BLINK",
+  "NOTIFICATION",
+  "CODING",
+  "GITHUB_STATS",
 ]
 
 export function EmotionGrid() {

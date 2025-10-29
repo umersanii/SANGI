@@ -91,8 +91,8 @@ public:
   
   // Publishing
   void publishStatus(const char* status);
-  void publishBattery(float voltage);
-  void publishUptime(unsigned long seconds);
+  void publishBattery(float voltage, bool charging = false);
+  void publishSystemStatus(unsigned long uptime, uint32_t heap, int rssi);
   void publishEmotionChange(int emotionState);
   
   // Serial logging (buffered, sends every 5 seconds)

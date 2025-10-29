@@ -429,7 +429,8 @@ void NetworkManager::update() {
   // Periodic status publishing (reduced frequency)
   if (publishOverflow || (currentTime - lastStatusPublish > STATUS_PUBLISH_INTERVAL * 3)) {  // Every 90 seconds
     float voltage = batteryManager.readVoltage();
-    publishBattery(voltage);
+    publishBattery(voltage, false);  // TODO: Add actual charging detection
+    publishSystemStatus(currentTime / 1000, ESP.getFreeHeap(), WiFi.RSSI());
     publishEmotionChange(emotionManager.getCurrentEmotion());
     lastStatusPublish = currentTime;
   }
@@ -456,14 +457,14 @@ void NetworkManager::publishStatus(const char* status) {
 #endif
 }
 
-void NetworkManager::publishBattery(float voltage) {
+void NetworkManager::publishBattery(float voltage, bool charging) {
 #if ENABLE_MQTT
   if (!isMQTTConnected()) return;
   
   StaticJsonDocument<200> doc;
-  doc["voltage"] = voltage;
-  doc["percentage"] = ((voltage - BATTERY_MIN_VOLTAGE) / (BATTERY_MAX_VOLTAGE - BATTERY_MIN_VOLTAGE)) * 100;
-  doc["timestamp"] = millis();
+  doc["voltage"] = String(voltage, 2).toFloat();  // Round to 2 decimals
+  doc["level"] = ((voltage - BATTERY_MIN_VOLTAGE) / (BATTERY_MAX_VOLTAGE - BATTERY_MIN_VOLTAGE)) * 100;
+  doc["charging"] = charging;
   
   char buffer[256];
   serializeJson(doc, buffer);
@@ -472,19 +473,43 @@ void NetworkManager::publishBattery(float voltage) {
 #endif
 }
 
-void NetworkManager::publishUptime(unsigned long seconds) {
+void NetworkManager::publishSystemStatus(unsigned long uptime, uint32_t heap, int rssi) {
 #if ENABLE_MQTT
   if (!isMQTTConnected()) return;
   
   StaticJsonDocument<200> doc;
-  doc["uptime_seconds"] = seconds;
-  doc["timestamp"] = millis();
+  doc["uptime"] = uptime;  // in seconds
+  doc["heap"] = heap;      // in bytes
+  doc["rssi"] = rssi;      // in dBm
   
   char buffer[256];
   serializeJson(doc, buffer);
   
-  mqttClient.publish(MQTT_TOPIC_UPTIME, buffer);
+  mqttClient.publish(MQTT_TOPIC_SYSTEM, buffer);
 #endif
+}
+
+// Helper function to convert emotion enum to string
+const char* emotionToString(int emotionState) {
+  switch (emotionState) {
+    case EMOTION_IDLE: return "IDLE";
+    case EMOTION_HAPPY: return "HAPPY";
+    case EMOTION_SLEEPY: return "SLEEPY";
+    case EMOTION_EXCITED: return "EXCITED";
+    case EMOTION_SAD: return "SAD";
+    case EMOTION_ANGRY: return "ANGRY";
+    case EMOTION_CONFUSED: return "CONFUSED";
+    case EMOTION_THINKING: return "THINKING";
+    case EMOTION_LOVE: return "LOVE";
+    case EMOTION_SURPRISED: return "SURPRISED";
+    case EMOTION_DEAD: return "DEAD";
+    case EMOTION_MUSIC: return "MUSIC";
+    case EMOTION_BLINK: return "BLINK";
+    case EMOTION_NOTIFICATION: return "NOTIFICATION";
+    case EMOTION_CODING: return "CODING";
+    case EMOTION_GITHUB_STATS: return "GITHUB_STATS";
+    default: return "IDLE";
+  }
 }
 
 void NetworkManager::publishEmotionChange(int emotionState) {
@@ -492,13 +517,13 @@ void NetworkManager::publishEmotionChange(int emotionState) {
   if (!isMQTTConnected()) return;
   
   StaticJsonDocument<200> doc;
-  doc["emotion"] = emotionState;
+  doc["current"] = emotionToString(emotionState);
   doc["timestamp"] = millis();
   
   char buffer[256];
   serializeJson(doc, buffer);
   
-  mqttClient.publish("sangi/emotion/current", buffer);
+  mqttClient.publish(MQTT_TOPIC_EMOTION, buffer);
 #endif
 }
 

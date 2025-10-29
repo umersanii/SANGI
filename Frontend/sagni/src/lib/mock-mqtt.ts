@@ -67,18 +67,16 @@ export class MockMQTTClient {
       // Occasionally simulate emotion changes
       if (Math.random() > 0.7) {
         const emotions: EmotionState[] = [
+          "IDLE",
           "HAPPY",
+          "SLEEPY",
+          "EXCITED",
           "SAD",
           "ANGRY",
-          "SURPRISED",
-          "SLEEPY",
           "CONFUSED",
-          "LOVING",
-          "EXCITED",
-          "BORED",
-          "CURIOUS",
-          "SCARED",
-          "PROUD",
+          "THINKING",
+          "LOVE",
+          "SURPRISED",
         ]
         const randomEmotion = emotions[Math.floor(Math.random() * emotions.length)]
         const emotionPayload = JSON.stringify({

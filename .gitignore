@@ -133,4 +133,3 @@ pi-setup/certs/*.pem
 pi-setup/certs/*.key
 pi-setup/certs/*.crt
 PC-setup/bin/logs/message_history.json
-PC-setup/bin/logs/message_history.json
