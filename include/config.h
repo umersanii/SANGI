@@ -81,14 +81,14 @@
 #define DAYLIGHT_OFFSET_SEC 0              // Adjust for daylight saving
 
 // Mode selection
-#define ENABLE_MQTT false                   // Set to true to enable MQTT mode (requires secrets.h)
+#define ENABLE_MQTT true                   // Set to true to enable MQTT mode (requires secrets.h)
 
 // ===== OFFLINE MODE CONFIGURATION =====
 #define MQTT_TIMEOUT_THRESHOLD 60000       // ms without valid MQTT message before switching to offline mode (60s)
-#define OFFLINE_EMOTION_INTERVAL 100     // ms between emotion changes in offline autonomous mode (20s)
+#define OFFLINE_EMOTION_INTERVAL 20000     // ms between emotion changes in offline autonomous mode (20s)
 
 // ===== DEBUG MODE =====
-#define DEBUG_MODE_ENABLED true            // Set to true to enable debug mode (shows only DEBUG_MODE_EMOTION)
+#define DEBUG_MODE_ENABLED false            // Set to true to enable debug mode (shows only DEBUG_MODE_EMOTION)
 #define DEBUG_MODE_EMOTION EMOTION_GITHUB_STATS  // Which emotion to show in debug mode
 
 #endif // CONFIG_H

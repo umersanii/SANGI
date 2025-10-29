@@ -383,4 +383,4 @@ This project is open source and available for personal and educational use.
 to check where the port is active
 ``` kill <port>```
 
-```~/.platformio/penv/bin/platformio device monitor --port /dev/ttyUSB1 --baud 115200```
+```~/.platformio/penv/bin/platformio device monitor --port /dev/ttyUSB0 --baud 115200```

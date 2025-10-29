@@ -32,11 +32,32 @@ NetworkManager::NetworkManager()
     notificationQueue[i].active = false;
   }
   
-  // Initialize GitHub data
-  githubData.dataLoadebool NetworkManager::hasGitHubData() const {
-  return githubData.dataLoaded;
+  // Initialize GitHub contribution data
+  githubData.dataLoaded = false;
+  githubData.totalContributions = 0;
+  githubData.currentStreak = 0;
+  githubData.longestStreak = 0;
+  memset(githubData.username, 0, sizeof(githubData.username));
+  memset(githubData.contributions, 0, sizeof(githubData.contributions));
+  
+  // Initialize GitHub stats
+  githubStats.dataLoaded = false;
+  githubStats.repos = 0;
+  githubStats.followers = 0;
+  githubStats.following = 0;
+  githubStats.contributions = 0;
+  githubStats.commits = 0;
+  githubStats.prs = 0;
+  githubStats.issues = 0;
+  githubStats.stars = 0;
+  githubStats.timestamp = 0;
+  memset(githubStats.username, 0, sizeof(githubStats.username));
+  
+  // Initialize SSID storage
+  memset(connectedSSID, 0, sizeof(connectedSSID));
 }
 
+// ===== GITHUB CONTRIBUTION DATA MANAGEMENT =====
 void NetworkManager::clearGitHubData() {
   githubData.dataLoaded = false;
   githubData.totalContributions = 0;
@@ -82,27 +103,6 @@ GitHubStatsData* NetworkManager::getGitHubStats() {
 
 bool NetworkManager::hasGitHubStats() const {
   return githubStats.dataLoaded;
-}githubData.totalContributions = 0;
-  githubData.currentStreak = 0;
-  githubData.longestStreak = 0;
-  memset(githubData.username, 0, sizeof(githubData.username));
-  memset(githubData.contributions, 0, sizeof(githubData.contributions));
-  
-  // Initialize GitHub stats
-  githubStats.dataLoaded = false;
-  githubStats.repos = 0;
-  githubStats.followers = 0;
-  githubStats.following = 0;
-  githubStats.contributions = 0;
-  githubStats.commits = 0;
-  githubStats.prs = 0;
-  githubStats.issues = 0;
-  githubStats.stars = 0;
-  githubStats.timestamp = 0;
-  memset(githubStats.username, 0, sizeof(githubStats.username));
-  
-  // Initialize SSID storage
-  memset(connectedSSID, 0, sizeof(connectedSSID));
 }
 
 // ===== INITIALIZATION =====
@@ -302,6 +302,9 @@ bool NetworkManager::connectMQTT() {
   if (mqttClient.connect(THINGNAME)) {
     Serial.println("MQTT connected!");
     currentState = NET_MQTT_CONNECTED;
+    
+    // Set initial timestamp to indicate MQTT is active
+    lastMQTTMessageTime = millis();
     
     // Subscribe to emotion control topic
     if (mqttClient.subscribe(MQTT_TOPIC_EMOTION_SET)) {
@@ -926,17 +929,6 @@ GitHubContributionData* NetworkManager::getGitHubData() {
   return &githubData;
 }
 
-bool NetworkManager::hasGitHubData() const {
-  return githubData.dataLoaded;
-}
 
-void NetworkManager::clearGitHubData() {
-  githubData.dataLoaded = false;
-  githubData.totalContributions = 0;
-  githubData.currentStreak = 0;
-  githubData.longestStreak = 0;
-  memset(githubData.username, 0, sizeof(githubData.username));
-  memset(githubData.contributions, 0, sizeof(githubData.contributions));
-  Serial.println("GitHub data cleared");
-}
+
 
