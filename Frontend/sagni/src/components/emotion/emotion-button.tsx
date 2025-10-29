@@ -8,19 +8,22 @@ import { Button } from "@/components/ui/button"
 import { useState } from "react"
 
 const EMOTION_ICONS: Record<EmotionState, string> = {
+  IDLE: "😐",
   HAPPY: "😊",
+  SLEEPY: "😴",
+  EXCITED: "🤩",
   SAD: "😢",
   ANGRY: "😠",
-  SURPRISED: "😲",
-  SLEEPY: "😴",
   CONFUSED: "😕",
-  LOVING: "😍",
-  EXCITED: "🤩",
-  BORED: "😑",
-  CURIOUS: "🤔",
-  SCARED: "😨",
-  PROUD: "😌",
-  NEUTRAL: "😐",
+  THINKING: "🤔",
+  LOVE: "😍",
+  SURPRISED: "😲",
+  DEAD: "💀",
+  MUSIC: "🎵",
+  BLINK: "👁️",
+  NOTIFICATION: "🔔",
+  CODING: "💻",
+  GITHUB_STATS: "📊",
 }
 
 interface EmotionButtonProps {
