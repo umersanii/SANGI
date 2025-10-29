@@ -16,33 +16,35 @@ A production-ready web control panel for SANGI, an ESP32-C3 companion robot with
 
 ### Installation
 
-\`\`\`bash
-npm install
+```bash
+npm install --legacy-peer-deps
 npm run dev
-\`\`\`
+```
 
-The app will start at `http://localhost:5173`
+The app will start at `http://localhost:3000`
 
 ### Environment Variables
 
 Create a `.env.local` file in the project root:
 
-\`\`\`bash
+```bash
 # AWS IoT Core WebSocket endpoint
-VITE_MQTT_ENDPOINT=wss://xxxxx-ats.iot.us-east-1.amazonaws.com/mqtt
+# Get from: AWS Console → IoT Core → Settings → Device data endpoint
+NEXT_PUBLIC_AWS_IOT_ENDPOINT=wss://xxxxxxxxxxxxx.iot.us-east-1.amazonaws.com/mqtt
+NEXT_PUBLIC_AWS_REGION=us-east-1
 
-# AWS Region
-VITE_AWS_REGION=us-east-1
+# AWS Credentials (Optional - for SigV4 signing)
+# For production, use AWS Cognito Identity Pool or temporary credentials
+NEXT_PUBLIC_AWS_ACCESS_KEY_ID=
+NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY=
+NEXT_PUBLIC_AWS_SESSION_TOKEN=
 
-# Cognito Identity Pool ID (for authentication)
-VITE_COGNITO_IDENTITY_POOL_ID=us-east-1:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+# MQTT Client Configuration
+NEXT_PUBLIC_MQTT_CLIENT_PREFIX=sangi-web
 
-# MQTT Client ID (auto-generated if not set)
-VITE_MQTT_CLIENT_ID=sangi-web-client
-
-# Enable mock mode for development (default: true)
-VITE_MOCK_MODE=true
-\`\`\`
+# Mock Mode (set to 'false' for production with AWS IoT)
+NEXT_PUBLIC_USE_MOCK_MQTT=true
+```
 
 ## Development
 
@@ -60,26 +62,49 @@ Toggle between Mock and Real modes in the Settings panel (gear icon).
 
 ### Real MQTT Mode
 
-To connect to a real SANGI device:
+To connect to a real SANGI device via AWS IoT Core:
 
-1. **Set up AWS IoT Core** (if not already done):
-   - Create an IoT Thing for your ESP32-C3
-   - Generate certificates and attach policies
-   - Note the WebSocket endpoint
+#### Option 1: Certificate-Based Authentication (Recommended)
 
-2. **Configure Cognito Identity Pool**:
-   - Create an Identity Pool in AWS Cognito
-   - Enable unauthenticated access
-   - Attach an IoT policy allowing `iot:Connect`, `iot:Subscribe`, `iot:Receive`, `iot:Publish` on `sangi/*` topics
+1. **AWS IoT Policy**: Ensure your SANGI device has an IoT policy allowing:
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [{
+       "Effect": "Allow",
+       "Action": ["iot:Connect", "iot:Publish", "iot:Subscribe", "iot:Receive"],
+       "Resource": ["arn:aws:iot:REGION:ACCOUNT:topic/sangi/*", "arn:aws:iot:REGION:ACCOUNT:client/sangi-*"]
+     }]
+   }
+   ```
+
+2. **Configure CORS on AWS IoT**: Enable WebSocket access from browser
+   - AWS IoT automatically handles CORS for certificate-based connections
 
 3. **Add environment variables** to `.env.local`:
-   \`\`\`bash
-   VITE_MQTT_ENDPOINT=wss://your-endpoint-ats.iot.us-east-1.amazonaws.com/mqtt
-   VITE_COGNITO_IDENTITY_POOL_ID=us-east-1:your-pool-id
-   VITE_MOCK_MODE=false
-   \`\`\`
+   ```bash
+   NEXT_PUBLIC_AWS_IOT_ENDPOINT=wss://xxxxxxxxxxxxx.iot.us-east-1.amazonaws.com/mqtt
+   NEXT_PUBLIC_AWS_REGION=us-east-1
+   NEXT_PUBLIC_USE_MOCK_MQTT=false
+   ```
 
-4. **Toggle to Real Mode** in the Settings panel
+#### Option 2: SigV4 Authentication (AWS Credentials)
+
+For temporary access using AWS credentials:
+
+1. **Create Cognito Identity Pool**:
+   - AWS Console → Cognito → Create Identity Pool
+   - Enable unauthenticated access
+   - Attach IAM role with IoT permissions
+
+2. **Get temporary credentials** from Cognito and add to `.env.local`:
+   ```bash
+   NEXT_PUBLIC_AWS_ACCESS_KEY_ID=ASIA...
+   NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY=...
+   NEXT_PUBLIC_AWS_SESSION_TOKEN=...
+   ```
+
+3. **Toggle to Real Mode** in the Settings panel
 
 ## MQTT Topics
 
@@ -129,7 +154,7 @@ Uses **Zustand** for global MQTT state management:
 
 ### MQTT Client
 
-Two implementations:
+Two implementations for flexible deployment:
 
 1. **MockMQTTClient** (`src/lib/mock-mqtt.ts`):
    - Simulates ESP32 publishing status updates
@@ -137,9 +162,11 @@ Two implementations:
    - Includes realistic timing and data ranges
 
 2. **RealMQTTClient** (`src/lib/mqtt-client.ts`):
-   - Uses `mqtt.js` for WebSocket connections
-   - Connects to AWS IoT Core
+   - Uses `mqtt.js` for WebSocket connections to AWS IoT Core
+   - **Direct browser-to-AWS connection** (no server proxy)
+   - Supports AWS SigV4 signing with `@smithy/signature-v4`
    - Handles reconnection with exponential backoff
+   - **Vercel-compatible** (serverless-friendly architecture)
 
 ### Components
 
@@ -152,32 +179,91 @@ Two implementations:
 
 ## Deployment
 
-### Vercel
+### Vercel (Recommended for Serverless)
 
-1. Push code to GitHub
-2. Connect repository to Vercel
-3. Add environment variables in Vercel dashboard:
-   - `VITE_MQTT_ENDPOINT`
-   - `VITE_COGNITO_IDENTITY_POOL_ID`
-   - `VITE_AWS_REGION`
-4. Deploy
+The app now connects **directly to AWS IoT Core via WebSocket**, making it fully compatible with Vercel's serverless architecture.
+
+#### Prerequisites
+
+1. **AWS IoT Core Setup**:
+   - Device endpoint: `AWS Console → IoT Core → Settings`
+   - IoT Policy with permissions for `sangi/*` topics
+   - (Optional) Cognito Identity Pool for credential management
+
+2. **Vercel Project Setup**:
+   ```bash
+   # Install Vercel CLI
+   npm i -g vercel
+   
+   # Deploy from project directory
+   cd Frontend/sagni
+   vercel
+   ```
+
+3. **Configure Environment Variables** in Vercel Dashboard:
+   - `NEXT_PUBLIC_AWS_IOT_ENDPOINT` → `wss://xxxxxxxxxxxxx.iot.us-east-1.amazonaws.com/mqtt`
+   - `NEXT_PUBLIC_AWS_REGION` → `us-east-1`
+   - `NEXT_PUBLIC_MQTT_CLIENT_PREFIX` → `sangi-web`
+   - `NEXT_PUBLIC_USE_MOCK_MQTT` → `false`
+
+4. **Optional: Add AWS Credentials** (for SigV4 signing):
+   - `NEXT_PUBLIC_AWS_ACCESS_KEY_ID`
+   - `NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY`
+   - `NEXT_PUBLIC_AWS_SESSION_TOKEN`
+
+   **Note**: For production, use Cognito Identity Pool to fetch temporary credentials client-side instead of hardcoding.
+
+5. **Deploy**:
+   ```bash
+   vercel --prod
+   ```
+
+#### How It Works on Vercel
+
+- **Direct WebSocket Connection**: Browser → AWS IoT Core (no server proxy needed)
+- **Serverless-Compatible**: No long-lived connections on Vercel functions
+- **Real-time MQTT**: Persistent WebSocket maintained by browser, not server
+- **AWS SigV4 Signing**: Optional authentication using Smithy SDK
 
 ### Self-Hosted
 
-\`\`\`bash
-npm run build
-npm run preview
-\`\`\`
+For traditional server deployment:
 
-Serve the `dist/` folder with any static hosting service.
+```bash
+npm run build
+npm run start
+```
+
+Serve with PM2, Docker, or any Node.js hosting platform.
+
+### Docker
+
+```dockerfile
+FROM node:20-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install --legacy-peer-deps
+COPY . .
+RUN npm run build
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+
+```bash
+docker build -t sangi-frontend .
+docker run -p 3000:3000 --env-file .env.local sangi-frontend
+```
 
 ## Troubleshooting
 
 ### Connection Issues
 
-- **"Connection failed"**: Check MQTT endpoint and Cognito credentials
+- **"Connection failed"**: Check AWS IoT endpoint URL format (`wss://xxxxx.iot.region.amazonaws.com/mqtt`)
+- **"WebSocket error"**: Verify IoT policy allows `iot:Connect` for your client ID pattern
 - **"Cannot subscribe to topic"**: Verify IAM policy allows `iot:Subscribe` on `sangi/*`
-- **Mock mode not working**: Ensure `VITE_MOCK_MODE=true` in `.env.local`
+- **"Unauthorized"**: Check AWS credentials or Cognito Identity Pool configuration
+- **Certificate errors**: AWS IoT certificate-based auth requires proper CORS setup
+- **Mock mode not working**: Ensure `NEXT_PUBLIC_USE_MOCK_MQTT=true` in `.env.local`
 
 ### Message Not Received
 

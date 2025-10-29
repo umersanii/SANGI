@@ -49,9 +49,19 @@ export const useMQTTStore = create<MQTTStore>((set, get) => ({
       if (useMock) {
         mqttClient = new MockMQTTClient()
       } else {
-        const endpoint = process.env.NEXT_PUBLIC_MQTT_ENDPOINT || "wss://localhost:8883"
-        const clientId = `sangi-web-${Date.now()}`
-        mqttClient = new RealMQTTClient(endpoint, clientId)
+        const endpoint = process.env.NEXT_PUBLIC_AWS_IOT_ENDPOINT || "wss://localhost:8883"
+        const clientPrefix = process.env.NEXT_PUBLIC_MQTT_CLIENT_PREFIX || "sangi-web"
+        const clientId = `${clientPrefix}-${Date.now()}`
+        const region = process.env.NEXT_PUBLIC_AWS_REGION || "us-east-1"
+        
+        // Optional: AWS credentials for SigV4 signing
+        const credentials = process.env.NEXT_PUBLIC_AWS_ACCESS_KEY_ID ? {
+          accessKeyId: process.env.NEXT_PUBLIC_AWS_ACCESS_KEY_ID,
+          secretAccessKey: process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY || "",
+          sessionToken: process.env.NEXT_PUBLIC_AWS_SESSION_TOKEN,
+        } : undefined
+        
+        mqttClient = new RealMQTTClient(endpoint, clientId, region, credentials)
       }
 
       await mqttClient.connect()
