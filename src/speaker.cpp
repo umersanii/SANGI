@@ -168,83 +168,45 @@ void BeepManager::update() {
   }
 }
 
+// Lookup table replaces the 14-case switch
+struct EmotionPattern {
+  EmotionState emotion;
+  const BeepTone* pattern;
+  int length;
+};
+
+#define PATTERN_ENTRY(e, p) {e, p, sizeof(p) / sizeof(BeepTone)}
+
+static const EmotionPattern EMOTION_PATTERNS[] = {
+  PATTERN_ENTRY(EMOTION_IDLE, PATTERN_IDLE),
+  PATTERN_ENTRY(EMOTION_HAPPY, PATTERN_HAPPY),
+  PATTERN_ENTRY(EMOTION_SLEEPY, PATTERN_SLEEPY),
+  PATTERN_ENTRY(EMOTION_EXCITED, PATTERN_EXCITED),
+  PATTERN_ENTRY(EMOTION_SAD, PATTERN_SAD),
+  PATTERN_ENTRY(EMOTION_ANGRY, PATTERN_ANGRY),
+  PATTERN_ENTRY(EMOTION_CONFUSED, PATTERN_CONFUSED),
+  PATTERN_ENTRY(EMOTION_THINKING, PATTERN_THINKING),
+  PATTERN_ENTRY(EMOTION_LOVE, PATTERN_LOVE),
+  PATTERN_ENTRY(EMOTION_SURPRISED, PATTERN_SURPRISED),
+  PATTERN_ENTRY(EMOTION_DEAD, PATTERN_DEAD),
+  PATTERN_ENTRY(EMOTION_MUSIC, PATTERN_MUSIC),
+  PATTERN_ENTRY(EMOTION_NOTIFICATION, PATTERN_NOTIFICATION),
+  PATTERN_ENTRY(EMOTION_CODING, PATTERN_CODING),
+};
+static const int NUM_PATTERNS = sizeof(EMOTION_PATTERNS) / sizeof(EmotionPattern);
+
 void BeepManager::queueEmotionBeep(EmotionState emotion) {
-  // If already playing, let it finish (no interruption)
-  // You can change this behavior to interrupt if needed
-  if (isActive) {
-    return;
-  }
-  
-  const BeepTone* pattern = nullptr;
-  int length = 0;
-  
-  switch(emotion) {
-    case EMOTION_IDLE:
-      pattern = PATTERN_IDLE;
-      length = sizeof(PATTERN_IDLE) / sizeof(BeepTone);
-      break;
-    case EMOTION_HAPPY:
-      pattern = PATTERN_HAPPY;
-      length = sizeof(PATTERN_HAPPY) / sizeof(BeepTone);
-      break;
-    case EMOTION_SLEEPY:
-      pattern = PATTERN_SLEEPY;
-      length = sizeof(PATTERN_SLEEPY) / sizeof(BeepTone);
-      break;
-    case EMOTION_EXCITED:
-      pattern = PATTERN_EXCITED;
-      length = sizeof(PATTERN_EXCITED) / sizeof(BeepTone);
-      break;
-    case EMOTION_SAD:
-      pattern = PATTERN_SAD;
-      length = sizeof(PATTERN_SAD) / sizeof(BeepTone);
-      break;
-    case EMOTION_ANGRY:
-      pattern = PATTERN_ANGRY;
-      length = sizeof(PATTERN_ANGRY) / sizeof(BeepTone);
-      break;
-    case EMOTION_CONFUSED:
-      pattern = PATTERN_CONFUSED;
-      length = sizeof(PATTERN_CONFUSED) / sizeof(BeepTone);
-      break;
-    case EMOTION_THINKING:
-      pattern = PATTERN_THINKING;
-      length = sizeof(PATTERN_THINKING) / sizeof(BeepTone);
-      break;
-    case EMOTION_LOVE:
-      pattern = PATTERN_LOVE;
-      length = sizeof(PATTERN_LOVE) / sizeof(BeepTone);
-      break;
-    case EMOTION_SURPRISED:
-      pattern = PATTERN_SURPRISED;
-      length = sizeof(PATTERN_SURPRISED) / sizeof(BeepTone);
-      break;
-    case EMOTION_DEAD:
-      pattern = PATTERN_DEAD;
-      length = sizeof(PATTERN_DEAD) / sizeof(BeepTone);
-      break;
-    case EMOTION_MUSIC:
-      pattern = PATTERN_MUSIC;
-      length = sizeof(PATTERN_MUSIC) / sizeof(BeepTone);
-      break;
-    case EMOTION_NOTIFICATION:
-      pattern = PATTERN_NOTIFICATION;
-      length = sizeof(PATTERN_NOTIFICATION) / sizeof(BeepTone);
-      break;
-    case EMOTION_CODING:
-      pattern = PATTERN_CODING;
-      length = sizeof(PATTERN_CODING) / sizeof(BeepTone);
-      break;
-    case EMOTION_BLINK:
-      // No sound for blink
+  if (isActive) return;
+  if (emotion == EMOTION_BLINK) return;  // No sound for blink
+
+  for (int i = 0; i < NUM_PATTERNS; i++) {
+    if (EMOTION_PATTERNS[i].emotion == emotion) {
+      startBeep(EMOTION_PATTERNS[i].pattern, EMOTION_PATTERNS[i].length);
       return;
-    default:
-      pattern = PATTERN_IDLE;
-      length = sizeof(PATTERN_IDLE) / sizeof(BeepTone);
-      break;
+    }
   }
-  
-  startBeep(pattern, length);
+  // Fallback to idle pattern
+  startBeep(PATTERN_IDLE, sizeof(PATTERN_IDLE) / sizeof(BeepTone));
 }
 
 void BeepManager::startBeep(const BeepTone* pattern, int patternLength) {

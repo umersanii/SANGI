@@ -1,17 +1,14 @@
 // main.cpp — orchestration layer for SANGI robot.
-// CHANGED in Phase 1:
-//   - Emotion registry populated in registerEmotions()
-//   - Callbacks wire EmotionManager to AnimationManager/BeepManager/NetworkManager
-//     (no more cross-module #includes in those modules)
-//   - Transition driven by return value from displayManager, not globals
-//   - Debug emotion name uses registry instead of 15-arm ternary
-//   - Fixed duplicate beepManager.init()
-//   - Emotion cycling uses registry.getCyclable() instead of hardcoded array
+// CHANGED in Phase 2:
+//   - DrawFrameFn pointers wired into registerEmotions()
+//   - loop() switch replaced with animationManager.tick()
+//   - All animation rendering goes through emotion_draws.cpp via registry
 
 #include <Arduino.h>
 #include "config.h"
 #include "emotion.h"
 #include "emotion_registry.h"
+#include "emotion_draws.h"
 #include "display.h"
 #include "animations.h"
 #include "battery.h"
@@ -72,42 +69,42 @@ void onEmotionChange(EmotionState from, EmotionState to) {
 void registerEmotions() {
   // Static emotions
   emotionRegistry.add(
-      {EMOTION_IDLE, "IDLE", 1, 0, LOOP_RESTART, true, nullptr});
+      {EMOTION_IDLE, "IDLE", 1, 0, LOOP_RESTART, true, drawIdle});
   emotionRegistry.add(
-      {EMOTION_BLINK, "BLINK", 1, 0, LOOP_RESTART, false, nullptr});
+      {EMOTION_BLINK, "BLINK", 1, 0, LOOP_RESTART, false, drawBlink});
 
   // Standard animated emotions (51 frames @ 30ms)
   emotionRegistry.add(
-      {EMOTION_HAPPY, "HAPPY", 51, 30, LOOP_RESTART, true, nullptr});
+      {EMOTION_HAPPY, "HAPPY", 51, 30, LOOP_RESTART, true, drawHappy});
   emotionRegistry.add(
-      {EMOTION_SLEEPY, "SLEEPY", 51, 30, LOOP_RESTART, false, nullptr});
+      {EMOTION_SLEEPY, "SLEEPY", 51, 30, LOOP_RESTART, false, drawSleepy});
   emotionRegistry.add(
-      {EMOTION_EXCITED, "EXCITED", 51, 30, LOOP_RESTART, true, nullptr});
+      {EMOTION_EXCITED, "EXCITED", 51, 30, LOOP_RESTART, true, drawExcited});
   emotionRegistry.add(
-      {EMOTION_SAD, "SAD", 51, 30, LOOP_RESTART, true, nullptr});
+      {EMOTION_SAD, "SAD", 51, 30, LOOP_RESTART, true, drawSad});
   emotionRegistry.add(
-      {EMOTION_ANGRY, "ANGRY", 51, 30, LOOP_RESTART, true, nullptr});
+      {EMOTION_ANGRY, "ANGRY", 51, 30, LOOP_RESTART, true, drawAngry});
   emotionRegistry.add(
-      {EMOTION_CONFUSED, "CONFUSED", 51, 30, LOOP_RESTART, true, nullptr});
+      {EMOTION_CONFUSED, "CONFUSED", 51, 30, LOOP_RESTART, true, drawConfused});
   emotionRegistry.add(
-      {EMOTION_THINKING, "THINKING", 51, 30, LOOP_RESTART, true, nullptr});
+      {EMOTION_THINKING, "THINKING", 51, 30, LOOP_RESTART, true, drawThinking});
   emotionRegistry.add(
-      {EMOTION_LOVE, "LOVE", 51, 30, LOOP_RESTART, true, nullptr});
+      {EMOTION_LOVE, "LOVE", 51, 30, LOOP_RESTART, true, drawLove});
   emotionRegistry.add(
-      {EMOTION_SURPRISED, "SURPRISED", 51, 30, LOOP_RESTART, true, nullptr});
+      {EMOTION_SURPRISED, "SURPRISED", 51, 30, LOOP_RESTART, true, drawSurprised});
   emotionRegistry.add(
-      {EMOTION_DEAD, "DEAD", 51, 30, LOOP_RESTART, false, nullptr});
+      {EMOTION_DEAD, "DEAD", 51, 30, LOOP_RESTART, false, drawDead});
   emotionRegistry.add(
-      {EMOTION_MUSIC, "MUSIC", 51, 30, LOOP_RESTART, false, nullptr});
+      {EMOTION_MUSIC, "MUSIC", 51, 30, LOOP_RESTART, false, drawMusic});
 
   // Special animations
   emotionRegistry.add(
       {EMOTION_NOTIFICATION, "NOTIFICATION", 86, 50, LOOP_ONCE, false,
-       nullptr});
+       drawNotification});
   emotionRegistry.add(
-      {EMOTION_CODING, "CODING", 25, 30, LOOP_RESTART, false, nullptr});
-  emotionRegistry.add({EMOTION_GITHUB_STATS, "GITHUB_STATS", 130, 30,
-                       LOOP_RESTART, false, nullptr});
+      {EMOTION_CODING, "CODING", 25, 100, LOOP_RESTART, false, drawCoding});
+  emotionRegistry.add({EMOTION_GITHUB_STATS, "GITHUB_STATS", 131, 80,
+                       LOOP_RESTART, false, drawGitHubStats});
 }
 
 // ===== POWER MANAGEMENT =====
@@ -306,76 +303,53 @@ void loop() {
       emotionManager.advanceTransition();
     }
   } else {
-    // Render current emotion
-    // (Phase 2 will replace this switch with registry-based dispatch)
-    switch (emotionManager.getCurrentEmotion()) {
-      case EMOTION_SLEEPY:
-        animationManager.animateSleepy();
-        break;
-      case EMOTION_THINKING:
-        animationManager.animateThinking();
-        break;
-      case EMOTION_EXCITED:
-        animationManager.animateExcited();
-        break;
-      case EMOTION_CONFUSED:
-        animationManager.animateConfused();
-        break;
-      case EMOTION_HAPPY:
-        animationManager.animateHappy();
-        break;
-      case EMOTION_LOVE:
-        animationManager.animateLove();
-        break;
-      case EMOTION_ANGRY:
-        animationManager.animateAngry();
-        break;
-      case EMOTION_SAD:
-        animationManager.animateSad();
-        break;
-      case EMOTION_SURPRISED:
-        animationManager.animateSurprised();
-        break;
-      case EMOTION_MUSIC:
-        animationManager.animateMusic();
-        break;
-      case EMOTION_DEAD:
-        animationManager.animateDead();
-        break;
-      case EMOTION_NOTIFICATION: {
-        Notification* notif = networkManager.getCurrentNotification();
-        if (notif != nullptr) {
-          animationManager.animateNotification(notif->title, notif->message);
+    // Render current emotion via registry-based dispatch
+    EmotionState current = emotionManager.getCurrentEmotion();
 
-          static unsigned long notifStartTime = 0;
-          unsigned long currentMillis = millis();
-          bool overflow = currentMillis < notifStartTime;
+    if (current == EMOTION_NOTIFICATION) {
+      // Notification needs context (title + message)
+      Notification* notif = networkManager.getCurrentNotification();
+      NotificationContext nctx;
+      if (notif != nullptr) {
+        nctx = {notif->title, notif->message};
 
-          if (notifStartTime == 0) {
-            notifStartTime = currentMillis;
-          } else if (overflow ||
-                     (currentMillis - notifStartTime > 4300)) {
-            networkManager.clearCurrentNotification();
-            notifStartTime = 0;
-          }
-        } else if (offlineNotifTitle[0] != '\0') {
-          animationManager.animateNotification(offlineNotifTitle,
-                                               offlineNotifMessage);
-        } else {
-          generateOfflineNotification();
-          animationManager.animateNotification(offlineNotifTitle,
-                                               offlineNotifMessage);
+        static unsigned long notifStartTime = 0;
+        unsigned long currentMillis = millis();
+        bool overflow = currentMillis < notifStartTime;
+
+        if (notifStartTime == 0) {
+          notifStartTime = currentMillis;
+        } else if (overflow ||
+                   (currentMillis - notifStartTime > 4300)) {
+          networkManager.clearCurrentNotification();
+          notifStartTime = 0;
         }
-      } break;
-      case EMOTION_CODING:
-        animationManager.animateCoding();
-        break;
-      case EMOTION_GITHUB_STATS:
-        animationManager.animateGitHubStats();
-        break;
-      default:
-        displayManager.drawEmotionFace(emotionManager.getCurrentEmotion());
-        break;
+      } else {
+        if (offlineNotifTitle[0] == '\0') {
+          generateOfflineNotification();
+        }
+        nctx = {offlineNotifTitle, offlineNotifMessage};
+      }
+      animationManager.tick(current, displayManager, &nctx);
+    } else if (current == EMOTION_GITHUB_STATS) {
+      // GitHub stats needs context
+      GitHubStatsData* statsData = networkManager.getGitHubStats();
+      GitHubStatsContext sctx = {};
+      if (statsData != nullptr && networkManager.hasGitHubStats()) {
+        sctx.hasData = true;
+        sctx.username = statsData->username;
+        sctx.repos = statsData->repos;
+        sctx.followers = statsData->followers;
+        sctx.following = statsData->following;
+        sctx.contributions = statsData->contributions;
+        sctx.commits = statsData->commits;
+        sctx.prs = statsData->prs;
+        sctx.issues = statsData->issues;
+        sctx.stars = statsData->stars;
+      }
+      animationManager.tick(current, displayManager, &sctx);
+    } else {
+      animationManager.tick(current, displayManager);
     }
   }
 

@@ -1,64 +1,34 @@
+// AnimationManager — generic frame-based animation engine.
+// CHANGED in Phase 2:
+//   - 28 individual frame/timing variables replaced by AnimState array
+//   - 14 animateXxx() methods replaced by single generic tick()
+//   - tick() looks up the emotion in EmotionRegistry and calls its DrawFrameFn
+
 #ifndef ANIMATIONS_H
 #define ANIMATIONS_H
 
 #include <Arduino.h>
 #include "config.h"
 #include "emotion.h"
+#include "canvas.h"
 
-// ===== ANIMATION MANAGER =====
+struct AnimState {
+  int frame;
+  unsigned long lastTick;
+};
+
 class AnimationManager {
 public:
   AnimationManager();
-  
-  void animateSleepy();
-  void animateThinking();
-  void animateExcited();
-  void animateConfused();
-  void animateHappy();
-  void animateLove();
-  void animateAngry();
-  void animateSad();
-  void animateSurprised();
-  void animateMusic();
-  void animateDead();
-  void animateNotification(const char* title = "", const char* message = "");
-  void animateCoding();
-  void animateGitHubStats();
-  
-  // Reset animation frames when switching emotions
+
   void resetAnimation(EmotionState emotion);
-  
+
+  // Generic: advances frame and calls the registered DrawFrameFn.
+  // Returns true if a frame was drawn this call.
+  bool tick(EmotionState emotion, ICanvas& canvas, const void* context = nullptr);
+
 private:
-  // Animation state tracking
-  unsigned long lastSleepyAnim;
-  unsigned long lastThinkAnim;
-  unsigned long lastExciteAnim;
-  unsigned long lastConfuseAnim;
-  unsigned long lastHappyAnim;
-  unsigned long lastLoveAnim;
-  unsigned long lastAngryAnim;
-  unsigned long lastSadAnim;
-  unsigned long lastSurprisedAnim;
-  unsigned long lastMusicAnim;
-  unsigned long lastDeadAnim;
-  unsigned long lastNotificationAnim;
-  unsigned long lastCodingAnim;
-  unsigned long lastGitHubStatsAnim;
-  
-  int sleepyFrame;
-  int thinkFrame;
-  int exciteFrame;
-  int confuseFrame;
-  int happyFrame;
-  int loveFrame;
-  int angryFrame;
-  int sadFrame;
-  int surprisedFrame;
-  int musicFrame;
-  int deadFrame;
-  int notificationFrame;
-  int codingFrame;
-  int githubStatsFrame;
+  AnimState states_[EMOTION_GITHUB_STATS + 1];
 };
 
 extern AnimationManager animationManager;
