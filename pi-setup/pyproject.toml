@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "sangi-notify"
+version = "1.0.0"
+description = "SANGI robot notification service"
+requires-python = ">=3.9"
+dependencies = [
+    "awscrt>=0.16.0",
+    "awsiotsdk>=1.11.0",
+    "requests>=2.28.0",
+]
+
+[project.optional-dependencies]
+discord = ["discord.py-self>=1.9.2"]
+dbus = []  # System packages: python3-gi, python3-dbus
+
+[project.scripts]
+sangi-notify = "sangi_notify.__main__:main"

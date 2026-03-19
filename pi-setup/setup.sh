@@ -48,7 +48,7 @@ fi
 # Install Python dependencies
 echo ""
 echo "[3/6] Installing Python dependencies..."
-pip3 install -r "$SCRIPT_DIR/requirements.txt"
+pip3 install -e "$SCRIPT_DIR"
 echo "✓ Python dependencies installed"
 
 # Setup configuration
@@ -112,7 +112,7 @@ echo "Testing configuration..."
 echo "======================================"
 echo ""
 echo "Starting a test run (Ctrl+C to stop)..."
-python3 "$SCRIPT_DIR/notification_service.py"
+python3 -m sangi_notify
 
 echo ""
 echo "======================================"
