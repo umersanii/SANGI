@@ -2,8 +2,8 @@
 
 InputManager inputManager;
 
-InputManager::InputManager() 
-  : lastInteraction(0) {
+InputManager::InputManager()
+  : lastInteraction(0), onTouch_(nullptr) {
 }
 
 void InputManager::init() {
@@ -19,16 +19,11 @@ void InputManager::handleTouchInteraction() {
   if (isTouched()) {
     unsigned long currentTime = millis();
     lastInteraction = currentTime;
-    
-    // Random emotion selection with better distribution
-    int randomChoice = random(0, 100);
-    
-    if (randomChoice < 50) {
-      emotionManager.setTargetEmotion(EMOTION_EXCITED);
-    } else {
-      emotionManager.setTargetEmotion(EMOTION_SURPRISED);
+
+    if (onTouch_) {
+      onTouch_(currentTime);
     }
-    
+
     delay(50);  // Debounce
   }
 }

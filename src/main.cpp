@@ -3,8 +3,14 @@
 //   - DrawFrameFn pointers wired into registerEmotions()
 //   - loop() switch replaced with animationManager.tick()
 //   - All animation rendering goes through emotion_draws.cpp via registry
+// CHANGED in Phase 3:
+//   - MQTT topic handlers registered via mqttManager.subscribe()
+//   - NetworkManager decomposed into MqttManager + NotificationQueue + GitHubDataStore
+//   - InputManager decoupled via touch callback
+//   - No more if/else topic chain in network.cpp
 
 #include <Arduino.h>
+#include <ArduinoJson.h>
 #include "config.h"
 #include "emotion.h"
 #include "emotion_registry.h"
@@ -63,6 +69,186 @@ void onEmotionChange(EmotionState from, EmotionState to) {
 #if ENABLE_EMOTION_BEEP
   beepManager.queueEmotionBeep(to);
 #endif
+}
+
+// ===== TOUCH CALLBACK =====
+void onTouch(unsigned long currentTime) {
+  int r = random(0, 100);
+  if (r < 50) {
+    emotionManager.setTargetEmotion(EMOTION_EXCITED);
+  } else {
+    emotionManager.setTargetEmotion(EMOTION_SURPRISED);
+  }
+}
+
+// ===== MQTT TOPIC HANDLERS =====
+
+void handleEmotionSet(const char* topic, const char* payload) {
+  StaticJsonDocument<256> doc;
+  if (deserializeJson(doc, payload)) return;
+
+  // Validate SSID if present
+  if (doc.containsKey("ssid")) {
+    const char* receivedSSID = doc["ssid"];
+    if (!networkManager.validateSSID(receivedSSID)) {
+      Serial.println("SSID validation failed - message ignored");
+      networkManager.setWorkspaceMode(false);
+      return;
+    }
+    networkManager.setWorkspaceMode(true);
+    networkManager.updateLastMQTTMessageTime();
+  }
+
+  if (doc.containsKey("emotion")) {
+    int emotionValue = doc["emotion"];
+
+    Serial.printf(">>> MQTT EMOTION: %d <<<\n", emotionValue);
+
+    if (emotionValue >= EMOTION_IDLE && emotionValue <= EMOTION_GITHUB_STATS) {
+      emotionManager.setTargetEmotion((EmotionState)emotionValue);
+      Serial.printf("Emotion set to: %d\n", emotionValue);
+    } else {
+      Serial.printf("Invalid emotion: %d (valid range: 0-15)\n", emotionValue);
+    }
+  } else {
+    Serial.println("Missing 'emotion' field in JSON");
+  }
+}
+
+void handleNotificationPush(const char* topic, const char* payload) {
+  StaticJsonDocument<256> doc;
+  if (deserializeJson(doc, payload)) return;
+
+  // Validate SSID if present
+  if (doc.containsKey("ssid")) {
+    const char* receivedSSID = doc["ssid"];
+    if (!networkManager.validateSSID(receivedSSID)) {
+      Serial.println("SSID validation failed - message ignored");
+      networkManager.setWorkspaceMode(false);
+      return;
+    }
+    networkManager.setWorkspaceMode(true);
+    networkManager.updateLastMQTTMessageTime();
+  }
+
+  NotificationType notifType = NOTIFY_GENERIC;
+  const char* title = "";
+  const char* message = "";
+
+  if (doc.containsKey("type")) {
+    const char* typeStr = doc["type"];
+    if (strcmp(typeStr, "discord") == 0) notifType = NOTIFY_DISCORD;
+    else if (strcmp(typeStr, "slack") == 0) notifType = NOTIFY_SLACK;
+    else if (strcmp(typeStr, "email") == 0) notifType = NOTIFY_EMAIL;
+    else if (strcmp(typeStr, "github") == 0) notifType = NOTIFY_GITHUB;
+    else if (strcmp(typeStr, "calendar") == 0) notifType = NOTIFY_CALENDAR;
+    else if (strcmp(typeStr, "system") == 0) notifType = NOTIFY_SYSTEM;
+  }
+
+  if (doc.containsKey("title")) {
+    title = doc["title"];
+  }
+
+  if (doc.containsKey("message")) {
+    message = doc["message"];
+  }
+
+  if (networkManager.notifications().add(notifType, title, message)) {
+    Serial.printf("Notification queued: [%d] %s - %s\n", notifType, title, message);
+
+    if (emotionManager.getCurrentEmotion() != EMOTION_NOTIFICATION) {
+      emotionManager.setTargetEmotion(EMOTION_NOTIFICATION);
+    }
+  } else {
+    Serial.println("Notification queue full - dropped");
+  }
+}
+
+void handleGitHubCommits(const char* topic, const char* payload) {
+  StaticJsonDocument<512> doc;
+  if (deserializeJson(doc, payload)) return;
+
+  // Validate SSID if present
+  if (doc.containsKey("ssid")) {
+    const char* receivedSSID = doc["ssid"];
+    if (!networkManager.validateSSID(receivedSSID)) {
+      networkManager.setWorkspaceMode(false);
+      return;
+    }
+    networkManager.setWorkspaceMode(true);
+    networkManager.updateLastMQTTMessageTime();
+  }
+
+  if (doc.containsKey("contributions") && doc["contributions"].is<JsonArray>()) {
+    const char* username = doc["username"] | "user";
+    int total = doc["total"] | 0;
+    int currentStreak = doc["current_streak"] | 0;
+    int longestStreak = doc["longest_streak"] | 0;
+
+    JsonArray weeksArray = doc["contributions"].as<JsonArray>();
+
+    uint8_t contributions[52][7];
+    memset(contributions, 0, sizeof(contributions));
+
+    int weekIndex = 0;
+    for (JsonVariant weekVar : weeksArray) {
+      if (weekIndex >= 52) break;
+
+      if (weekVar.is<JsonArray>()) {
+        JsonArray daysArray = weekVar.as<JsonArray>();
+        int dayIndex = 0;
+
+        for (JsonVariant dayVar : daysArray) {
+          if (dayIndex >= 7) break;
+          contributions[weekIndex][dayIndex] = dayVar.as<uint8_t>();
+          dayIndex++;
+        }
+      }
+      weekIndex++;
+    }
+
+    networkManager.github().setContributions(contributions, total, currentStreak, longestStreak, username);
+
+    Serial.printf("Updated GitHub data: %d contributions, %d day streak\n", total, currentStreak);
+  } else {
+    Serial.println("Invalid GitHub contribution format");
+  }
+}
+
+void handleGitHubStats(const char* topic, const char* payload) {
+  StaticJsonDocument<512> doc;
+  if (deserializeJson(doc, payload)) return;
+
+  // Validate SSID if present
+  if (doc.containsKey("ssid")) {
+    const char* receivedSSID = doc["ssid"];
+    if (!networkManager.validateSSID(receivedSSID)) {
+      networkManager.setWorkspaceMode(false);
+      return;
+    }
+    networkManager.setWorkspaceMode(true);
+    networkManager.updateLastMQTTMessageTime();
+  }
+
+  const char* username = doc["username"] | "user";
+  int repos = doc["repos"] | 0;
+  int followers = doc["followers"] | 0;
+  int following = doc["following"] | 0;
+  int contributions = doc["contributions"] | 0;
+  int commits = doc["commits"] | 0;
+  int prs = doc["prs"] | 0;
+  int issues = doc["issues"] | 0;
+  int stars = doc["stars"] | 0;
+
+  networkManager.github().setStats(username, repos, followers, following, contributions, commits, prs, issues, stars);
+
+  Serial.printf("Updated GitHub stats: %s - %d repos, %d followers, %d contributions\n",
+                username, repos, followers, contributions);
+
+  // Automatically trigger GitHub stats emotion
+  if (emotionManager.getCurrentEmotion() != EMOTION_GITHUB_STATS) {
+    emotionManager.setTargetEmotion(EMOTION_GITHUB_STATS);
+  }
 }
 
 // ===== EMOTION REGISTRY SETUP =====
@@ -144,6 +330,7 @@ void setup() {
   // Initialize other modules
   inputManager.init();
   inputManager.updateLastInteraction(bootTime);
+  inputManager.setOnTouch(onTouch);
   batteryManager.init();
   beepManager.init();
 
@@ -153,13 +340,19 @@ void setup() {
   Serial.println("Skipping boot screen in DEBUG MODE");
 #endif
 
-  // Initialize network (if enabled)
+  // Initialize network and register MQTT topic handlers
 #if ENABLE_MQTT
+  // Register topic handlers BEFORE init (so they subscribe on connect)
+  mqttManager.subscribe(MQTT_TOPIC_EMOTION_SET, handleEmotionSet);
+  mqttManager.subscribe("sangi/notification/push", handleNotificationPush);
+  mqttManager.subscribe(MQTT_TOPIC_GITHUB_COMMITS, handleGitHubCommits);
+  mqttManager.subscribe("sangi/github/stats", handleGitHubStats);
+
   networkManager.init();
 
   Serial.println("\n>>> Running Network Diagnostics <<<");
   delay(500);
-  networkManager.testConnectivity();
+  mqttManager.testConnectivity();
 
   networkManager.logInfo("SANGI Robot initialized successfully");
   networkManager.logInfo("Wireless serial logging active");
@@ -240,7 +433,7 @@ void loop() {
   }
 
   bool offlineMode = (lastMQTTTime == 0) ||
-                     !networkManager.isMQTTConnected() ||
+                     !mqttManager.isConnected() ||
                      (lastMQTTTime > 0 &&
                       timeSinceLastMQTT > MQTT_TIMEOUT_THRESHOLD);
 
@@ -308,7 +501,7 @@ void loop() {
 
     if (current == EMOTION_NOTIFICATION) {
       // Notification needs context (title + message)
-      Notification* notif = networkManager.getCurrentNotification();
+      Notification* notif = networkManager.notifications().current();
       NotificationContext nctx;
       if (notif != nullptr) {
         nctx = {notif->title, notif->message};
@@ -321,8 +514,14 @@ void loop() {
           notifStartTime = currentMillis;
         } else if (overflow ||
                    (currentMillis - notifStartTime > 4300)) {
-          networkManager.clearCurrentNotification();
+          networkManager.notifications().clearCurrent();
           notifStartTime = 0;
+
+          // If no more notifications, return to previous emotion
+          if (!networkManager.notifications().hasItems() &&
+              emotionManager.getCurrentEmotion() == EMOTION_NOTIFICATION) {
+            emotionManager.setTargetEmotion(EMOTION_IDLE);
+          }
         }
       } else {
         if (offlineNotifTitle[0] == '\0') {
@@ -333,9 +532,9 @@ void loop() {
       animationManager.tick(current, displayManager, &nctx);
     } else if (current == EMOTION_GITHUB_STATS) {
       // GitHub stats needs context
-      GitHubStatsData* statsData = networkManager.getGitHubStats();
+      const GitHubStatsData* statsData = networkManager.github().getStats();
       GitHubStatsContext sctx = {};
-      if (statsData != nullptr && networkManager.hasGitHubStats()) {
+      if (statsData != nullptr && networkManager.github().hasStats()) {
         sctx.hasData = true;
         sctx.username = statsData->username;
         sctx.repos = statsData->repos;
@@ -368,8 +567,8 @@ void loop() {
         uptimeSeconds);
 #if ENABLE_MQTT
     Serial.printf(" | MQTT: %s\n",
-                  networkManager.isMQTTConnected() ? "Connected"
-                                                   : "Disconnected");
+                  mqttManager.isConnected() ? "Connected"
+                                            : "Disconnected");
 #else
     Serial.println();
 #endif
