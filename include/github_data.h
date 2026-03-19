@@ -40,7 +40,7 @@ public:
   void setStats(const char* user, int repos, int followers, int following,
                 int contributions, int commits, int prs, int issues, int stars);
 
-  GitHubContributionData* getContributions();
+  const GitHubContributionData* getContributions() const;
   const GitHubStatsData* getStats() const;
   bool hasContributions() const { return contributions_.dataLoaded; }
   bool hasStats() const { return stats_.dataLoaded; }

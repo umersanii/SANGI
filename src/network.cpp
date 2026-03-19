@@ -6,6 +6,7 @@
 
 #include "network.h"
 #include "emotion.h"
+#include "emotion_registry.h"
 #include "battery.h"
 
 #if ENABLE_MQTT
@@ -25,87 +26,55 @@ NetworkManager::NetworkManager()
   memset(logBuffer_, 0, MAX_LOG_BUFFER_SIZE);
 }
 
-// ===== HARDCODED GITHUB CONTRIBUTION DATA (for testing) =====
+// ===== HARDCODED GITHUB CONTRIBUTION DATA (debug only) =====
+#if DEBUG_MODE_ENABLED
 void loadHardcodedGitHubData() {
   networkManager.github().clearContributions();
 
   uint8_t sampleContributions[52][7];
   memset(sampleContributions, 0, sizeof(sampleContributions));
 
-  // December 2024 - sparse activity
-  for (int week = 0; week < 5; week++) {
-    for (int day = 0; day < 7; day++) {
-      if (week >= 1 && (day == 2 || day == 3 || day == 4)) {
+  for (int week = 0; week < 5; week++)
+    for (int day = 0; day < 7; day++)
+      if (week >= 1 && (day == 2 || day == 3 || day == 4))
         sampleContributions[week][day] = (week % 2 == 0) ? 2 : 1;
-      }
-    }
-  }
 
-  // January - increasing activity
-  for (int week = 5; week < 9; week++) {
-    for (int day = 0; day < 7; day++) {
-      if (day >= 1 && day <= 5) {
+  for (int week = 5; week < 9; week++)
+    for (int day = 0; day < 7; day++)
+      if (day >= 1 && day <= 5)
         sampleContributions[week][day] = (day % 2 == 0) ? 3 : 2;
-      }
-    }
-  }
 
-  // February-March - moderate activity
-  for (int week = 9; week < 17; week++) {
-    for (int day = 0; day < 7; day++) {
-      if (day >= 1 && day <= 4) {
+  for (int week = 9; week < 17; week++)
+    for (int day = 0; day < 7; day++)
+      if (day >= 1 && day <= 4)
         sampleContributions[week][day] = (week % 3 == 0) ? 2 : 1;
-      }
-    }
-  }
 
-  // April-May - peak activity
-  for (int week = 17; week < 26; week++) {
-    for (int day = 0; day < 7; day++) {
-      if (day >= 0 && day <= 5) {
+  for (int week = 17; week < 26; week++)
+    for (int day = 0; day < 7; day++)
+      if (day >= 0 && day <= 5)
         sampleContributions[week][day] = ((week + day) % 4 == 0) ? 4 : 3;
-      }
-    }
-  }
 
-  // June-July - high activity
-  for (int week = 26; week < 35; week++) {
-    for (int day = 0; day < 7; day++) {
-      if (day >= 1 && day <= 6) {
+  for (int week = 26; week < 35; week++)
+    for (int day = 0; day < 7; day++)
+      if (day >= 1 && day <= 6)
         sampleContributions[week][day] = (day % 2 == 0) ? 4 : 3;
-      }
-    }
-  }
 
-  // August-September - very high activity
-  for (int week = 35; week < 44; week++) {
-    for (int day = 0; day < 7; day++) {
-      if (day >= 0 && day <= 6) {
+  for (int week = 35; week < 44; week++)
+    for (int day = 0; day < 7; day++)
+      if (day >= 0 && day <= 6)
         sampleContributions[week][day] = ((week + day) % 3 == 0) ? 4 : 3;
-      }
-    }
-  }
 
-  // October - recent high activity
-  for (int week = 44; week < 52; week++) {
-    for (int day = 0; day < 7; day++) {
-      if (day >= 1 && day <= 5) {
+  for (int week = 44; week < 52; week++)
+    for (int day = 0; day < 7; day++)
+      if (day >= 1 && day <= 5)
         sampleContributions[week][day] = (day % 2 == 0) ? 4 : 3;
-      }
-    }
-  }
 
   networkManager.github().setContributions(
-    sampleContributions,
-    397,  // Total contributions
-    15,   // Current streak
-    45,   // Longest streak
-    "umersanii"
-  );
+    sampleContributions, 397, 15, 45, "umersanii");
 
   Serial.println("Loaded hardcoded GitHub contribution data for testing");
-  Serial.printf("Total: 397 contributions | Current streak: 15 days\n");
 }
+#endif
 
 // ===== INITIALIZATION =====
 bool NetworkManager::init() {
@@ -148,7 +117,7 @@ void NetworkManager::update() {
 }
 
 // ===== SSID VALIDATION =====
-bool NetworkManager::validateSSID(const char* receivedSSID) {
+bool NetworkManager::validateSSID(const char* receivedSSID) const {
   if (!receivedSSID || strlen(receivedSSID) == 0) {
     return false;
   }
@@ -166,29 +135,6 @@ bool NetworkManager::validateSSID(const char* receivedSSID) {
 }
 
 // ===== PUBLISHING FUNCTIONS =====
-
-// Helper function to convert emotion enum to string
-static const char* emotionToString(int emotionState) {
-  switch (emotionState) {
-    case EMOTION_IDLE: return "IDLE";
-    case EMOTION_HAPPY: return "HAPPY";
-    case EMOTION_SLEEPY: return "SLEEPY";
-    case EMOTION_EXCITED: return "EXCITED";
-    case EMOTION_SAD: return "SAD";
-    case EMOTION_ANGRY: return "ANGRY";
-    case EMOTION_CONFUSED: return "CONFUSED";
-    case EMOTION_THINKING: return "THINKING";
-    case EMOTION_LOVE: return "LOVE";
-    case EMOTION_SURPRISED: return "SURPRISED";
-    case EMOTION_DEAD: return "DEAD";
-    case EMOTION_MUSIC: return "MUSIC";
-    case EMOTION_BLINK: return "BLINK";
-    case EMOTION_NOTIFICATION: return "NOTIFICATION";
-    case EMOTION_CODING: return "CODING";
-    case EMOTION_GITHUB_STATS: return "GITHUB_STATS";
-    default: return "IDLE";
-  }
-}
 
 void NetworkManager::publishStatus(const char* status) {
 #if ENABLE_MQTT
@@ -246,7 +192,7 @@ void NetworkManager::publishEmotionChange(int emotionState) {
   if (!mqttManager.isConnected()) return;
 
   StaticJsonDocument<200> doc;
-  doc["current"] = emotionToString(emotionState);
+  doc["current"] = emotionRegistry.getName((EmotionState)emotionState);
   doc["timestamp"] = millis();
 
   char buffer[256];

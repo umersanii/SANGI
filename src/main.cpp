@@ -25,8 +25,10 @@
 // ===== GLOBAL STATE =====
 unsigned long bootTime = 0;
 
-// Forward declaration (defined in network.cpp)
+// Forward declaration (defined in network.cpp, debug only)
+#if DEBUG_MODE_ENABLED
 void loadHardcodedGitHubData();
+#endif
 
 // ===== OFFLINE NOTIFICATION GENERATOR =====
 static char offlineNotifTitle[32] = "";
@@ -79,6 +81,79 @@ void onTouch(unsigned long currentTime) {
   } else {
     emotionManager.setTargetEmotion(EMOTION_SURPRISED);
   }
+}
+
+// ===== AUTONOMOUS EMOTION SELECTION =====
+// Consolidates offline/workspace/autonomous mode logic out of loop().
+// Returns the emotion to set, or (EmotionState)-1 if MQTT is in control.
+static EmotionState selectAutonomousEmotion(unsigned long currentTime,
+                                             unsigned long& lastEmotionSwitch,
+                                             int& emotionIndex,
+                                             const EmotionState* cyclable,
+                                             int numCyclable) {
+#if !ENABLE_MQTT
+  // No MQTT — sequential cycling
+  if (lastEmotionSwitch == 0 ||
+      currentTime - lastEmotionSwitch > EMOTION_CHANGE_INTERVAL) {
+    EmotionState e = cyclable[emotionIndex % numCyclable];
+    emotionIndex = (emotionIndex + 1) % numCyclable;
+    lastEmotionSwitch = currentTime;
+    Serial.printf("Testing: %s (%d)\n", emotionRegistry.getName(e), e);
+    return e;
+  }
+  return (EmotionState)-1;
+#else
+  bool inWorkspaceMode = networkManager.isInWorkspaceMode();
+  unsigned long lastMQTTTime = networkManager.getLastMQTTMessageTime();
+  unsigned long timeSinceLastMQTT = 0;
+
+  if (lastMQTTTime > 0 && currentTime >= lastMQTTTime) {
+    timeSinceLastMQTT = currentTime - lastMQTTTime;
+  }
+
+  bool offlineMode = (lastMQTTTime == 0) ||
+                     !mqttManager.isConnected() ||
+                     (lastMQTTTime > 0 && timeSinceLastMQTT > MQTT_TIMEOUT_THRESHOLD);
+
+  if (offlineMode) {
+    if (lastEmotionSwitch == 0 ||
+        currentTime - lastEmotionSwitch > OFFLINE_EMOTION_INTERVAL) {
+      int randomIndex = random(0, numCyclable);
+      EmotionState e = cyclable[randomIndex];
+
+      if (emotionManager.getCurrentEmotion() == EMOTION_NOTIFICATION &&
+          e != EMOTION_NOTIFICATION) {
+        offlineNotifTitle[0] = '\0';
+        offlineNotifMessage[0] = '\0';
+      }
+
+      if (e == EMOTION_NOTIFICATION) {
+        generateOfflineNotification();
+        Serial.printf("[Offline] Generated notification: %s - %s\n",
+                      offlineNotifTitle, offlineNotifMessage);
+      }
+
+      static bool offlineMsgShown = false;
+      if (!offlineMsgShown) {
+        Serial.println("Offline mode - autonomous emotion cycling");
+        offlineMsgShown = true;
+      }
+
+      Serial.printf("[Offline] Emotion: %s\n", emotionRegistry.getName(e));
+      lastEmotionSwitch = currentTime;
+      return e;
+    }
+  } else {
+    static bool workspaceMsgShown = false;
+    if (inWorkspaceMode && !workspaceMsgShown) {
+      Serial.println("Workspace mode active");
+      workspaceMsgShown = true;
+      lastEmotionSwitch = currentTime;
+    }
+  }
+
+  return (EmotionState)-1;  // MQTT in control
+#endif
 }
 
 // ===== MQTT TOPIC HANDLERS =====
@@ -317,9 +392,8 @@ void setup() {
 
   // Initialize display
   if (!displayManager.init()) {
-    Serial.println("Display initialization failed!");
-    for (;;)
-      ;
+    Serial.println("FATAL: Display init failed");
+    for (;;) { delay(1000); }
   }
 
   // Initialize emotion manager with callbacks
@@ -360,8 +434,10 @@ void setup() {
   Serial.println("MQTT disabled - running in autonomous mode");
 #endif
 
-  // Load hardcoded commit history for testing
+  // Load hardcoded commit history for testing (debug only)
+#if DEBUG_MODE_ENABLED
   loadHardcodedGitHubData();
+#endif
 
 #if DEBUG_MODE_ENABLED
   Serial.println("=== DEBUG MODE ENABLED ===");
@@ -407,78 +483,12 @@ void loop() {
     emotionsLoaded = true;
   }
 
-#if !ENABLE_MQTT
-  // Autonomous cycling when MQTT disabled
-  if (lastEmotionSwitch == 0 ||
-      currentTime - lastEmotionSwitch > EMOTION_CHANGE_INTERVAL) {
-    EmotionState newEmotion = cyclableEmotions[emotionIndex % numCyclable];
-    emotionManager.setTargetEmotion(newEmotion);
-    Serial.printf("Testing: %s (%d)\n",
-                  emotionRegistry.getName(newEmotion), newEmotion);
-    emotionIndex = (emotionIndex + 1) % numCyclable;
-    lastEmotionSwitch = currentTime;
+  EmotionState autoEmotion = selectAutonomousEmotion(
+      currentTime, lastEmotionSwitch, emotionIndex,
+      cyclableEmotions, numCyclable);
+  if ((int)autoEmotion != -1) {
+    emotionManager.setTargetEmotion(autoEmotion);
   }
-#else
-  // Workspace mode / offline mode
-  bool inWorkspaceMode = networkManager.isInWorkspaceMode();
-  unsigned long lastMQTTTime = networkManager.getLastMQTTMessageTime();
-  unsigned long timeSinceLastMQTT = 0;
-
-  if (lastMQTTTime > 0) {
-    if (currentTime >= lastMQTTTime) {
-      timeSinceLastMQTT = currentTime - lastMQTTTime;
-    } else {
-      timeSinceLastMQTT = 0;
-    }
-  }
-
-  bool offlineMode = (lastMQTTTime == 0) ||
-                     !mqttManager.isConnected() ||
-                     (lastMQTTTime > 0 &&
-                      timeSinceLastMQTT > MQTT_TIMEOUT_THRESHOLD);
-
-  if (offlineMode) {
-    // Offline autonomous mode - randomly pick emotions
-    if (lastEmotionSwitch == 0 ||
-        currentTime - lastEmotionSwitch > OFFLINE_EMOTION_INTERVAL) {
-      int randomIndex = random(0, numCyclable);
-      EmotionState newEmotion = cyclableEmotions[randomIndex];
-
-      // Clear previous offline notification when changing emotions
-      if (emotionManager.getCurrentEmotion() == EMOTION_NOTIFICATION &&
-          newEmotion != EMOTION_NOTIFICATION) {
-        offlineNotifTitle[0] = '\0';
-        offlineNotifMessage[0] = '\0';
-      }
-
-      if (newEmotion == EMOTION_NOTIFICATION) {
-        generateOfflineNotification();
-        Serial.printf("[Offline] Generated notification: %s - %s\n",
-                      offlineNotifTitle, offlineNotifMessage);
-      }
-
-      emotionManager.setTargetEmotion(newEmotion);
-
-      static bool offlineMsgShown = false;
-      if (!offlineMsgShown) {
-        Serial.println("Offline mode - autonomous emotion cycling");
-        offlineMsgShown = true;
-      }
-
-      Serial.printf("[Offline] Emotion: %s\n",
-                    emotionRegistry.getName(newEmotion));
-      lastEmotionSwitch = currentTime;
-    }
-  } else {
-    // Workspace mode active - MQTT controls emotions
-    static bool workspaceMsgShown = false;
-    if (inWorkspaceMode && !workspaceMsgShown) {
-      Serial.println("Workspace mode active");
-      workspaceMsgShown = true;
-      lastEmotionSwitch = currentTime;
-    }
-  }
-#endif
 #endif // !DEBUG_MODE_ENABLED
 
   // Handle touch input

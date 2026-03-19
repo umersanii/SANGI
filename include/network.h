@@ -25,6 +25,7 @@ public:
   MqttManager& mqtt() { return mqttManager; }
   NotificationQueue& notifications() { return notifications_; }
   GitHubDataStore& github() { return githubData_; }
+  const GitHubDataStore& github() const { return githubData_; }
 
   // Publishing (convenience wrappers over mqttManager.publish)
   void publishStatus(const char* status);
@@ -47,7 +48,7 @@ public:
   void updateLastMQTTMessageTime() { lastMQTTMessageTime_ = millis(); }
 
   // SSID validation
-  bool validateSSID(const char* receivedSSID);
+  bool validateSSID(const char* receivedSSID) const;
 
 private:
   NotificationQueue notifications_;

@@ -51,7 +51,7 @@ void GitHubDataStore::setContributions(const uint8_t contributions[52][7], int t
   Serial.printf("GitHub data loaded: %d contributions, %d day streak\n", total, streak);
 }
 
-GitHubContributionData* GitHubDataStore::getContributions() {
+const GitHubContributionData* GitHubDataStore::getContributions() const {
   if (!contributions_.dataLoaded) {
     return nullptr;
   }
