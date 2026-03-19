@@ -128,18 +128,55 @@ void DisplayManager::showBootScreen() {
   delay(3000);
 }
 
-void DisplayManager::clearDisplay() {
-  display.clearDisplay();
-}
+// --- ICanvas implementation (delegates to Adafruit_SSD1306) ---
 
-void DisplayManager::updateDisplay() {
-  display.display();
-}
+void DisplayManager::clear() { display.clearDisplay(); }
+void DisplayManager::flush() { display.display(); }
 
-void DisplayManager::drawEyes(int leftX, int leftY, int rightX, int rightY, int eyeHeight) {
-  display.fillRoundRect(leftX - 10, leftY - eyeHeight/2, 20, eyeHeight, 5, SSD1306_WHITE);
-  display.fillRoundRect(rightX - 10, rightY - eyeHeight/2, 20, eyeHeight, 5, SSD1306_WHITE);
+void DisplayManager::fillRoundRect(int16_t x, int16_t y, int16_t w, int16_t h,
+                                   int16_t r, uint16_t color) {
+  display.fillRoundRect(x, y, w, h, r, color);
 }
+void DisplayManager::drawRoundRect(int16_t x, int16_t y, int16_t w, int16_t h,
+                                   int16_t r, uint16_t color) {
+  display.drawRoundRect(x, y, w, h, r, color);
+}
+void DisplayManager::fillRect(int16_t x, int16_t y, int16_t w, int16_t h,
+                               uint16_t color) {
+  display.fillRect(x, y, w, h, color);
+}
+void DisplayManager::drawRect(int16_t x, int16_t y, int16_t w, int16_t h,
+                               uint16_t color) {
+  display.drawRect(x, y, w, h, color);
+}
+void DisplayManager::fillCircle(int16_t x, int16_t y, int16_t r,
+                                 uint16_t color) {
+  display.fillCircle(x, y, r, color);
+}
+void DisplayManager::drawCircle(int16_t x, int16_t y, int16_t r,
+                                 uint16_t color) {
+  display.drawCircle(x, y, r, color);
+}
+void DisplayManager::drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1,
+                               uint16_t color) {
+  display.drawLine(x0, y0, x1, y1, color);
+}
+void DisplayManager::fillTriangle(int16_t x0, int16_t y0, int16_t x1,
+                                   int16_t y1, int16_t x2, int16_t y2,
+                                   uint16_t color) {
+  display.fillTriangle(x0, y0, x1, y1, x2, y2, color);
+}
+void DisplayManager::setTextSize(uint8_t size) { display.setTextSize(size); }
+void DisplayManager::setCursor(int16_t x, int16_t y) {
+  display.setCursor(x, y);
+}
+void DisplayManager::setTextColor(uint16_t color) {
+  display.setTextColor(color);
+}
+void DisplayManager::print(const char* text) { display.print(text); }
+void DisplayManager::println(const char* text) { display.println(text); }
+
+// drawEyes is now inherited from ICanvas (concrete helper calling fillRoundRect)
 
 void DisplayManager::drawFace_Normal() {
   display.clearDisplay();
@@ -381,170 +418,125 @@ void DisplayManager::drawEmotionFace(EmotionState emotion) {
   }
 }
 
-void DisplayManager::performTransition() {
-  if (!emotionManager.isTransitionActive()) return;
-  
-  int transitionFrame = emotionManager.getTransitionFrame();
-  EmotionState currentEmotion = emotionManager.getCurrentEmotion();
-  EmotionState targetEmotion = emotionManager.getTargetEmotion();
-  
+// Transition animation — decoupled from EmotionManager.
+// Returns TR_DREW_FRAME (caller should advance) or TR_COMPLETE (caller should complete).
+TransitionResult DisplayManager::performTransitionFrame(int frame,
+                                                         EmotionState current,
+                                                         EmotionState target) {
   // Special handling for sleepy transitions
-  if (currentEmotion == EMOTION_SLEEPY || targetEmotion == EMOTION_SLEEPY) {
-    performSleepyTransition(transitionFrame, targetEmotion);
-    return;
+  if (current == EMOTION_SLEEPY || target == EMOTION_SLEEPY) {
+    return sleepyTransitionFrame(frame, target);
   }
-  
-  // Special handling ONLY when transitioning TO notification (surprise → run away → notification appears)
-  // When transitioning FROM notification to other emotions, use standard transition
-  if (targetEmotion == EMOTION_NOTIFICATION && currentEmotion != EMOTION_NOTIFICATION) {
-    performNotificationTransition(transitionFrame, currentEmotion);
-    return;
+
+  // Special handling ONLY when transitioning TO notification
+  if (target == EMOTION_NOTIFICATION && current != EMOTION_NOTIFICATION) {
+    return notificationTransitionFrame(frame, current);
   }
-  
-  // Standard transition for all other emotions
-  switch(transitionFrame) {
+
+  // Standard 7-frame blink transition
+  switch (frame) {
     case 0:
-      // Frame 1: Current emotion
-      drawEmotionFace(currentEmotion);
+      drawEmotionFace(current);
       delay(200);
-      emotionManager.advanceTransition();
-      break;
-      
+      return TR_DREW_FRAME;
     case 1:
-      // Frame 2: Squint eyes (preparing to blink)
       display.clearDisplay();
       drawEyes(40, 28, 88, 28, 12);
       display.display();
       delay(150);
-      emotionManager.advanceTransition();
-      break;
-      
+      return TR_DREW_FRAME;
     case 2:
-      // Frame 3: Eyes mostly closed
       display.clearDisplay();
       drawEyes(40, 28, 88, 28, 6);
       display.display();
       delay(150);
-      emotionManager.advanceTransition();
-      break;
-      
+      return TR_DREW_FRAME;
     case 3:
-      // Frame 4: Eyes fully closed (blink)
       display.clearDisplay();
       drawEyes(40, 28, 88, 28, 3);
       display.display();
       delay(200);
-      emotionManager.advanceTransition();
-      break;
-      
+      return TR_DREW_FRAME;
     case 4:
-      // Frame 5: Eyes starting to open
       display.clearDisplay();
       drawEyes(40, 28, 88, 28, 8);
       display.display();
       delay(150);
-      emotionManager.advanceTransition();
-      break;
-      
+      return TR_DREW_FRAME;
     case 5:
-      // Frame 6: Eyes half open
       display.clearDisplay();
       drawEyes(40, 28, 88, 28, 14);
       display.display();
       delay(150);
-      emotionManager.advanceTransition();
-      break;
-      
+      return TR_DREW_FRAME;
     case 6:
-      // Frame 7: Target emotion fully revealed
-      drawEmotionFace(targetEmotion);
+      drawEmotionFace(target);
       delay(200);
-      emotionManager.completeTransition();
-      break;
+      return TR_COMPLETE;
   }
+  return TR_COMPLETE;
 }
 
-// Special transition handler for sleepy emotion (uses round mouth)
-void DisplayManager::performSleepyTransition(int transitionFrame, EmotionState targetEmotion) {
-  switch(transitionFrame) {
+// Sleepy transition — uses round mouth throughout
+TransitionResult DisplayManager::sleepyTransitionFrame(int frame,
+                                                        EmotionState target) {
+  switch (frame) {
     case 0:
-      // Frame 1: Current emotion
-      drawEmotionFace(emotionManager.getCurrentEmotion());
+      drawEmotionFace(EMOTION_SLEEPY);
       delay(200);
-      emotionManager.advanceTransition();
-      break;
-      
+      return TR_DREW_FRAME;
     case 1:
-      // Frame 2: Squint eyes (preparing to blink) with round mouth
       display.clearDisplay();
       drawEyes(40, 28, 88, 28, 12);
-      display.drawCircle(64, 48, 5, SSD1306_WHITE);  // Round mouth for sleepy
+      display.drawCircle(64, 48, 5, SSD1306_WHITE);
       display.display();
       delay(150);
-      emotionManager.advanceTransition();
-      break;
-      
+      return TR_DREW_FRAME;
     case 2:
-      // Frame 3: Eyes mostly closed with round mouth
       display.clearDisplay();
       drawEyes(40, 29, 88, 29, 8);
-      display.drawCircle(64, 48, 6, SSD1306_WHITE);  // Round mouth
+      display.drawCircle(64, 48, 6, SSD1306_WHITE);
       display.display();
       delay(150);
-      emotionManager.advanceTransition();
-      break;
-      
+      return TR_DREW_FRAME;
     case 3:
-      // Frame 4: Eyes fully closed (blink) with round mouth
       display.clearDisplay();
       drawEyes(40, 30, 88, 30, 4);
-      display.drawCircle(64, 48, 6, SSD1306_WHITE);  // Round mouth
+      display.drawCircle(64, 48, 6, SSD1306_WHITE);
       display.display();
       delay(200);
-      emotionManager.advanceTransition();
-      break;
-      
+      return TR_DREW_FRAME;
     case 4:
-      // Frame 5: Eyes starting to open with round mouth
       display.clearDisplay();
       drawEyes(40, 29, 88, 29, 8);
-      display.drawCircle(64, 48, 6, SSD1306_WHITE);  // Round mouth
+      display.drawCircle(64, 48, 6, SSD1306_WHITE);
       display.display();
       delay(150);
-      emotionManager.advanceTransition();
-      break;
-      
+      return TR_DREW_FRAME;
     case 5:
-      // Frame 6: Eyes half open
       display.clearDisplay();
       drawEyes(40, 28, 88, 28, 12);
-      display.drawCircle(64, 48, 5, SSD1306_WHITE);  // Round mouth
+      display.drawCircle(64, 48, 5, SSD1306_WHITE);
       display.display();
       delay(150);
-      emotionManager.advanceTransition();
-      break;
-      
+      return TR_DREW_FRAME;
     case 6:
-      // Frame 7: Target emotion fully revealed
-      drawEmotionFace(targetEmotion);
+      drawEmotionFace(target);
       delay(200);
-      emotionManager.completeTransition();
-      break;
+      return TR_COMPLETE;
   }
+  return TR_COMPLETE;
 }
 
-// Special transition handler for notification emotion (surprise → run away → notification appears)
-void DisplayManager::performNotificationTransition(int transitionFrame, EmotionState currentEmotion) {
-  switch(transitionFrame) {
+// Notification transition — surprise → run away → notification board appears
+TransitionResult DisplayManager::notificationTransitionFrame(int frame,
+                                                              EmotionState current) {
+  switch (frame) {
     case 0:
-      // Frame 1: Current emotion (normal idle state)
-      drawEmotionFace(currentEmotion);
+      drawEmotionFace(current);
       delay(150);
-      emotionManager.advanceTransition();
-      break;
-      
+      return TR_DREW_FRAME;
     case 1:
-      // Frame 2: Eyes start widening (notification alert!)
       display.clearDisplay();
       drawEyes(40, 27, 88, 27, 22);
       display.fillCircle(40, 27, 2, SSD1306_BLACK);
@@ -552,11 +544,8 @@ void DisplayManager::performNotificationTransition(int transitionFrame, EmotionS
       display.drawCircle(64, 48, 6, SSD1306_WHITE);
       display.display();
       delay(100);
-      emotionManager.advanceTransition();
-      break;
-      
+      return TR_DREW_FRAME;
     case 2:
-      // Frame 3: Eyes WIDE (startled!)
       display.clearDisplay();
       drawEyes(40, 26, 88, 26, 26);
       display.fillCircle(40, 26, 3, SSD1306_BLACK);
@@ -564,43 +553,31 @@ void DisplayManager::performNotificationTransition(int transitionFrame, EmotionS
       display.fillCircle(64, 50, 8, SSD1306_WHITE);
       display.display();
       delay(150);
-      emotionManager.advanceTransition();
-      break;
-      
+      return TR_DREW_FRAME;
     case 3:
-      // Frame 4: Eyes squinting (preparing to run!)
       display.clearDisplay();
       drawEyes(40, 28, 88, 28, 12);
       display.drawLine(52, 50, 76, 50, SSD1306_WHITE);
       display.display();
       delay(100);
-      emotionManager.advanceTransition();
-      break;
-      
+      return TR_DREW_FRAME;
     case 4:
-      // Frame 5: Start moving right (running away)
       display.clearDisplay();
       drawEyes(60, 28, 108, 28, 14);
       display.drawLine(72, 50, 96, 50, SSD1306_WHITE);
       display.display();
       delay(100);
-      emotionManager.advanceTransition();
-      break;
-      
+      return TR_DREW_FRAME;
     case 5:
-      // Frame 6: Almost off-screen
       display.clearDisplay();
-      drawEyes(85, 28, 133, 28, 14);  // Partially off-screen
+      drawEyes(85, 28, 133, 28, 14);
       display.display();
       delay(100);
-      emotionManager.advanceTransition();
-      break;
-      
+      return TR_DREW_FRAME;
     case 6:
-      // Frame 7: Notification appears (target emotion fully revealed)
       drawEmotionFace(EMOTION_NOTIFICATION);
       delay(200);
-      emotionManager.completeTransition();
-      break;
+      return TR_COMPLETE;
   }
+  return TR_COMPLETE;
 }

@@ -1,19 +1,22 @@
+// EmotionManager implementation.
+// CHANGED in Phase 1: Removed direct #includes of animations.h, speaker.h,
+// network.h. All cross-module effects now go through callbacks, making
+// EmotionManager fully self-contained and testable in isolation.
+
 #include "emotion.h"
-#include "animations.h"
-#include "speaker.h"
-#include "network.h"
 
 EmotionManager emotionManager;
 
-EmotionManager::EmotionManager() 
-  : currentEmotion(EMOTION_IDLE),
-    previousEmotion(EMOTION_IDLE),
-    targetEmotion(EMOTION_IDLE),
-    lastEmotionChange(0),
-    bootTime(0),
-    isTransitioning(false),
-    transitionFrame(0) {
-}
+EmotionManager::EmotionManager()
+    : currentEmotion(EMOTION_IDLE),
+      previousEmotion(EMOTION_IDLE),
+      targetEmotion(EMOTION_IDLE),
+      lastEmotionChange(0),
+      bootTime(0),
+      isTransitioning(false),
+      transitionFrame(0),
+      onTransitionComplete(nullptr),
+      onEmotionChange(nullptr) {}
 
 void EmotionManager::init(unsigned long currentTime) {
   bootTime = currentTime;
@@ -23,52 +26,40 @@ void EmotionManager::init(unsigned long currentTime) {
 }
 
 void EmotionManager::setTargetEmotion(EmotionState newEmotion) {
-  // Validate emotion state is within valid range
   if (newEmotion < EMOTION_IDLE || newEmotion > EMOTION_GITHUB_STATS) {
     Serial.printf("ERROR: Invalid emotion state %d\n", newEmotion);
     return;
   }
-  
+
   if (currentEmotion != newEmotion) {
     previousEmotion = currentEmotion;
     targetEmotion = newEmotion;
     isTransitioning = true;
     transitionFrame = 0;
-    
-    Serial.printf("Emotion transition: %d → %d\n", currentEmotion, newEmotion);
-    
-    // Log emotion change to wireless serial monitor
-#if ENABLE_MQTT
-    char logMsg[64];
-    snprintf(logMsg, sizeof(logMsg), "Emotion transition: %d → %d", currentEmotion, newEmotion);
-    networkManager.logInfo(logMsg);
-#endif
-    
-    // Queue emotion-specific beep sound (non-blocking)
-#if ENABLE_EMOTION_BEEP
-    beepManager.queueEmotionBeep(newEmotion);
-#endif
+
+    Serial.printf("Emotion transition: %d -> %d\n", currentEmotion,
+                  newEmotion);
+
+    // Notify main.cpp (which forwards to beep, MQTT log, etc.)
+    if (onEmotionChange) {
+      onEmotionChange(currentEmotion, newEmotion);
+    }
   }
 }
 
 void EmotionManager::update(unsigned long currentTime) {
-  // This would contain the emotion update logic
-  // Currently disabled in the original code for animation testing
+  // Reserved for future autonomous emotion logic
 }
 
-EmotionState EmotionManager::getTimeBasedEmotion(unsigned long currentTime) const {
+EmotionState
+EmotionManager::getTimeBasedEmotion(unsigned long currentTime) const {
   unsigned long currentUptime = currentTime - bootTime;
   unsigned long hourOfDay = (currentUptime / HOUR_IN_MILLIS) % 24;
-  
-  if (hourOfDay >= 6 && hourOfDay < 12) {
-    return EMOTION_HAPPY;  // Morning
-  } else if (hourOfDay >= 12 && hourOfDay < 18) {
-    return EMOTION_THINKING;  // Afternoon
-  } else if (hourOfDay >= 18 && hourOfDay < 22) {
-    return EMOTION_IDLE;  // Evening
-  } else {
-    return EMOTION_SLEEPY;  // Night
-  }
+
+  if (hourOfDay >= 6 && hourOfDay < 12) return EMOTION_HAPPY;
+  if (hourOfDay >= 12 && hourOfDay < 18) return EMOTION_THINKING;
+  if (hourOfDay >= 18 && hourOfDay < 22) return EMOTION_IDLE;
+  return EMOTION_SLEEPY;
 }
 
 void EmotionManager::startTransition() {
@@ -86,7 +77,9 @@ void EmotionManager::completeTransition() {
   currentEmotion = targetEmotion;
   isTransitioning = false;
   transitionFrame = 0;
-  
-  // Reset animation to start from frame 0 for smooth entry
-  animationManager.resetAnimation(currentEmotion);
+
+  // Notify main.cpp (which calls animationManager.resetAnimation)
+  if (onTransitionComplete) {
+    onTransitionComplete(currentEmotion);
+  }
 }
