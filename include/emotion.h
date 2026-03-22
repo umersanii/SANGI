@@ -22,11 +22,7 @@ enum EmotionState {
   EMOTION_LOVE,
   EMOTION_SURPRISED,
   EMOTION_DEAD,
-  EMOTION_MUSIC,
-  EMOTION_BLINK,
-  EMOTION_NOTIFICATION,
-  EMOTION_CODING,
-  EMOTION_GITHUB_STATS
+  EMOTION_BLINK
 };
 
 // Callback signatures for dependency injection

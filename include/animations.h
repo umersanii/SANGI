@@ -10,6 +10,7 @@
 #include <Arduino.h>
 #include "config.h"
 #include "emotion.h"
+#include "emotion_registry.h"
 #include "canvas.h"
 
 struct AnimState {
@@ -28,7 +29,7 @@ public:
   bool tick(EmotionState emotion, ICanvas& canvas, const void* context = nullptr);
 
 private:
-  AnimState states_[EMOTION_GITHUB_STATS + 1];
+  AnimState states_[EmotionRegistry::MAX_EMOTIONS];
 };
 
 extern AnimationManager animationManager;

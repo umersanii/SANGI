@@ -4,14 +4,14 @@
 AnimationManager animationManager;
 
 AnimationManager::AnimationManager() {
-  for (int i = 0; i <= EMOTION_GITHUB_STATS; i++) {
+  for (int i = 0; i < EmotionRegistry::MAX_EMOTIONS; i++) {
     states_[i].frame = 0;
     states_[i].lastTick = 0;
   }
 }
 
 void AnimationManager::resetAnimation(EmotionState emotion) {
-  if (emotion >= 0 && emotion <= EMOTION_GITHUB_STATS) {
+  if ((int)emotion >= 0 && (int)emotion < EmotionRegistry::MAX_EMOTIONS) {
     states_[emotion].frame = 0;
     states_[emotion].lastTick = 0;
   }

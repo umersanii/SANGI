@@ -1,6 +1,6 @@
 // SANGI Robot — Native Unit Tests
-// Tests for emotion management, emotion registry, notification queue,
-// animation tick engine, and draw functions via MockCanvas.
+// Tests for emotion management, emotion registry, animation tick engine,
+// and draw functions via MockCanvas.
 //
 // Run with: pio test -e native
 
@@ -9,7 +9,6 @@
 #include "emotion_registry.h"
 #include "emotion_draws.h"
 #include "animations.h"
-#include "notification_queue.h"
 #include "mock_canvas.h"
 
 // ===== TEST HELPERS =====
@@ -24,7 +23,6 @@ void stubEmotionChange(EmotionState f, EmotionState t) {
 }
 
 static void registerTestEmotions() {
-  // Reset the global registry by reconstructing it
   emotionRegistry = EmotionRegistry();
   emotionRegistry.add({EMOTION_IDLE, "IDLE", 1, 0, LOOP_RESTART, true, drawIdle});
   emotionRegistry.add({EMOTION_BLINK, "BLINK", 1, 0, LOOP_RESTART, false, drawBlink});
@@ -38,10 +36,6 @@ static void registerTestEmotions() {
   emotionRegistry.add({EMOTION_LOVE, "LOVE", 51, 30, LOOP_RESTART, true, drawLove});
   emotionRegistry.add({EMOTION_SURPRISED, "SURPRISED", 51, 30, LOOP_RESTART, true, drawSurprised});
   emotionRegistry.add({EMOTION_DEAD, "DEAD", 51, 30, LOOP_RESTART, false, drawDead});
-  emotionRegistry.add({EMOTION_MUSIC, "MUSIC", 51, 30, LOOP_RESTART, false, drawMusic});
-  emotionRegistry.add({EMOTION_NOTIFICATION, "NOTIFICATION", 86, 50, LOOP_ONCE, false, drawNotification});
-  emotionRegistry.add({EMOTION_CODING, "CODING", 25, 100, LOOP_RESTART, false, drawCoding});
-  emotionRegistry.add({EMOTION_GITHUB_STATS, "GITHUB_STATS", 131, 80, LOOP_RESTART, false, drawGitHubStats});
 }
 
 void setUp() {
@@ -127,6 +121,15 @@ void test_transition_frame_advance_and_complete() {
   TEST_ASSERT_EQUAL(0, emotionManager.getTransitionFrame());
 }
 
+void test_emotion_validation_uses_registry() {
+  // Unregistered value rejected
+  emotionManager.setTargetEmotion((EmotionState)99);
+  TEST_ASSERT_FALSE(emotionManager.isTransitionActive());
+  // Valid registered emotion works
+  emotionManager.setTargetEmotion(EMOTION_HAPPY);
+  TEST_ASSERT_TRUE(emotionManager.isTransitionActive());
+}
+
 // ===== EMOTION REGISTRY TESTS =====
 
 void test_registry_add_and_get() {
@@ -164,82 +167,16 @@ void test_registry_cyclable_excludes_blink() {
 }
 
 void test_registry_count() {
-  // Global registry populated by setUp
-  TEST_ASSERT_EQUAL(16, emotionRegistry.count());
-}
-
-// ===== NOTIFICATION QUEUE TESTS =====
-
-void test_notification_add_and_retrieve() {
-  NotificationQueue q;
-  TEST_ASSERT_TRUE(q.add(NOTIFY_GENERIC, "Test Title", "Test Message"));
-  TEST_ASSERT_EQUAL(1, q.count());
-  TEST_ASSERT_TRUE(q.hasItems());
-
-  Notification* n = q.current();
-  TEST_ASSERT_NOT_NULL(n);
-  TEST_ASSERT_EQUAL_STRING("Test Title", n->title);
-  TEST_ASSERT_EQUAL_STRING("Test Message", n->message);
-  TEST_ASSERT_EQUAL(NOTIFY_GENERIC, n->type);
-}
-
-void test_notification_queue_overflow() {
-  NotificationQueue q;
-
-  for (int i = 0; i < NotificationQueue::MAX_SIZE; i++) {
-    char title[32];
-    snprintf(title, sizeof(title), "Notif %d", i);
-    TEST_ASSERT_TRUE(q.add(NOTIFY_GENERIC, title, "Message"));
-  }
-  TEST_ASSERT_EQUAL(NotificationQueue::MAX_SIZE, q.count());
-
-  // Should fail — queue full
-  TEST_ASSERT_FALSE(q.add(NOTIFY_GENERIC, "Overflow", "Fail"));
-  TEST_ASSERT_EQUAL(NotificationQueue::MAX_SIZE, q.count());
-}
-
-void test_notification_clear_and_empty() {
-  NotificationQueue q;
-  q.add(NOTIFY_DISCORD, "Test", "Msg");
-  TEST_ASSERT_EQUAL(1, q.count());
-
-  q.current();  // sets currentIdx_
-  q.clearCurrent();
-  TEST_ASSERT_EQUAL(0, q.count());
-  TEST_ASSERT_FALSE(q.hasItems());
-}
-
-void test_notification_string_truncation() {
-  NotificationQueue q;
-  char longTitle[100] = "This title is far too long for the 31 char buffer and should be truncated";
-  char longMsg[200] = "This message exceeds the 63 character limit and must be truncated to prevent buffer overflows in embedded";
-
-  q.add(NOTIFY_GENERIC, longTitle, longMsg);
-  Notification* n = q.current();
-  TEST_ASSERT_NOT_NULL(n);
-  TEST_ASSERT_EQUAL('\0', n->title[31]);
-  TEST_ASSERT_EQUAL('\0', n->message[63]);
-  TEST_ASSERT_TRUE(strlen(n->title) <= 31);
-  TEST_ASSERT_TRUE(strlen(n->message) <= 63);
-}
-
-void test_notification_null_strings() {
-  NotificationQueue q;
-  TEST_ASSERT_TRUE(q.add(NOTIFY_SYSTEM, nullptr, nullptr));
-  Notification* n = q.current();
-  TEST_ASSERT_NOT_NULL(n);
-  TEST_ASSERT_EQUAL('\0', n->title[0]);
-  TEST_ASSERT_EQUAL('\0', n->message[0]);
+  // Global registry populated by setUp — 12 emotions (networking-tied removed)
+  TEST_ASSERT_EQUAL(12, emotionRegistry.count());
 }
 
 // ===== ANIMATION TICK ENGINE TESTS =====
 
 void test_tick_draws_frame_on_first_call() {
   MockCanvas canvas;
-  // millis() = 0, lastTick = 0, so delay check passes
   bool drew = animationManager.tick(EMOTION_IDLE, canvas);
   TEST_ASSERT_TRUE(drew);
-  // Should have CLEAR + draw calls + FLUSH
   TEST_ASSERT_TRUE(canvas.findCall(DrawCall::CLEAR) >= 0);
   TEST_ASSERT_TRUE(canvas.findCall(DrawCall::FLUSH) >= 0);
 }
@@ -266,34 +203,16 @@ void test_tick_advances_frame() {
   MockCanvas canvas;
   animationManager.resetAnimation(EMOTION_HAPPY);
 
-  // Draw frame 0
   stubSetMillis(0);
   animationManager.tick(EMOTION_HAPPY, canvas);
 
-  // Draw frame 1
   stubSetMillis(31);
   animationManager.tick(EMOTION_HAPPY, canvas);
 
-  // Draw frame 2
   stubSetMillis(62);
   animationManager.tick(EMOTION_HAPPY, canvas);
 
-  // Verify multiple frames drawn (3 CLEAR + 3 FLUSH = at least 6 calls)
   TEST_ASSERT_TRUE(canvas.callCount() >= 6);
-}
-
-void test_tick_loop_once_holds_last_frame() {
-  MockCanvas canvas;
-  animationManager.resetAnimation(EMOTION_NOTIFICATION);
-
-  // Advance through all 86 frames of NOTIFICATION
-  for (int i = 0; i < 100; i++) {
-    stubSetMillis((unsigned long)i * 51);
-    animationManager.tick(EMOTION_NOTIFICATION, canvas);
-  }
-
-  // Should not crash, should have drawn many times
-  TEST_ASSERT_TRUE(canvas.callCount() > 0);
 }
 
 void test_tick_returns_false_for_unknown_emotion() {
@@ -308,11 +227,9 @@ void test_draw_idle_draws_eyes() {
   MockCanvas canvas;
   drawIdle(canvas, 0, nullptr);
 
-  // IDLE draws two eyes via fillRoundRect
   int first = canvas.findCall(DrawCall::FILL_RRECT);
   TEST_ASSERT_TRUE(first >= 0);
 
-  // Second eye
   int second = canvas.findCall(DrawCall::FILL_RRECT, first + 1);
   TEST_ASSERT_TRUE(second >= 0);
 }
@@ -323,7 +240,6 @@ void test_draw_blink_draws_narrow_eyes() {
 
   int idx = canvas.findCall(DrawCall::FILL_RRECT);
   TEST_ASSERT_TRUE(idx >= 0);
-  // Blink eyes should be short (height ~4)
   TEST_ASSERT_TRUE(canvas.call(idx).h <= 6);
 }
 
@@ -333,47 +249,18 @@ void test_draw_happy_frame0_has_content() {
   TEST_ASSERT_TRUE(canvas.callCount() > 0);
 }
 
-void test_draw_notification_uses_context() {
-  MockCanvas canvas;
-  NotificationContext ctx = {"Alert", "Hello World"};
-  drawNotification(canvas, 40, &ctx);
-
-  // Should have text draws for title/message
-  int textIdx = canvas.findCall(DrawCall::TEXT);
-  TEST_ASSERT_TRUE(textIdx >= 0);
-}
-
-void test_draw_github_stats_with_data() {
-  MockCanvas canvas;
-  GitHubStatsContext ctx = {};
-  ctx.hasData = true;
-  ctx.username = "testuser";
-  ctx.repos = 25;
-  ctx.followers = 100;
-  ctx.contributions = 500;
-  ctx.commits = 300;
-  ctx.prs = 20;
-  ctx.issues = 10;
-  ctx.stars = 50;
-  ctx.following = 15;
-
-  drawGitHubStats(canvas, 0, &ctx);
-  TEST_ASSERT_TRUE(canvas.callCount() > 0);
-}
-
 void test_all_emotions_draw_without_crash() {
   MockCanvas canvas;
   DrawFrameFn drawFns[] = {
     drawIdle, drawBlink, drawHappy, drawSleepy, drawExcited,
     drawSad, drawAngry, drawConfused, drawThinking, drawLove,
-    drawSurprised, drawDead, drawMusic, drawCoding
+    drawSurprised, drawDead
   };
 
-  for (int fn = 0; fn < 14; fn++) {
+  for (int fn = 0; fn < 12; fn++) {
     for (int frame = 0; frame < 51; frame++) {
       canvas.reset();
       drawFns[fn](canvas, frame, nullptr);
-      // Just verify no crash and some drawing happened on frame 0
       if (frame == 0) {
         TEST_ASSERT_TRUE(canvas.callCount() > 0);
       }
@@ -395,6 +282,7 @@ int main(int argc, char** argv) {
   RUN_TEST(test_change_callback_receives_from_and_to);
   RUN_TEST(test_previous_emotion_tracks_history);
   RUN_TEST(test_transition_frame_advance_and_complete);
+  RUN_TEST(test_emotion_validation_uses_registry);
 
   // Emotion registry
   RUN_TEST(test_registry_add_and_get);
@@ -403,26 +291,16 @@ int main(int argc, char** argv) {
   RUN_TEST(test_registry_cyclable_excludes_blink);
   RUN_TEST(test_registry_count);
 
-  // Notification queue
-  RUN_TEST(test_notification_add_and_retrieve);
-  RUN_TEST(test_notification_queue_overflow);
-  RUN_TEST(test_notification_clear_and_empty);
-  RUN_TEST(test_notification_string_truncation);
-  RUN_TEST(test_notification_null_strings);
-
   // Animation tick engine
   RUN_TEST(test_tick_draws_frame_on_first_call);
   RUN_TEST(test_tick_respects_frame_delay);
   RUN_TEST(test_tick_advances_frame);
-  RUN_TEST(test_tick_loop_once_holds_last_frame);
   RUN_TEST(test_tick_returns_false_for_unknown_emotion);
 
   // Draw functions
   RUN_TEST(test_draw_idle_draws_eyes);
   RUN_TEST(test_draw_blink_draws_narrow_eyes);
   RUN_TEST(test_draw_happy_frame0_has_content);
-  RUN_TEST(test_draw_notification_uses_context);
-  RUN_TEST(test_draw_github_stats_with_data);
   RUN_TEST(test_all_emotions_draw_without_crash);
 
   return UNITY_END();
