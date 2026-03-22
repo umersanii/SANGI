@@ -2,1243 +2,635 @@
 #include "canvas.h"
 #include <stdio.h>
 
+// ===== EASING HELPER =====
+
+// Quadratic ease-in-out: interpolates between start and end over totalFrames.
+// frame=0 → start, frame=totalFrames → end. Non-linear for organic motion.
+static inline int ease(int start, int end, int frame, int totalFrames) {
+  if (totalFrames <= 0) return end;
+  float t = (float)frame / (float)totalFrames;
+  if (t > 1.0f) t = 1.0f;
+  t = (t < 0.5f) ? 2 * t * t : 1 - (-2 * t + 2) * (-2 * t + 2) / 2;
+  return start + (int)((end - start) * t);
+}
+
 // ===== LOCAL HELPERS =====
 
-// Draw X-shaped eyes (dead emotion)
+// Draw X-shaped eyes (dead emotion) — centered on new grammar positions
 static void drawXEyes(ICanvas& c, int thickness) {
   for (int i = 0; i < thickness; i++) {
-    c.drawLine(32, 20 + i, 50, 36 + i, COLOR_WHITE);
-    c.drawLine(32, 36 + i, 50, 20 + i, COLOR_WHITE);
-    c.drawLine(78, 20 + i, 96, 36 + i, COLOR_WHITE);
-    c.drawLine(78, 36 + i, 96, 20 + i, COLOR_WHITE);
+    // Left X: centered around x=38, eye region y=20-36
+    c.drawLine(28, 20 + i, 48, 36 + i, COLOR_WHITE);
+    c.drawLine(28, 36 + i, 48, 20 + i, COLOR_WHITE);
+    // Right X: centered around x=90, eye region y=20-36
+    c.drawLine(80, 20 + i, 100, 36 + i, COLOR_WHITE);
+    c.drawLine(80, 36 + i, 100, 20 + i, COLOR_WHITE);
   }
 }
 
-// Draw thick angled furrowed eyebrows (angry emotion)
-static void drawAngryBrows(ICanvas& c, int xOff, int thickness,
-                           int outerY, int innerY) {
-  for (int i = 0; i < thickness; i++) {
-    c.drawLine(20 + xOff, outerY + i, 52 + xOff, innerY + i, COLOR_WHITE);
-    c.drawLine(76 + xOff, innerY + i, 108 + xOff, outerY + i, COLOR_WHITE);
-  }
-}
-
-// Draw a heart shape for love eyes
+// Draw heart eye at center (cx, cy) with given radius
 static void drawHeartEye(ICanvas& c, int cx, int cy, int r) {
-  c.fillCircle(cx - 5, cy, r, COLOR_WHITE);
-  c.fillCircle(cx + 5, cy, r, COLOR_WHITE);
-  int halfSpan = (r > 6) ? r + 5 : r + 4;
-  c.fillRect(cx - halfSpan + 3, cy, halfSpan * 2 - 6, r - 1, COLOR_WHITE);
-  c.fillTriangle(cx - halfSpan + 3, cy + r - 1, cx, cy + r + 6,
-                 cx + halfSpan - 3, cy + r - 1, COLOR_WHITE);
+  // Two circles side by side form the top of the heart
+  c.fillCircle(cx - (r / 2 + 1), cy, r, COLOR_WHITE);
+  c.fillCircle(cx + (r / 2 + 1), cy, r, COLOR_WHITE);
+  // Rectangle fills the gap between circles
+  int span = r + (r / 2 + 2);
+  c.fillRect(cx - span / 2, cy, span, r, COLOR_WHITE);
+  // Triangle forms the point of the heart
+  c.fillTriangle(cx - span / 2, cy + r, cx, cy + r + r,
+                 cx + span / 2, cy + r, COLOR_WHITE);
 }
 
-// ===== STATIC EMOTIONS =====
-
-void drawIdle(ICanvas& canvas, int frame, const void* ctx) {
-  canvas.drawEyes(40, 28, 88, 28, 20);
-}
+// ===== 2.2 BLINK — transition mortar =====
 
 void drawBlink(ICanvas& canvas, int frame, const void* ctx) {
-  canvas.drawEyes(40, 28, 88, 28, 4);
+  // Eyes at Y=30 (2px lower than neutral), height=4 (nearly shut). No mouth.
+  canvas.drawEyes(38, 30, 90, 30, 4);
 }
 
-// ===== SLEEPY =====
+// ===== 2.1 IDLE — restful ambient life =====
+// 60 frames @ 50ms = 3.0s loop. Subtle breathing bob with one asymmetric beat.
 
-void drawSleepy(ICanvas& canvas, int frame, const void* ctx) {
-  switch (frame) {
-    // === CLOSING SEQUENCE (frames 0-8) ===
-    case 0:
-      canvas.drawEyes(40, 28, 88, 28, 20);
-      canvas.drawCircle(64, 48, 5, COLOR_WHITE);
-      break;
-    case 1:
-      canvas.drawEyes(40, 29, 88, 29, 16);
-      canvas.drawCircle(64, 48, 5, COLOR_WHITE);
-      break;
-    case 2:
-      canvas.drawEyes(40, 29, 88, 29, 12);
-      canvas.drawCircle(64, 48, 5, COLOR_WHITE);
-      break;
-    case 3:
-      canvas.drawEyes(40, 30, 88, 30, 10);
-      canvas.drawCircle(64, 48, 5, COLOR_WHITE);
-      break;
-    case 4:
-      canvas.drawEyes(40, 30, 88, 30, 8);
-      canvas.drawCircle(64, 48, 6, COLOR_WHITE);
-      break;
-    case 5:
-      canvas.drawEyes(40, 31, 88, 31, 6);
-      canvas.drawCircle(64, 49, 7, COLOR_WHITE);
-      break;
-    case 6:
-      canvas.drawEyes(40, 31, 88, 31, 4);
-      canvas.fillCircle(64, 49, 7, COLOR_WHITE);
-      break;
-    case 7:
-      canvas.drawEyes(40, 31, 88, 31, 3);
-      canvas.fillCircle(64, 50, 8, COLOR_WHITE);
-      break;
-    case 8:
-      canvas.drawEyes(40, 31, 88, 31, 2);
-      canvas.fillCircle(64, 50, 8, COLOR_WHITE);
-      canvas.setTextSize(1);
-      canvas.setCursor(85, 35);
-      canvas.print("z");
-      break;
-
-    // === STAY CLOSED (frames 9-42) ===
-    case 9: case 10: case 11: case 12: case 13:
-      canvas.drawEyes(40, 31, 88, 31, 2);
-      canvas.fillCircle(64, 50, 8, COLOR_WHITE);
-      canvas.setTextSize(1);
-      canvas.setCursor(88, 32);
-      canvas.print("z");
-      canvas.setCursor(95, 30);
-      canvas.print("z");
-      break;
-    case 14: case 15: case 16: case 17: case 18:
-      canvas.drawEyes(40, 31, 88, 31, 2);
-      canvas.fillCircle(64, 50, 8, COLOR_WHITE);
-      canvas.setTextSize(1);
-      canvas.setCursor(92, 28);
-      canvas.print("z");
-      canvas.setCursor(100, 25);
-      canvas.print("z");
-      canvas.setCursor(108, 22);
-      canvas.print("z");
-      break;
-    case 19: case 20: case 21: case 22: case 23:
-      canvas.drawEyes(40, 31, 88, 31, 2);
-      canvas.fillCircle(64, 50, 8, COLOR_WHITE);
-      canvas.setTextSize(1);
-      canvas.setCursor(95, 24);
-      canvas.print("z");
-      canvas.setCursor(104, 20);
-      canvas.print("z");
-      canvas.setCursor(112, 16);
-      canvas.print("z");
-      canvas.setCursor(118, 12);
-      canvas.print("z");
-      break;
-    case 24: case 25: case 26: case 27: case 28:
-      canvas.drawEyes(40, 31, 88, 31, 2);
-      canvas.fillCircle(64, 50, 8, COLOR_WHITE);
-      canvas.setTextSize(1);
-      canvas.setCursor(98, 20);
-      canvas.print("z");
-      canvas.setCursor(106, 16);
-      canvas.print("z");
-      canvas.setCursor(114, 12);
-      canvas.print("z");
-      canvas.setCursor(120, 8);
-      canvas.print("z");
-      break;
-    case 29: case 30: case 31: case 32: case 33:
-      canvas.drawEyes(40, 31, 88, 31, 2);
-      canvas.fillCircle(64, 50, 8, COLOR_WHITE);
-      canvas.setTextSize(1);
-      canvas.setCursor(100, 18);
-      canvas.print("z");
-      canvas.setCursor(108, 14);
-      canvas.print("z");
-      canvas.setCursor(115, 10);
-      canvas.print("z");
-      canvas.setCursor(122, 6);
-      canvas.print("z");
-      break;
-    case 34: case 35: case 36: case 37: case 38:
-    case 39: case 40: case 41: case 42:
-      canvas.drawEyes(40, 31, 88, 31, 2);
-      canvas.fillCircle(64, 50, 8, COLOR_WHITE);
-      canvas.setTextSize(1);
-      canvas.setCursor(102, 16);
-      canvas.print("z");
-      canvas.setCursor(110, 12);
-      canvas.print("z");
-      canvas.setCursor(116, 8);
-      canvas.print("z");
-      canvas.setCursor(122, 4);
-      canvas.print("z");
-      canvas.setCursor(126, 2);
-      canvas.print("z");
-      break;
-
-    // === OPENING SEQUENCE (frames 43-50) ===
-    case 43:
-      canvas.drawEyes(40, 31, 88, 31, 3);
-      canvas.fillCircle(64, 50, 8, COLOR_WHITE);
-      canvas.setTextSize(1);
-      canvas.setCursor(110, 8);
-      canvas.print("Z");
-      break;
-    case 44:
-      canvas.drawEyes(40, 31, 88, 31, 4);
-      canvas.fillCircle(64, 49, 7, COLOR_WHITE);
-      break;
-    case 45:
-      canvas.drawEyes(40, 31, 88, 31, 6);
-      canvas.drawCircle(64, 49, 7, COLOR_WHITE);
-      break;
-    case 46:
-      canvas.drawEyes(40, 30, 88, 30, 8);
-      canvas.drawCircle(64, 48, 6, COLOR_WHITE);
-      break;
-    case 47:
-      canvas.drawEyes(40, 30, 88, 30, 10);
-      canvas.drawCircle(64, 48, 5, COLOR_WHITE);
-      break;
-    case 48:
-      canvas.drawEyes(40, 29, 88, 29, 14);
-      canvas.drawCircle(64, 48, 5, COLOR_WHITE);
-      break;
-    case 49:
-      canvas.drawEyes(40, 28, 88, 28, 18);
-      canvas.drawCircle(64, 48, 5, COLOR_WHITE);
-      break;
-    case 50:
-      canvas.drawEyes(40, 28, 88, 28, 20);
-      canvas.drawCircle(64, 48, 5, COLOR_WHITE);
-      break;
+void drawIdle(ICanvas& canvas, int frame, const void* ctx) {
+  // Breathing cycle: eyes drift Y=28→27 on inhale, back on exhale.
+  // Two full breaths in 60 frames. Asymmetric beat at F50-55.
+  int eyeY;
+  if (frame < 15) {
+    eyeY = ease(28, 27, frame, 14);
+  } else if (frame < 30) {
+    eyeY = ease(27, 28, frame - 15, 14);
+  } else if (frame < 45) {
+    eyeY = ease(28, 27, frame - 30, 14);
+  } else {
+    eyeY = ease(27, 28, frame - 45, 14);
   }
-}
 
-// ===== THINKING =====
+  int mouthW = (frame >= 7 && frame < 22) ? 12 : 14;
+  int mouthH = (frame >= 7 && frame < 22) ? 4 : 5;
 
-void drawThinking(ICanvas& canvas, int frame, const void* ctx) {
-  switch (frame) {
-    case 0:
-      canvas.fillRoundRect(33, 22, 18, 20, 5, COLOR_WHITE);
-      canvas.fillRoundRect(81, 22, 18, 20, 5, COLOR_WHITE);
-      canvas.fillRoundRect(52, 50, 24, 6, 3, COLOR_WHITE);
-      canvas.fillRect(118, 12, 2, 10, COLOR_WHITE);
-      canvas.fillRect(118, 24, 2, 2, COLOR_WHITE);
-      break;
-    case 1: case 2:
-      canvas.fillRoundRect(31, 20, 18, 20, 5, COLOR_WHITE);
-      canvas.fillRoundRect(79, 20, 18, 20, 5, COLOR_WHITE);
-      canvas.fillRoundRect(50, 50, 24, 6, 3, COLOR_WHITE);
-      canvas.fillRect(115, 10, 3, 14, COLOR_WHITE);
-      canvas.fillRect(115, 26, 3, 3, COLOR_WHITE);
-      break;
-    case 3: case 4: case 5:
-      canvas.fillRoundRect(30, 18, 18, 20, 5, COLOR_WHITE);
-      canvas.fillRoundRect(78, 18, 18, 20, 5, COLOR_WHITE);
-      canvas.fillRoundRect(52, 50, 24, 6, 3, COLOR_WHITE);
-      canvas.fillRect(110, 6, 4, 20, COLOR_WHITE);
-      canvas.fillRect(110, 28, 4, 4, COLOR_WHITE);
-      break;
-    case 6: case 7: case 8:
-      canvas.fillRoundRect(30, 18, 18, 20, 5, COLOR_WHITE);
-      canvas.fillRoundRect(78, 18, 18, 20, 5, COLOR_WHITE);
-      canvas.fillRoundRect(52, 50, 24, 6, 3, COLOR_WHITE);
-      canvas.fillRect(110, 6, 4, 20, COLOR_WHITE);
-      canvas.fillRect(110, 28, 4, 4, COLOR_WHITE);
-      break;
-    case 9: case 10: case 11: case 12: case 13:
-    case 14: case 15: case 16: case 17: case 18:
-      canvas.fillRoundRect(30, 18, 18, 20, 5, COLOR_WHITE);
-      canvas.fillRoundRect(78, 18, 18, 20, 5, COLOR_WHITE);
-      canvas.fillRoundRect(52, 50, 24, 6, 3, COLOR_WHITE);
-      canvas.fillRect(110, 6, 4, 20, COLOR_WHITE);
-      canvas.fillRect(110, 28, 4, 4, COLOR_WHITE);
-      break;
-    case 19: case 20: case 21: case 22: case 23:
-    case 24: case 25: case 26: case 27: case 28:
-      canvas.fillRoundRect(28, 18, 18, 20, 5, COLOR_WHITE);
-      canvas.fillRoundRect(76, 18, 18, 20, 5, COLOR_WHITE);
-      canvas.fillRoundRect(52, 50, 24, 6, 3, COLOR_WHITE);
-      canvas.fillRect(110, 6, 4, 20, COLOR_WHITE);
-      canvas.fillRect(110, 28, 4, 4, COLOR_WHITE);
-      break;
-    case 29: case 30: case 31: case 32: case 33:
-    case 34: case 35:
-      canvas.fillRoundRect(26, 18, 18, 20, 5, COLOR_WHITE);
-      canvas.fillRoundRect(74, 18, 18, 20, 5, COLOR_WHITE);
-      canvas.fillRoundRect(52, 50, 24, 6, 3, COLOR_WHITE);
-      canvas.fillRect(110, 6, 4, 20, COLOR_WHITE);
-      canvas.fillRect(110, 28, 4, 4, COLOR_WHITE);
-      break;
-    case 36: case 37: case 38:
-      canvas.fillRoundRect(30, 19, 18, 22, 5, COLOR_WHITE);
-      canvas.fillRoundRect(78, 19, 18, 22, 5, COLOR_WHITE);
-      canvas.fillRoundRect(49, 50, 24, 6, 3, COLOR_WHITE);
-      canvas.fillRect(112, 8, 4, 20, COLOR_WHITE);
-      canvas.fillRect(112, 30, 4, 4, COLOR_WHITE);
-      break;
-    case 39: case 40: case 41: case 42:
-      canvas.fillRoundRect(31, 20, 18, 24, 5, COLOR_WHITE);
-      canvas.fillRoundRect(79, 20, 18, 24, 5, COLOR_WHITE);
-      canvas.fillRoundRect(50, 50, 24, 5, 2, COLOR_WHITE);
-      canvas.fillRect(112, 6, 4, 20, COLOR_WHITE);
-      canvas.fillRect(112, 28, 4, 4, COLOR_WHITE);
-      break;
-    case 43:
-      canvas.fillRoundRect(32, 21, 18, 21, 5, COLOR_WHITE);
-      canvas.fillRoundRect(80, 21, 18, 21, 5, COLOR_WHITE);
-      canvas.fillRoundRect(51, 50, 24, 6, 3, COLOR_WHITE);
-      canvas.fillRect(115, 12, 3, 14, COLOR_WHITE);
-      canvas.fillRect(115, 26, 3, 3, COLOR_WHITE);
-      break;
-    case 44:
-      canvas.fillRoundRect(33, 21, 18, 20, 5, COLOR_WHITE);
-      canvas.fillRoundRect(81, 21, 18, 20, 5, COLOR_WHITE);
-      canvas.fillRoundRect(52, 50, 24, 5, 2, COLOR_WHITE);
-      canvas.fillRect(115, 12, 3, 14, COLOR_WHITE);
-      canvas.fillRect(115, 26, 3, 3, COLOR_WHITE);
-      break;
-    case 45: case 46: case 47: case 48: case 49: case 50:
-      canvas.fillRoundRect(33, 22, 18, 20, 5, COLOR_WHITE);
-      canvas.fillRoundRect(81, 22, 18, 20, 5, COLOR_WHITE);
-      canvas.fillRoundRect(52, 50, 24, 6, 3, COLOR_WHITE);
-      canvas.fillRect(118, 14, 2, 10, COLOR_WHITE);
-      canvas.fillRect(118, 26, 2, 2, COLOR_WHITE);
-      break;
+  // Asymmetric beat: right eye lifts 1px extra on frames 50-55
+  int rightEyeY = eyeY;
+  if (frame >= 50 && frame <= 55) {
+    rightEyeY = eyeY - 1;
   }
+
+  canvas.drawEyes(38, eyeY, 90, rightEyeY, 22);
+  canvas.drawMouth(57, 52, mouthW, mouthH);
 }
 
-// ===== EXCITED =====
-
-void drawExcited(ICanvas& canvas, int frame, const void* ctx) {
-  switch (frame) {
-    case 0:
-      canvas.drawEyes(40, 28, 88, 28, 20);
-      canvas.fillCircle(40, 28, 2, COLOR_BLACK);
-      canvas.fillCircle(88, 28, 2, COLOR_BLACK);
-      canvas.fillRoundRect(52, 50, 24, 8, 4, COLOR_WHITE);
-      break;
-    case 1:
-      canvas.drawEyes(40, 27, 88, 27, 22);
-      canvas.fillCircle(40, 27, 2, COLOR_BLACK);
-      canvas.fillCircle(88, 27, 2, COLOR_BLACK);
-      canvas.fillRoundRect(50, 50, 28, 9, 4, COLOR_WHITE);
-      canvas.fillCircle(18, 15, 2, COLOR_WHITE);
-      canvas.fillCircle(110, 15, 2, COLOR_WHITE);
-      break;
-    case 2:
-      canvas.drawEyes(40, 26, 88, 26, 24);
-      canvas.fillCircle(40, 26, 3, COLOR_BLACK);
-      canvas.fillCircle(88, 26, 3, COLOR_BLACK);
-      canvas.fillRoundRect(48, 50, 32, 10, 5, COLOR_WHITE);
-      canvas.fillCircle(15, 12, 2, COLOR_WHITE);
-      canvas.fillCircle(113, 12, 2, COLOR_WHITE);
-      canvas.fillCircle(20, 20, 2, COLOR_WHITE);
-      canvas.fillCircle(108, 20, 2, COLOR_WHITE);
-      break;
-    case 3:
-      canvas.drawEyes(40, 26, 88, 26, 26);
-      canvas.fillCircle(40, 26, 3, COLOR_BLACK);
-      canvas.fillCircle(88, 26, 3, COLOR_BLACK);
-      canvas.fillRoundRect(45, 50, 38, 10, 5, COLOR_WHITE);
-      canvas.fillCircle(12, 10, 2, COLOR_WHITE);
-      canvas.fillCircle(116, 10, 2, COLOR_WHITE);
-      canvas.fillCircle(15, 25, 2, COLOR_WHITE);
-      canvas.fillCircle(113, 25, 2, COLOR_WHITE);
-      canvas.fillCircle(10, 35, 2, COLOR_WHITE);
-      canvas.fillCircle(118, 35, 2, COLOR_WHITE);
-      break;
-    case 4: case 5: case 6: case 7: case 8:
-      canvas.drawEyes(40, 26, 88, 26, 26);
-      canvas.fillCircle(40, 26, 3, COLOR_BLACK);
-      canvas.fillCircle(88, 26, 3, COLOR_BLACK);
-      canvas.fillRoundRect(45, 50, 38, 10, 5, COLOR_WHITE);
-      canvas.fillCircle(12, 12, 2, COLOR_WHITE);
-      canvas.fillCircle(116, 12, 2, COLOR_WHITE);
-      canvas.fillCircle(15, 28, 2, COLOR_WHITE);
-      canvas.fillCircle(113, 28, 2, COLOR_WHITE);
-      canvas.fillCircle(8, 38, 2, COLOR_WHITE);
-      canvas.fillCircle(120, 38, 2, COLOR_WHITE);
-      break;
-
-    // === BOUNCING (frames 9-38) ===
-    case 9: case 11: case 13: case 15: case 17:
-    case 19: case 21: case 23: case 25: case 27:
-    case 29: case 31: case 33: case 35: case 37:
-      // Bounce UP
-      canvas.drawEyes(40, 24, 88, 24, 26);
-      canvas.fillCircle(40, 24, 3, COLOR_BLACK);
-      canvas.fillCircle(88, 24, 3, COLOR_BLACK);
-      canvas.fillRoundRect(45, 48, 38, 10, 5, COLOR_WHITE);
-      canvas.fillCircle(15, 10, 2, COLOR_WHITE);
-      canvas.fillCircle(113, 10, 2, COLOR_WHITE);
-      canvas.fillCircle(12, 30, 2, COLOR_WHITE);
-      canvas.fillCircle(116, 30, 2, COLOR_WHITE);
-      break;
-    case 10: case 12: case 14: case 16: case 18:
-    case 20: case 22: case 24: case 26: case 28:
-    case 30: case 32: case 34: case 36: case 38:
-      // Bounce DOWN
-      canvas.drawEyes(40, 28, 88, 28, 26);
-      canvas.fillCircle(40, 28, 3, COLOR_BLACK);
-      canvas.fillCircle(88, 28, 3, COLOR_BLACK);
-      canvas.fillRoundRect(45, 52, 38, 10, 5, COLOR_WHITE);
-      canvas.fillCircle(18, 15, 2, COLOR_WHITE);
-      canvas.fillCircle(110, 15, 2, COLOR_WHITE);
-      canvas.fillCircle(10, 38, 2, COLOR_WHITE);
-      canvas.fillCircle(118, 38, 2, COLOR_WHITE);
-      break;
-
-    // === SETTLING (frames 39-50) ===
-    case 39:
-      canvas.drawEyes(40, 27, 88, 27, 25);
-      canvas.fillCircle(40, 27, 3, COLOR_BLACK);
-      canvas.fillCircle(88, 27, 3, COLOR_BLACK);
-      canvas.fillRoundRect(46, 50, 36, 10, 5, COLOR_WHITE);
-      canvas.fillCircle(15, 20, 2, COLOR_WHITE);
-      canvas.fillCircle(113, 20, 2, COLOR_WHITE);
-      break;
-    case 40:
-      canvas.drawEyes(40, 27, 88, 27, 24);
-      canvas.fillCircle(40, 27, 3, COLOR_BLACK);
-      canvas.fillCircle(88, 27, 3, COLOR_BLACK);
-      canvas.fillRoundRect(47, 50, 34, 10, 5, COLOR_WHITE);
-      canvas.fillCircle(18, 18, 2, COLOR_WHITE);
-      canvas.fillCircle(110, 18, 2, COLOR_WHITE);
-      break;
-    case 41:
-      canvas.drawEyes(40, 27, 88, 27, 23);
-      canvas.fillCircle(40, 27, 3, COLOR_BLACK);
-      canvas.fillCircle(88, 27, 3, COLOR_BLACK);
-      canvas.fillRoundRect(48, 50, 32, 9, 5, COLOR_WHITE);
-      break;
-    case 42:
-      canvas.drawEyes(40, 28, 88, 28, 22);
-      canvas.fillCircle(40, 28, 2, COLOR_BLACK);
-      canvas.fillCircle(88, 28, 2, COLOR_BLACK);
-      canvas.fillRoundRect(50, 50, 28, 9, 4, COLOR_WHITE);
-      break;
-    case 43: case 44: case 45: case 46: case 47:
-    case 48: case 49: case 50:
-      canvas.drawEyes(40, 28, 88, 28, 20);
-      canvas.fillCircle(40, 28, 2, COLOR_BLACK);
-      canvas.fillCircle(88, 28, 2, COLOR_BLACK);
-      canvas.fillRoundRect(52, 50, 24, 8, 4, COLOR_WHITE);
-      if (frame % 3 == 0) {
-        canvas.fillCircle(15, 20, 2, COLOR_WHITE);
-        canvas.fillCircle(113, 20, 2, COLOR_WHITE);
-      }
-      break;
-  }
-}
-
-// ===== CONFUSED =====
-
-void drawConfused(ICanvas& canvas, int frame, const void* ctx) {
-  switch (frame) {
-    case 0:
-      canvas.drawEyes(40, 28, 88, 28, 18);
-      canvas.drawLine(52, 50, 76, 50, COLOR_WHITE);
-      break;
-    case 1: case 2:
-      canvas.fillRoundRect(30, 26, 20, 16, 5, COLOR_WHITE);
-      canvas.fillRoundRect(78, 26, 20, 18, 5, COLOR_WHITE);
-      canvas.drawLine(52, 50, 76, 50, COLOR_WHITE);
-      break;
-    case 3: case 4:
-      canvas.fillRoundRect(30, 24, 20, 20, 5, COLOR_WHITE);
-      canvas.fillRoundRect(78, 27, 20, 14, 5, COLOR_WHITE);
-      canvas.fillRoundRect(52, 48, 24, 5, 2, COLOR_WHITE);
-      break;
-    case 5: case 6: case 7: case 8:
-      canvas.fillRoundRect(30, 24, 20, 20, 5, COLOR_WHITE);
-      canvas.fillRoundRect(78, 26, 20, 12, 5, COLOR_WHITE);
-      canvas.fillRoundRect(52, 48, 24, 5, 2, COLOR_WHITE);
-      canvas.setTextSize(1);
-      canvas.setCursor(108, 30);
-      canvas.print("?");
-      break;
-    case 9: case 10: case 11: case 12: case 13:
-    case 14: case 15: case 16:
-      canvas.fillRoundRect(30, 26, 20, 12, 5, COLOR_WHITE);
-      canvas.fillRoundRect(78, 24, 20, 20, 5, COLOR_WHITE);
-      canvas.fillRoundRect(52, 48, 24, 5, 2, COLOR_WHITE);
-      canvas.setTextSize(1);
-      canvas.setCursor(108, 26);
-      canvas.print("?");
-      canvas.setCursor(115, 30);
-      canvas.print("?");
-      break;
-    case 17: case 18: case 19: case 20: case 21:
-    case 22: case 23: case 24: case 25:
-      canvas.fillRoundRect(30, 24, 20, 20, 5, COLOR_WHITE);
-      canvas.fillRoundRect(78, 26, 20, 12, 5, COLOR_WHITE);
-      canvas.fillRoundRect(52, 48, 24, 5, 2, COLOR_WHITE);
-      canvas.setTextSize(1);
-      canvas.setCursor(106, 22);
-      canvas.print("?");
-      canvas.setCursor(113, 26);
-      canvas.print("?");
-      canvas.setTextSize(2);
-      canvas.setCursor(118, 18);
-      canvas.print("?");
-      break;
-    case 26: case 27: case 28: case 29: case 30:
-    case 31: case 32: case 33: case 34: case 35:
-    case 36: case 37: case 38:
-      if (frame % 4 < 2) {
-        canvas.fillRoundRect(30, 24, 20, 20, 5, COLOR_WHITE);
-        canvas.fillRoundRect(78, 27, 20, 14, 5, COLOR_WHITE);
-      } else {
-        canvas.fillRoundRect(30, 27, 20, 14, 5, COLOR_WHITE);
-        canvas.fillRoundRect(78, 24, 20, 20, 5, COLOR_WHITE);
-      }
-      canvas.fillRoundRect(52, 48, 24, 5, 2, COLOR_WHITE);
-      canvas.setTextSize(1);
-      canvas.setCursor(105, 18);
-      canvas.print("?");
-      canvas.setCursor(112, 22);
-      canvas.print("?");
-      canvas.setTextSize(2);
-      canvas.setCursor(118, 14);
-      canvas.print("?");
-      canvas.setTextSize(1);
-      canvas.setCursor(123, 10);
-      canvas.print("?");
-      break;
-    case 39: case 40:
-      canvas.fillRoundRect(30, 24, 20, 20, 5, COLOR_WHITE);
-      canvas.fillRoundRect(78, 26, 20, 12, 5, COLOR_WHITE);
-      canvas.fillRoundRect(52, 48, 24, 5, 2, COLOR_WHITE);
-      canvas.setTextSize(1);
-      canvas.setCursor(110, 20);
-      canvas.print("?");
-      break;
-    case 41: case 42:
-      canvas.fillRoundRect(32, 25, 20, 18, 5, COLOR_WHITE);
-      canvas.fillRoundRect(78, 26, 20, 16, 5, COLOR_WHITE);
-      canvas.fillRoundRect(52, 48, 24, 5, 2, COLOR_WHITE);
-      break;
-    case 43: case 44: case 45: case 46: case 47:
-    case 48: case 49: case 50:
-      canvas.drawEyes(40, 28, 88, 28, 18);
-      canvas.fillRoundRect(52, 48, 24, 5, 2, COLOR_WHITE);
-      break;
-  }
-}
-
-// ===== HAPPY =====
+// ===== 2.3 HAPPY — warm contentment =====
+// 40 frames @ 35ms = 1.4s loop.
+// Phases: squish (F0-7), hold smile (F8-25), small bounce (F26-33), relax (F34-39)
 
 void drawHappy(ICanvas& canvas, int frame, const void* ctx) {
-  switch (frame) {
-    case 0:
-      canvas.drawEyes(40, 28, 88, 28, 18);
-      canvas.fillRoundRect(56, 50, 16, 6, 3, COLOR_WHITE);
-      break;
-    case 1:
-      canvas.drawEyes(40, 28, 88, 28, 16);
-      canvas.fillRoundRect(54, 49, 20, 7, 3, COLOR_WHITE);
-      break;
-    case 2:
-      canvas.drawEyes(40, 28, 88, 28, 14);
-      canvas.fillRoundRect(52, 48, 24, 8, 4, COLOR_WHITE);
-      break;
-    case 3:
-      canvas.drawEyes(40, 29, 88, 29, 12);
-      canvas.fillRoundRect(50, 48, 28, 8, 4, COLOR_WHITE);
-      break;
-    case 4:
-      canvas.drawEyes(40, 29, 88, 29, 11);
-      canvas.fillRoundRect(48, 48, 32, 8, 4, COLOR_WHITE);
-      break;
-    case 5:
-      canvas.drawEyes(40, 29, 88, 29, 10);
-      canvas.fillRoundRect(46, 48, 36, 9, 4, COLOR_WHITE);
-      canvas.fillCircle(20, 40, 3, COLOR_WHITE);
-      canvas.fillCircle(108, 40, 3, COLOR_WHITE);
-      break;
-    case 6:
-      canvas.drawEyes(40, 30, 88, 30, 8);
-      canvas.fillRoundRect(45, 47, 38, 10, 5, COLOR_WHITE);
-      canvas.fillCircle(19, 40, 4, COLOR_WHITE);
-      canvas.fillCircle(109, 40, 4, COLOR_WHITE);
-      break;
-    case 7: case 8: case 9: case 10:
-      canvas.drawEyes(40, 30, 88, 30, 8);
-      canvas.fillRoundRect(45, 47, 38, 10, 5, COLOR_WHITE);
-      canvas.fillCircle(18, 40, 4, COLOR_WHITE);
-      canvas.fillCircle(110, 40, 4, COLOR_WHITE);
-      if (frame % 2 == 0) {
-        canvas.fillCircle(15, 20, 2, COLOR_WHITE);
-        canvas.fillCircle(113, 20, 2, COLOR_WHITE);
-      }
-      break;
-    case 11: case 12: case 13: case 14: case 15:
-    case 16: case 17: case 18: case 19: case 20:
-    case 21: case 22: case 23: case 24: case 25:
-    case 26: case 27: case 28: case 29: case 30:
-      canvas.drawEyes(40, 30, 88, 30, 8);
-      canvas.fillRoundRect(45, 47, 38, 10, 5, COLOR_WHITE);
-      canvas.fillCircle(18, 40, 4, COLOR_WHITE);
-      canvas.fillCircle(110, 40, 4, COLOR_WHITE);
-      if (frame % 4 == 0) {
-        canvas.fillCircle(12, 18, 2, COLOR_WHITE);
-        canvas.fillCircle(116, 18, 2, COLOR_WHITE);
-      } else if (frame % 4 == 2) {
-        canvas.fillCircle(15, 25, 2, COLOR_WHITE);
-        canvas.fillCircle(113, 25, 2, COLOR_WHITE);
-      }
-      break;
-    case 31: case 32: case 33: case 34: case 35:
-    case 36: case 37: case 38: case 39: case 40: {
-      canvas.drawEyes(40, 30, 88, 30, 8);
-      canvas.fillRoundRect(45, 47, 38, 10, 5, COLOR_WHITE);
-      int blushSize = (frame % 6 < 3) ? 4 : 5;
-      canvas.fillCircle(18, 40, blushSize, COLOR_WHITE);
-      canvas.fillCircle(110, 40, blushSize, COLOR_WHITE);
-      break;
+  if (frame < 8) {
+    // Squish: eyes close from H=20 to H=8, mouth widens
+    int eyeH = ease(20, 8, frame, 7);
+    int eyeY = ease(28, 31, frame, 7);
+    int mouthX = ease(57, 47, frame, 7);
+    int mouthW = ease(16, 34, frame, 7);
+    int mouthH = ease(5, 9, frame, 7);
+    canvas.drawEyes(38, eyeY, 90, eyeY, eyeH);
+    canvas.fillRoundRect(mouthX, 49, mouthW, mouthH, 5, COLOR_WHITE);
+    if (frame >= 5) {
+      canvas.drawBlush(18, 42, 110, 42, frame - 3);
     }
-    case 41:
-      canvas.drawEyes(40, 30, 88, 30, 9);
-      canvas.fillRoundRect(46, 47, 36, 9, 5, COLOR_WHITE);
-      canvas.fillCircle(19, 40, 4, COLOR_WHITE);
-      canvas.fillCircle(109, 40, 4, COLOR_WHITE);
-      break;
-    case 42:
-      canvas.drawEyes(40, 29, 88, 29, 10);
-      canvas.fillRoundRect(48, 48, 32, 8, 4, COLOR_WHITE);
-      canvas.fillCircle(20, 40, 3, COLOR_WHITE);
-      canvas.fillCircle(108, 40, 3, COLOR_WHITE);
-      break;
-    case 43:
-      canvas.drawEyes(40, 29, 88, 29, 12);
-      canvas.fillRoundRect(50, 48, 28, 8, 4, COLOR_WHITE);
-      canvas.fillCircle(20, 40, 3, COLOR_WHITE);
-      canvas.fillCircle(108, 40, 3, COLOR_WHITE);
-      break;
-    case 44:
-      canvas.drawEyes(40, 28, 88, 28, 14);
-      canvas.fillRoundRect(52, 48, 24, 8, 4, COLOR_WHITE);
-      break;
-    case 45:
-      canvas.drawEyes(40, 28, 88, 28, 16);
-      canvas.fillRoundRect(54, 49, 20, 7, 3, COLOR_WHITE);
-      break;
-    case 46: case 47: case 48: case 49: case 50:
-      canvas.drawEyes(40, 28, 88, 28, 18);
-      canvas.fillRoundRect(56, 50, 16, 6, 3, COLOR_WHITE);
-      break;
-  }
-}
-
-// ===== LOVE =====
-
-void drawLove(ICanvas& canvas, int frame, const void* ctx) {
-  // Helper lambdas for heart eyes at different sizes
-  auto heartEyes = [&](int r, int rectH) {
-    canvas.fillCircle(34, 26, r, COLOR_WHITE);
-    canvas.fillCircle(44, 26, r, COLOR_WHITE);
-    int span = r + 1;
-    canvas.fillRect(39 - span, 26, span * 2, rectH, COLOR_WHITE);
-    canvas.fillTriangle(39 - span, 26 + rectH, 39, 26 + rectH + 8,
-                        39 + span, 26 + rectH, COLOR_WHITE);
-
-    canvas.fillCircle(82, 26, r, COLOR_WHITE);
-    canvas.fillCircle(92, 26, r, COLOR_WHITE);
-    canvas.fillRect(87 - span, 26, span * 2, rectH, COLOR_WHITE);
-    canvas.fillTriangle(87 - span, 26 + rectH, 87, 26 + rectH + 8,
-                        87 + span, 26 + rectH, COLOR_WHITE);
-  };
-
-  switch (frame) {
-    case 0:
-      canvas.drawEyes(40, 28, 88, 28, 16);
-      canvas.fillRoundRect(52, 50, 24, 6, 3, COLOR_WHITE);
-      break;
-    case 1: case 2:
-      canvas.fillCircle(34, 28, 5, COLOR_WHITE);
-      canvas.fillCircle(44, 28, 5, COLOR_WHITE);
-      canvas.fillCircle(82, 28, 5, COLOR_WHITE);
-      canvas.fillCircle(92, 28, 5, COLOR_WHITE);
-      canvas.fillRoundRect(50, 50, 28, 7, 3, COLOR_WHITE);
-      break;
-    case 3: case 4:
-      canvas.fillCircle(34, 27, 6, COLOR_WHITE);
-      canvas.fillCircle(44, 27, 6, COLOR_WHITE);
-      canvas.fillRect(28, 27, 22, 5, COLOR_WHITE);
-      canvas.fillTriangle(28, 32, 39, 38, 50, 32, COLOR_WHITE);
-      canvas.fillCircle(82, 27, 6, COLOR_WHITE);
-      canvas.fillCircle(92, 27, 6, COLOR_WHITE);
-      canvas.fillRect(76, 27, 22, 5, COLOR_WHITE);
-      canvas.fillTriangle(76, 32, 87, 38, 98, 32, COLOR_WHITE);
-      canvas.fillRoundRect(48, 50, 32, 8, 4, COLOR_WHITE);
-      break;
-    case 5: case 6: case 7:
-      canvas.fillCircle(34, 26, 7, COLOR_WHITE);
-      canvas.fillCircle(44, 26, 7, COLOR_WHITE);
-      canvas.fillRect(27, 26, 24, 6, COLOR_WHITE);
-      canvas.fillTriangle(27, 32, 39, 40, 51, 32, COLOR_WHITE);
-      canvas.fillCircle(82, 26, 7, COLOR_WHITE);
-      canvas.fillCircle(92, 26, 7, COLOR_WHITE);
-      canvas.fillRect(75, 26, 24, 6, COLOR_WHITE);
-      canvas.fillTriangle(75, 32, 87, 40, 99, 32, COLOR_WHITE);
-      canvas.fillRoundRect(48, 50, 32, 8, 4, COLOR_WHITE);
-      canvas.fillCircle(15, 42, 3, COLOR_WHITE);
-      canvas.fillCircle(113, 42, 3, COLOR_WHITE);
-      break;
-    case 8: case 9: case 10:
-      canvas.fillCircle(34, 26, 7, COLOR_WHITE);
-      canvas.fillCircle(44, 26, 7, COLOR_WHITE);
-      canvas.fillRect(27, 26, 24, 6, COLOR_WHITE);
-      canvas.fillTriangle(27, 32, 39, 40, 51, 32, COLOR_WHITE);
-      canvas.fillCircle(82, 26, 7, COLOR_WHITE);
-      canvas.fillCircle(92, 26, 7, COLOR_WHITE);
-      canvas.fillRect(75, 26, 24, 6, COLOR_WHITE);
-      canvas.fillTriangle(75, 32, 87, 40, 99, 32, COLOR_WHITE);
-      canvas.fillRoundRect(48, 50, 32, 8, 4, COLOR_WHITE);
-      canvas.fillCircle(14, 42, 4, COLOR_WHITE);
-      canvas.fillCircle(114, 42, 4, COLOR_WHITE);
-      canvas.drawCircle(108, 18, 2, COLOR_WHITE);
-      canvas.drawCircle(112, 18, 2, COLOR_WHITE);
-      break;
-
-    // === PULSING (frames 11-35) ===
-    case 11: case 13: case 15: case 17: case 19:
-    case 21: case 23: case 25: case 27: case 29:
-    case 31: case 33: case 35:
-      // Pulse larger
-      canvas.fillCircle(34, 26, 8, COLOR_WHITE);
-      canvas.fillCircle(44, 26, 8, COLOR_WHITE);
-      canvas.fillRect(26, 26, 26, 7, COLOR_WHITE);
-      canvas.fillTriangle(26, 33, 39, 42, 52, 33, COLOR_WHITE);
-      canvas.fillCircle(82, 26, 8, COLOR_WHITE);
-      canvas.fillCircle(92, 26, 8, COLOR_WHITE);
-      canvas.fillRect(74, 26, 26, 7, COLOR_WHITE);
-      canvas.fillTriangle(74, 33, 87, 42, 100, 33, COLOR_WHITE);
-      canvas.fillRoundRect(48, 50, 32, 8, 4, COLOR_WHITE);
-      canvas.fillCircle(14, 42, 5, COLOR_WHITE);
-      canvas.fillCircle(114, 42, 5, COLOR_WHITE);
-      canvas.drawCircle(106, 15, 2, COLOR_WHITE);
-      canvas.drawCircle(110, 15, 2, COLOR_WHITE);
-      canvas.drawCircle(115, 10, 2, COLOR_WHITE);
-      canvas.drawCircle(119, 10, 2, COLOR_WHITE);
-      break;
-    case 12: case 14: case 16: case 18: case 20:
-    case 22: case 24: case 26: case 28: case 30:
-    case 32: case 34:
-      // Pulse smaller
-      canvas.fillCircle(34, 26, 6, COLOR_WHITE);
-      canvas.fillCircle(44, 26, 6, COLOR_WHITE);
-      canvas.fillRect(28, 26, 22, 5, COLOR_WHITE);
-      canvas.fillTriangle(28, 31, 39, 38, 50, 31, COLOR_WHITE);
-      canvas.fillCircle(82, 26, 6, COLOR_WHITE);
-      canvas.fillCircle(92, 26, 6, COLOR_WHITE);
-      canvas.fillRect(76, 26, 22, 5, COLOR_WHITE);
-      canvas.fillTriangle(76, 31, 87, 38, 98, 31, COLOR_WHITE);
-      canvas.fillRoundRect(48, 50, 32, 8, 4, COLOR_WHITE);
-      canvas.fillCircle(14, 42, 4, COLOR_WHITE);
-      canvas.fillCircle(114, 42, 4, COLOR_WHITE);
-      canvas.drawCircle(108, 12, 2, COLOR_WHITE);
-      canvas.drawCircle(112, 12, 2, COLOR_WHITE);
-      canvas.drawCircle(18, 18, 2, COLOR_WHITE);
-      canvas.drawCircle(22, 18, 2, COLOR_WHITE);
-      break;
-
-    // === MAXIMUM LOVE (frames 36-44) ===
-    case 36: case 37: case 38: case 39: case 40:
-    case 41: case 42: case 43: case 44:
-      canvas.fillCircle(34, 26, 7, COLOR_WHITE);
-      canvas.fillCircle(44, 26, 7, COLOR_WHITE);
-      canvas.fillRect(27, 26, 24, 6, COLOR_WHITE);
-      canvas.fillTriangle(27, 32, 39, 40, 51, 32, COLOR_WHITE);
-      canvas.fillCircle(82, 26, 7, COLOR_WHITE);
-      canvas.fillCircle(92, 26, 7, COLOR_WHITE);
-      canvas.fillRect(75, 26, 24, 6, COLOR_WHITE);
-      canvas.fillTriangle(75, 32, 87, 40, 99, 32, COLOR_WHITE);
-      canvas.fillRoundRect(48, 50, 32, 8, 4, COLOR_WHITE);
-      canvas.fillCircle(14, 42, 5, COLOR_WHITE);
-      canvas.fillCircle(114, 42, 5, COLOR_WHITE);
-      if (frame % 2 == 0) {
-        canvas.drawCircle(105, 10, 2, COLOR_WHITE);
-        canvas.drawCircle(109, 10, 2, COLOR_WHITE);
-        canvas.drawCircle(115, 5, 2, COLOR_WHITE);
-        canvas.drawCircle(119, 5, 2, COLOR_WHITE);
-      } else {
-        canvas.drawCircle(18, 15, 2, COLOR_WHITE);
-        canvas.drawCircle(22, 15, 2, COLOR_WHITE);
-        canvas.drawCircle(12, 8, 2, COLOR_WHITE);
-        canvas.drawCircle(16, 8, 2, COLOR_WHITE);
-      }
-      break;
-
-    // === CALMING (frames 45-50) ===
-    case 45: case 46:
-      canvas.fillCircle(34, 26, 7, COLOR_WHITE);
-      canvas.fillCircle(44, 26, 7, COLOR_WHITE);
-      canvas.fillRect(27, 26, 24, 6, COLOR_WHITE);
-      canvas.fillTriangle(27, 32, 39, 40, 51, 32, COLOR_WHITE);
-      canvas.fillCircle(82, 26, 7, COLOR_WHITE);
-      canvas.fillCircle(92, 26, 7, COLOR_WHITE);
-      canvas.fillRect(75, 26, 24, 6, COLOR_WHITE);
-      canvas.fillTriangle(75, 32, 87, 40, 99, 32, COLOR_WHITE);
-      canvas.fillRoundRect(48, 50, 32, 8, 4, COLOR_WHITE);
-      canvas.fillCircle(15, 42, 4, COLOR_WHITE);
-      canvas.fillCircle(113, 42, 4, COLOR_WHITE);
-      canvas.drawCircle(110, 15, 2, COLOR_WHITE);
-      canvas.drawCircle(114, 15, 2, COLOR_WHITE);
-      break;
-    case 47: case 48: case 49: case 50:
-      canvas.fillCircle(34, 26, 7, COLOR_WHITE);
-      canvas.fillCircle(44, 26, 7, COLOR_WHITE);
-      canvas.fillRect(27, 26, 24, 6, COLOR_WHITE);
-      canvas.fillTriangle(27, 32, 39, 40, 51, 32, COLOR_WHITE);
-      canvas.fillCircle(82, 26, 7, COLOR_WHITE);
-      canvas.fillCircle(92, 26, 7, COLOR_WHITE);
-      canvas.fillRect(75, 26, 24, 6, COLOR_WHITE);
-      canvas.fillTriangle(75, 32, 87, 40, 99, 32, COLOR_WHITE);
-      canvas.fillRoundRect(48, 50, 32, 8, 4, COLOR_WHITE);
-      canvas.fillCircle(15, 42, 3, COLOR_WHITE);
-      canvas.fillCircle(113, 42, 3, COLOR_WHITE);
-      break;
-  }
-}
-
-// ===== ANGRY =====
-
-void drawAngry(ICanvas& canvas, int frame, const void* ctx) {
-  switch (frame) {
-    case 0:
-      canvas.drawEyes(40, 30, 88, 30, 14);
-      canvas.fillRoundRect(52, 52, 24, 4, 2, COLOR_WHITE);
-      break;
-    case 1: case 2:
-      canvas.drawEyes(40, 31, 88, 31, 12);
-      drawAngryBrows(canvas, 0, 4, 17, 21);
-      canvas.fillRoundRect(52, 52, 24, 5, 2, COLOR_WHITE);
-      break;
-    case 3: case 4: case 5:
-      canvas.drawEyes(40, 32, 88, 32, 11);
-      drawAngryBrows(canvas, 0, 5, 16, 22);
-      canvas.fillRoundRect(52, 52, 24, 5, 2, COLOR_WHITE);
-      break;
-    case 6: case 7: case 8: case 9: case 10:
-      canvas.drawEyes(40, 32, 88, 32, 10);
-      drawAngryBrows(canvas, 0, 6, 15, 23);
-      canvas.fillRoundRect(52, 52, 24, 5, 2, COLOR_WHITE);
-      break;
-
-    // === SHAKING (frames 11-38) ===
-    case 11: case 13: case 15: case 17: case 19:
-    case 21: case 23: case 25: case 27: case 29:
-    case 31: case 33: case 35: case 37:
-      // Shake LEFT
-      canvas.drawEyes(37, 32, 85, 32, 10);
-      drawAngryBrows(canvas, -3, 6, 15, 23);
-      canvas.fillRoundRect(49, 52, 24, 5, 2, COLOR_WHITE);
-      break;
-    case 12: case 14: case 16: case 18: case 20:
-    case 22: case 24: case 26: case 28: case 30:
-    case 32: case 34: case 36: case 38:
-      // Shake RIGHT
-      canvas.drawEyes(43, 32, 91, 32, 10);
-      drawAngryBrows(canvas, 3, 6, 15, 23);
-      canvas.fillRoundRect(55, 52, 24, 5, 2, COLOR_WHITE);
-      break;
-
-    // === MAXIMUM RAGE (frames 39-45) ===
-    case 39: case 40: case 41: case 42: case 43:
-    case 44: case 45: {
-      int xExtreme = (frame % 2 == 0) ? -4 : 4;
-      canvas.drawEyes(40 + xExtreme, 32, 88 + xExtreme, 32, 9);
-      drawAngryBrows(canvas, xExtreme, 7, 14, 24);
-      canvas.fillRoundRect(52 + xExtreme, 52, 24, 5, 2, COLOR_WHITE);
-      break;
+  } else if (frame < 26) {
+    // Hold smile: H=8 arcs, blush pulses, sparkles flicker
+    canvas.drawEyes(38, 31, 90, 31, 8);
+    canvas.fillRoundRect(47, 49, 34, 9, 5, COLOR_WHITE);
+    int blushR = ((frame % 6) < 3) ? 4 : 5;
+    canvas.drawBlush(18, 42, 110, 42, blushR);
+    // Sparkles on frames 10, 14, 18, 22
+    if (frame == 10 || frame == 14 || frame == 18 || frame == 22) {
+      canvas.drawSparkles(14, 16, 114, 16, 2);
     }
-
-    // === CALMING (frames 46-50) ===
-    case 46: case 47:
-      canvas.drawEyes(40, 32, 88, 32, 10);
-      drawAngryBrows(canvas, 0, 6, 15, 23);
-      canvas.fillRoundRect(52, 52, 24, 5, 2, COLOR_WHITE);
-      break;
-    case 48: case 49: case 50:
-      canvas.drawEyes(40, 32, 88, 32, 11);
-      drawAngryBrows(canvas, 0, 5, 16, 22);
-      canvas.fillRoundRect(52, 52, 24, 5, 2, COLOR_WHITE);
-      break;
+  } else if (frame < 34) {
+    // Bounce: face shifts up 2px then back
+    int off = (frame < 30) ? -2 : 0;
+    canvas.drawEyes(38, 31 + off, 90, 31 + off, 8);
+    canvas.fillRoundRect(47, 49 + off, 34, 9, 5, COLOR_WHITE);
+    canvas.drawBlush(18, 42 + off, 110, 42 + off, 4);
+  } else {
+    // Relax: eyes partially reopen H=8→16, mouth shrinks
+    int eyeH = ease(8, 16, frame - 34, 5);
+    int eyeY = ease(31, 29, frame - 34, 5);
+    int mouthW = ease(34, 18, frame - 34, 5);
+    canvas.drawEyes(38, eyeY, 90, eyeY, eyeH);
+    canvas.fillRoundRect(57 - mouthW / 2 + 7, 51, mouthW, 6, 3, COLOR_WHITE);
+    canvas.drawBlush(18, 42, 110, 42, 3);
   }
 }
 
-// ===== SAD =====
+// ===== 2.4 SAD — melancholy =====
+// 48 frames @ 35ms = 1.7s loop.
+// Phases: droop (F0-8), tear forms (F9-14), tear falls (F15-30), tremble (F31-40), recover (F41-47)
 
 void drawSad(ICanvas& canvas, int frame, const void* ctx) {
-  switch (frame) {
-    case 0:
-      canvas.drawEyes(40, 28, 88, 28, 18);
-      canvas.fillRoundRect(56, 50, 16, 4, 2, COLOR_WHITE);
-      break;
-    case 1: case 2:
-      canvas.drawEyes(40, 29, 88, 29, 17);
-      canvas.fillRoundRect(56, 51, 16, 4, 2, COLOR_WHITE);
-      break;
-    case 3: case 4:
-      canvas.drawEyes(40, 30, 88, 30, 16);
-      canvas.fillRoundRect(56, 52, 16, 4, 2, COLOR_WHITE);
-      break;
-    case 5: case 6:
-      canvas.drawEyes(40, 31, 88, 31, 15);
-      canvas.fillRoundRect(56, 52, 16, 5, 2, COLOR_WHITE);
-      break;
-    case 7: case 8:
-      canvas.drawEyes(40, 32, 88, 32, 14);
-      canvas.fillRoundRect(54, 52, 20, 5, 2, COLOR_WHITE);
-      canvas.fillCircle(50, 40, 2, COLOR_WHITE);
-      break;
-    case 9: case 10: case 11: case 12:
-      canvas.drawEyes(40, 32, 88, 32, 14);
-      canvas.fillRoundRect(54, 52, 20, 5, 2, COLOR_WHITE);
-      canvas.fillCircle(50, 40, 1, COLOR_WHITE);
-      break;
-    case 13: case 14: case 15: case 16:
-      canvas.drawEyes(40, 32, 88, 32, 13);
-      canvas.fillRoundRect(54, 52, 20, 5, 2, COLOR_WHITE);
-      canvas.fillCircle(50, 41, 2, COLOR_WHITE);
-      canvas.drawLine(50, 43, 50, 45, COLOR_WHITE);
-      break;
-    case 17: case 18: case 19: case 20:
-      canvas.drawEyes(40, 32, 88, 32, 13);
-      canvas.fillRoundRect(54, 52, 20, 5, 2, COLOR_WHITE);
-      canvas.fillCircle(50, 42, 2, COLOR_WHITE);
-      canvas.drawLine(50, 44, 50, 50, COLOR_WHITE);
-      break;
-    case 21: case 22: case 23: case 24: case 25:
-    case 26: case 27: case 28: case 29: case 30:
-      canvas.drawEyes(40, 32, 88, 32, 12);
-      canvas.fillRoundRect(54, 52, 20, 5, 2, COLOR_WHITE);
-      canvas.fillCircle(50, 42, 2, COLOR_WHITE);
-      canvas.drawLine(50, 44, 50, 55, COLOR_WHITE);
-      break;
-    case 31: case 32: case 33: case 34: case 35:
-    case 36: case 37: case 38: case 39: case 40:
-      canvas.drawEyes(40, 32, 88, 32, 12);
-      canvas.fillRoundRect(54, 52, 20, 5, 2, COLOR_WHITE);
-      canvas.fillCircle(50, 42, 2, COLOR_WHITE);
-      canvas.drawLine(50, 44, 50, 60, COLOR_WHITE);
-      break;
-    case 41: case 42:
-      canvas.drawEyes(40, 32, 88, 32, 13);
-      canvas.fillRoundRect(54, 52, 20, 5, 2, COLOR_WHITE);
-      canvas.fillCircle(50, 42, 1, COLOR_WHITE);
-      canvas.drawLine(50, 43, 50, 58, COLOR_WHITE);
-      break;
-    case 43: case 44:
-      canvas.drawEyes(40, 31, 88, 31, 14);
-      canvas.fillRoundRect(56, 52, 16, 5, 2, COLOR_WHITE);
-      canvas.fillCircle(50, 42, 1, COLOR_WHITE);
-      canvas.drawLine(50, 43, 50, 52, COLOR_WHITE);
-      break;
-    case 45: case 46: case 47: case 48: case 49: case 50:
-      canvas.drawEyes(40, 30, 88, 30, 16);
-      canvas.fillRoundRect(56, 52, 16, 4, 2, COLOR_WHITE);
-      break;
+  if (frame < 9) {
+    // Droop: eyes lower Y=28→33, H=22→16, mouth narrows
+    int eyeY = ease(28, 33, frame, 8);
+    int eyeH = ease(22, 16, frame, 8);
+    int mouthW = ease(10, 8, frame, 8);
+    canvas.drawEyes(38, eyeY, 90, eyeY, eyeH);
+    canvas.drawMouth(63 - mouthW / 2, 55, mouthW, 3);
+  } else if (frame < 15) {
+    // Tear forms below left eye inner edge
+    canvas.drawEyes(38, 33, 90, 33, 16);
+    canvas.drawMouth(59, 55, 8, 3);
+    int tearR = (frame < 12) ? 1 : 2;
+    canvas.fillCircle(48, 42, tearR, COLOR_WHITE);
+  } else if (frame < 31) {
+    // Tear falls: Y=42→60, trail line
+    int tearY = ease(42, 60, frame - 15, 15);
+    int trailEndY = tearY - 2;
+    canvas.drawEyes(38, 33, 90, 33, 16);
+    canvas.drawMouth(59, 55, 8, 3);
+    canvas.fillCircle(48, tearY, 2, COLOR_WHITE);
+    if (trailEndY > 43) {
+      canvas.drawLine(48, 43, 48, trailEndY, COLOR_WHITE);
+    }
+  } else if (frame < 41) {
+    // Tremble: 1px horizontal oscillation
+    int xOff = ((frame % 2) == 0) ? -1 : 1;
+    canvas.drawEyes(38 + xOff, 33, 90 + xOff, 33, 16);
+    canvas.drawMouth(59 + xOff, 55, 8, 3);
+  } else {
+    // Partial recovery: eyes rise Y=33→30, H=16→18
+    int eyeY = ease(33, 30, frame - 41, 6);
+    int eyeH = ease(16, 18, frame - 41, 6);
+    canvas.drawEyes(38, eyeY, 90, eyeY, eyeH);
+    canvas.drawMouth(59, 53, 10, 4);
   }
 }
 
-// ===== SURPRISED =====
+// ===== 2.5 CONFUSED — head-tilty puzzlement =====
+// 44 frames @ 35ms = 1.5s loop.
+// Phases: tilt (F0-6), hold confused (F7-20), reverse tilt (F21-28), hold reversed (F29-36), settle (F37-43)
 
-void drawSurprised(ICanvas& canvas, int frame, const void* ctx) {
-  switch (frame) {
-    case 0:
-      canvas.fillRoundRect(33, 24, 18, 18, 5, COLOR_WHITE);
-      canvas.fillRoundRect(81, 24, 18, 18, 5, COLOR_WHITE);
-      canvas.fillCircle(42, 33, 3, COLOR_BLACK);
-      canvas.fillCircle(90, 33, 3, COLOR_BLACK);
-      canvas.drawCircle(64, 50, 4, COLOR_WHITE);
-      break;
-    case 1:
-      canvas.fillRoundRect(33, 23, 18, 20, 5, COLOR_WHITE);
-      canvas.fillRoundRect(81, 23, 18, 20, 5, COLOR_WHITE);
-      canvas.fillCircle(42, 33, 3, COLOR_BLACK);
-      canvas.fillCircle(90, 33, 3, COLOR_BLACK);
-      canvas.drawCircle(64, 50, 5, COLOR_WHITE);
-      break;
-    case 2:
-      canvas.fillRoundRect(33, 21, 18, 22, 5, COLOR_WHITE);
-      canvas.fillRoundRect(81, 21, 18, 22, 5, COLOR_WHITE);
-      canvas.fillCircle(42, 32, 3, COLOR_BLACK);
-      canvas.fillCircle(90, 32, 3, COLOR_BLACK);
-      canvas.fillCircle(64, 50, 5, COLOR_WHITE);
-      break;
-    case 3:
-      canvas.fillRoundRect(33, 20, 18, 24, 5, COLOR_WHITE);
-      canvas.fillRoundRect(81, 20, 18, 24, 5, COLOR_WHITE);
-      canvas.fillCircle(42, 32, 3, COLOR_BLACK);
-      canvas.fillCircle(90, 32, 3, COLOR_BLACK);
-      canvas.fillCircle(64, 50, 6, COLOR_WHITE);
-      break;
-    case 4:
-      canvas.fillRoundRect(33, 19, 18, 26, 5, COLOR_WHITE);
-      canvas.fillRoundRect(81, 19, 18, 26, 5, COLOR_WHITE);
-      canvas.fillCircle(42, 32, 3, COLOR_BLACK);
-      canvas.fillCircle(90, 32, 3, COLOR_BLACK);
-      canvas.fillCircle(64, 51, 7, COLOR_WHITE);
-      break;
-    case 5:
-      canvas.fillRoundRect(33, 18, 18, 28, 5, COLOR_WHITE);
-      canvas.fillRoundRect(81, 18, 18, 28, 5, COLOR_WHITE);
-      canvas.fillCircle(42, 32, 3, COLOR_BLACK);
-      canvas.fillCircle(90, 32, 3, COLOR_BLACK);
-      canvas.fillCircle(64, 52, 8, COLOR_WHITE);
-      break;
-    case 6: case 7: case 8: case 9: case 10:
-      canvas.fillRoundRect(33, 18, 18, 28, 5, COLOR_WHITE);
-      canvas.fillRoundRect(81, 18, 18, 28, 5, COLOR_WHITE);
-      canvas.fillCircle(42, 32, 3, COLOR_BLACK);
-      canvas.fillCircle(90, 32, 3, COLOR_BLACK);
-      canvas.fillCircle(64, 52, 8, COLOR_WHITE);
-      break;
-    case 11:
-      canvas.fillRoundRect(33, 28, 18, 10, 5, COLOR_WHITE);
-      canvas.fillRoundRect(81, 28, 18, 10, 5, COLOR_WHITE);
-      canvas.fillCircle(42, 32, 2, COLOR_BLACK);
-      canvas.fillCircle(90, 32, 2, COLOR_BLACK);
-      canvas.fillCircle(64, 52, 8, COLOR_WHITE);
-      break;
-    case 12:
-      canvas.fillRoundRect(33, 31, 18, 4, 2, COLOR_WHITE);
-      canvas.fillRoundRect(81, 31, 18, 4, 2, COLOR_WHITE);
-      canvas.fillCircle(64, 52, 8, COLOR_WHITE);
-      break;
-    case 13:
-      canvas.fillRoundRect(33, 28, 18, 10, 5, COLOR_WHITE);
-      canvas.fillRoundRect(81, 28, 18, 10, 5, COLOR_WHITE);
-      canvas.fillCircle(42, 32, 2, COLOR_BLACK);
-      canvas.fillCircle(90, 32, 2, COLOR_BLACK);
-      canvas.fillCircle(64, 52, 8, COLOR_WHITE);
-      break;
-    case 14: case 15: case 16:
-      canvas.fillRoundRect(33, 18, 18, 28, 5, COLOR_WHITE);
-      canvas.fillRoundRect(81, 18, 18, 28, 5, COLOR_WHITE);
-      canvas.fillCircle(42, 32, 3, COLOR_BLACK);
-      canvas.fillCircle(90, 32, 3, COLOR_BLACK);
-      canvas.fillCircle(64, 52, 8, COLOR_WHITE);
-      break;
-    case 17:
-      canvas.fillRoundRect(33, 28, 18, 10, 5, COLOR_WHITE);
-      canvas.fillRoundRect(81, 28, 18, 10, 5, COLOR_WHITE);
-      canvas.fillCircle(42, 32, 2, COLOR_BLACK);
-      canvas.fillCircle(90, 32, 2, COLOR_BLACK);
-      canvas.fillCircle(64, 52, 8, COLOR_WHITE);
-      break;
-    case 18:
-      canvas.fillRoundRect(33, 31, 18, 4, 2, COLOR_WHITE);
-      canvas.fillRoundRect(81, 31, 18, 4, 2, COLOR_WHITE);
-      canvas.fillCircle(64, 52, 8, COLOR_WHITE);
-      break;
-    case 19:
-      canvas.fillRoundRect(33, 28, 18, 10, 5, COLOR_WHITE);
-      canvas.fillRoundRect(81, 28, 18, 10, 5, COLOR_WHITE);
-      canvas.fillCircle(42, 32, 2, COLOR_BLACK);
-      canvas.fillCircle(90, 32, 2, COLOR_BLACK);
-      canvas.fillCircle(64, 52, 8, COLOR_WHITE);
-      break;
-    case 20: case 21: case 22: case 23: case 24:
-    case 25: case 26: case 27: case 28: case 29:
-    case 30: case 31: case 32: case 33: case 34: case 35:
-      canvas.fillRoundRect(33, 18, 18, 28, 5, COLOR_WHITE);
-      canvas.fillRoundRect(81, 18, 18, 28, 5, COLOR_WHITE);
-      canvas.fillCircle(42, 32, 3, COLOR_BLACK);
-      canvas.fillCircle(90, 32, 3, COLOR_BLACK);
-      canvas.fillCircle(64, 52, 8, COLOR_WHITE);
-      break;
-    case 36: case 37:
-      canvas.fillRoundRect(33, 19, 18, 26, 5, COLOR_WHITE);
-      canvas.fillRoundRect(81, 19, 18, 26, 5, COLOR_WHITE);
-      canvas.fillCircle(42, 32, 3, COLOR_BLACK);
-      canvas.fillCircle(90, 32, 3, COLOR_BLACK);
-      canvas.fillCircle(64, 51, 7, COLOR_WHITE);
-      break;
-    case 38: case 39:
-      canvas.fillRoundRect(33, 20, 18, 24, 5, COLOR_WHITE);
-      canvas.fillRoundRect(81, 20, 18, 24, 5, COLOR_WHITE);
-      canvas.fillCircle(42, 32, 3, COLOR_BLACK);
-      canvas.fillCircle(90, 32, 3, COLOR_BLACK);
-      canvas.fillCircle(64, 50, 6, COLOR_WHITE);
-      break;
-    case 40: case 41:
-      canvas.fillRoundRect(33, 21, 18, 22, 5, COLOR_WHITE);
-      canvas.fillRoundRect(81, 21, 18, 22, 5, COLOR_WHITE);
-      canvas.fillCircle(42, 32, 3, COLOR_BLACK);
-      canvas.fillCircle(90, 32, 3, COLOR_BLACK);
-      canvas.fillCircle(64, 50, 5, COLOR_WHITE);
-      break;
-    case 42: case 43: case 44: case 45: case 46:
-    case 47: case 48: case 49: case 50:
-      canvas.fillRoundRect(33, 23, 18, 20, 5, COLOR_WHITE);
-      canvas.fillRoundRect(81, 23, 18, 20, 5, COLOR_WHITE);
-      canvas.fillCircle(42, 33, 3, COLOR_BLACK);
-      canvas.fillCircle(90, 33, 3, COLOR_BLACK);
-      canvas.drawCircle(64, 50, 5, COLOR_WHITE);
-      break;
-  }
-}
-// ===== DEAD =====
-
-void drawDead(ICanvas& canvas, int frame, const void* ctx) {
-  switch (frame) {
-    case 0:
-      canvas.drawEyes(40, 28, 88, 28, 18);
-      canvas.drawCircle(64, 50, 4, COLOR_WHITE);
-      break;
-    case 1: case 2:
-      canvas.drawEyes(40, 29, 88, 29, 16);
-      canvas.drawCircle(64, 50, 4, COLOR_WHITE);
-      break;
-    case 3: case 4:
-      canvas.drawEyes(40, 30, 88, 30, 12);
-      canvas.drawCircle(64, 50, 4, COLOR_WHITE);
-      break;
-    case 5: case 6:
-      canvas.drawEyes(40, 31, 88, 31, 8);
-      canvas.drawCircle(64, 51, 5, COLOR_WHITE);
-      break;
-    case 7: case 8:
-      canvas.fillRoundRect(38, 30, 18, 4, 2, COLOR_WHITE);
-      canvas.fillRoundRect(86, 30, 18, 4, 2, COLOR_WHITE);
-      canvas.drawCircle(64, 51, 5, COLOR_WHITE);
-      break;
-    case 9: case 10:
-      drawXEyes(canvas, 5);
-      canvas.drawCircle(64, 50, 5, COLOR_WHITE);
-      break;
-    case 11: case 12: case 13: case 14: case 15:
-      drawXEyes(canvas, 6);
-      canvas.drawCircle(64, 50, 6, COLOR_WHITE);
-      break;
-    case 16: case 17: case 18:
-      drawXEyes(canvas, 6);
-      canvas.fillRoundRect(56, 50, 16, 6, 3, COLOR_WHITE);
-      canvas.fillRect(62, 54, 4, 2, COLOR_WHITE);
-      break;
-    case 19: case 20: case 21:
-      drawXEyes(canvas, 6);
-      canvas.fillRoundRect(56, 50, 16, 6, 3, COLOR_WHITE);
-      canvas.fillRoundRect(61, 54, 6, 4, 2, COLOR_WHITE);
-      break;
-    case 22: case 23: case 24: case 25:
-      drawXEyes(canvas, 6);
-      canvas.fillRoundRect(56, 50, 16, 6, 3, COLOR_WHITE);
-      canvas.fillRoundRect(60, 54, 8, 6, 3, COLOR_WHITE);
-      break;
-    case 26: case 27: case 28: case 29: case 30:
-    case 31: case 32: case 33: case 34: case 35:
-    case 36: case 37: case 38: case 39: case 40:
-      drawXEyes(canvas, 6);
-      canvas.fillRoundRect(56, 50, 16, 6, 3, COLOR_WHITE);
-      canvas.fillRoundRect(60, 54, 8, 6, 3, COLOR_WHITE);
-      if (frame % 8 < 4) {
-        canvas.drawCircle(20, 20, 3, COLOR_WHITE);
-        canvas.drawCircle(108, 20, 3, COLOR_WHITE);
-      } else {
-        canvas.drawCircle(18, 24, 3, COLOR_WHITE);
-        canvas.drawCircle(110, 24, 3, COLOR_WHITE);
-      }
-      break;
-    case 41: case 42:
-      drawXEyes(canvas, 6);
-      canvas.fillRoundRect(56, 50, 16, 6, 3, COLOR_WHITE);
-      canvas.fillRoundRect(61, 54, 6, 4, 2, COLOR_WHITE);
-      break;
-    case 43: case 44:
-      drawXEyes(canvas, 6);
-      canvas.fillRoundRect(56, 50, 16, 6, 3, COLOR_WHITE);
-      canvas.fillRect(62, 54, 4, 2, COLOR_WHITE);
-      break;
-    case 45: case 46: case 47: case 48: case 49: case 50:
-      drawXEyes(canvas, 6);
-      canvas.fillRoundRect(56, 50, 16, 6, 3, COLOR_WHITE);
-      break;
+void drawConfused(ICanvas& canvas, int frame, const void* ctx) {
+  if (frame < 7) {
+    // Tilt: left eye grows taller, right shrinks
+    int leftH = ease(20, 26, frame, 6);
+    int leftY = ease(28, 22, frame, 6);
+    int rightH = ease(20, 12, frame, 6);
+    int rightY = ease(28, 29, frame, 6);
+    canvas.fillRoundRect(26, leftY - leftH / 2, 24, leftH, 7, COLOR_WHITE);
+    canvas.fillRoundRect(78, rightY - rightH / 2, 24, rightH, 7, COLOR_WHITE);
+    canvas.drawMouth(57, 53, 14, 4);
+  } else if (frame < 21) {
+    // Hold confused: left tall, right squat; "?" appears
+    canvas.fillRoundRect(26, 22 - 13, 24, 26, 7, COLOR_WHITE);
+    canvas.fillRoundRect(78, 29 - 6, 24, 12, 7, COLOR_WHITE);
+    canvas.drawMouth(60, 53, 12, 4);
+    if (frame >= 9) {
+      canvas.setTextSize(1);
+      canvas.setCursor(110, 8);
+      canvas.print("?");
+    }
+    if (frame >= 15) {
+      canvas.setTextSize(1);
+      canvas.setCursor(116, 16);
+      canvas.print("?");
+    }
+  } else if (frame < 29) {
+    // Reverse tilt: eyes swap sizes
+    int leftH = ease(26, 12, frame - 21, 7);
+    int leftY_top = ease(22 - 13, 29 - 6, frame - 21, 7);
+    int rightH = ease(12, 26, frame - 21, 7);
+    int rightY_top = ease(29 - 6, 22 - 13, frame - 21, 7);
+    canvas.fillRoundRect(26, leftY_top, 24, leftH, 7, COLOR_WHITE);
+    canvas.fillRoundRect(78, rightY_top, 24, rightH, 7, COLOR_WHITE);
+    canvas.drawMouth(58, 53, 12, 4);
+  } else if (frame < 37) {
+    // Hold reversed: left squat, right tall; two "?" marks
+    canvas.fillRoundRect(26, 29 - 6, 24, 12, 7, COLOR_WHITE);
+    canvas.fillRoundRect(78, 22 - 13, 24, 26, 7, COLOR_WHITE);
+    canvas.drawMouth(58, 53, 12, 4);
+    canvas.setTextSize(1);
+    canvas.setCursor(108, 6);
+    canvas.print("?");
+    canvas.setTextSize(2);
+    canvas.setCursor(116, 14);
+    canvas.print("?");
+  } else {
+    // Settle: eyes return toward equal size
+    int eyeH = ease(12, 20, frame - 37, 6);
+    canvas.drawEyes(38, 28, 90, 28, eyeH);
+    canvas.drawMouth(57, 53, 14, 4);
   }
 }
 
-// ===== BORED =====
-// 51 frames @ 60ms — droopy, half-lidded, lethargic
-// Left eye Y = 28, right eye Y = 30 for subtle head tilt
+// ===== 2.6 ANGRY — fuming frustration =====
+// 44 frames @ 30ms = 1.3s loop.
+// Phases: furrow (F0-6), hold glare (F7-10), shake (F11-30), intensify (F31-37), settle (F38-43)
 
-void drawBored(ICanvas& canvas, int frame, const void* ctx) {
-  // Frames 0-15: eyes droop from height 18 down to ~11
-  if (frame <= 15) {
-    int eyeH = 18 - frame / 2;
-    canvas.fillRoundRect(30, 28 - eyeH / 2, 20, eyeH, 5, COLOR_WHITE);
-    canvas.fillRoundRect(78, 30 - eyeH / 2, 20, eyeH, 5, COLOR_WHITE);
-    canvas.fillRoundRect(52, 50, 24, 4, 2, COLOR_WHITE);
-    return;
+void drawAngry(ICanvas& canvas, int frame, const void* ctx) {
+  if (frame < 7) {
+    // Furrow: brows descend, eyes narrow and drop
+    int eyeH = ease(18, 12, frame, 6);
+    int eyeY = ease(30, 33, frame, 6);
+    int browThick = ease(2, 5, frame, 6);
+    canvas.drawEyes(38, eyeY, 90, eyeY, eyeH);
+    canvas.drawBrow(18, ease(22, 16, frame, 6), 50, ease(28, 24, frame, 6), browThick);
+    canvas.drawBrow(78, ease(28, 24, frame, 6), 110, ease(22, 16, frame, 6), browThick);
+    canvas.fillRoundRect(54, 55, 20, 4, 2, COLOR_WHITE);
+  } else if (frame < 11) {
+    // Hold glare: max furrow
+    canvas.drawEyes(38, 33, 90, 33, 12);
+    canvas.drawBrow(18, 16, 50, 24, 5);
+    canvas.drawBrow(78, 24, 110, 16, 5);
+    canvas.fillRoundRect(54, 55, 20, 4, 2, COLOR_WHITE);
+  } else if (frame < 31) {
+    // Shake: ±3px horizontal alternation
+    int xOff = ((frame % 2) == 0) ? -3 : 3;
+    canvas.drawEyes(38 + xOff, 33, 90 + xOff, 33, 12);
+    canvas.drawBrow(18 + xOff, 16, 50 + xOff, 24, 5);
+    canvas.drawBrow(78 + xOff, 24, 110 + xOff, 16, 5);
+    canvas.fillRoundRect(54 + xOff, 55, 20, 4, 2, COLOR_WHITE);
+  } else if (frame < 38) {
+    // Intensify: ±4px shake, brows thicker
+    int xOff = ((frame % 2) == 0) ? -4 : 4;
+    canvas.drawEyes(38 + xOff, 33, 90 + xOff, 33, 11);
+    canvas.drawBrow(18 + xOff, 15, 50 + xOff, 25, 6);
+    canvas.drawBrow(78 + xOff, 25, 110 + xOff, 15, 6);
+    canvas.fillRoundRect(54 + xOff, 55, 20, 4, 2, COLOR_WHITE);
+  } else {
+    // Settle: shake dampens, brows lift, eyes widen
+    int eyeH = ease(12, 14, frame - 38, 5);
+    canvas.drawEyes(38, 32, 90, 32, eyeH);
+    canvas.drawBrow(18, 17, 50, 23, 4);
+    canvas.drawBrow(78, 23, 110, 17, 4);
+    canvas.fillRoundRect(54, 54, 20, 4, 2, COLOR_WHITE);
   }
-  // Frames 16-19: hold half-closed
-  if (frame <= 19) {
-    canvas.fillRoundRect(30, 28 - 4, 20, 9, 5, COLOR_WHITE);
-    canvas.fillRoundRect(78, 30 - 4, 20, 9, 5, COLOR_WHITE);
-    canvas.fillRoundRect(52, 50, 24, 4, 2, COLOR_WHITE);
-    return;
-  }
-  // Frames 20-22: slow blink (fully closed)
-  if (frame <= 22) {
-    canvas.fillRoundRect(30, 29, 20, 3, 1, COLOR_WHITE);
-    canvas.fillRoundRect(78, 31, 20, 3, 1, COLOR_WHITE);
-    canvas.fillRoundRect(52, 50, 24, 4, 2, COLOR_WHITE);
-    return;
-  }
-  // Frames 23-25: re-open to half
-  if (frame <= 25) {
-    canvas.fillRoundRect(30, 28 - 4, 20, 9, 5, COLOR_WHITE);
-    canvas.fillRoundRect(78, 30 - 4, 20, 9, 5, COLOR_WHITE);
-    canvas.fillRoundRect(52, 50, 24, 4, 2, COLOR_WHITE);
-    return;
-  }
-  // Frames 26-40: eyes drift down slightly
-  if (frame <= 40) {
-    int drift = (frame - 26) / 5;
-    canvas.fillRoundRect(30, 30 - 4 + drift, 20, 9, 5, COLOR_WHITE);
-    canvas.fillRoundRect(78, 32 - 4 + drift, 20, 9, 5, COLOR_WHITE);
-    canvas.fillRoundRect(52, 50, 24, 4, 2, COLOR_WHITE);
-    return;
-  }
-  // Frames 41-50: slowly re-open
-  int reopenH = 9 + (frame - 41);
-  if (reopenH > 14) reopenH = 14;
-  canvas.fillRoundRect(30, 28 - reopenH / 2, 20, reopenH, 5, COLOR_WHITE);
-  canvas.fillRoundRect(78, 30 - reopenH / 2, 20, reopenH, 5, COLOR_WHITE);
-  canvas.fillRoundRect(52, 50, 24, 4, 2, COLOR_WHITE);
 }
 
-// ===== SHY =====
-// 30 frames @ 40ms — bashful, eyes narrow inward, blush, peek
+// ===== 2.7 SHY — bashful peek =====
+// 36 frames @ 40ms = 1.44s loop (LOOP_ONCE — holds final frame)
+// Phases: shrink (F0-7), look down (F8-15), peek (F16-23), settle (F24-31), hold (F32-35)
 
 void drawShy(ICanvas& canvas, int frame, const void* ctx) {
-  // Frames 0-7: eyes shrink inward, blush appears
-  if (frame <= 7) {
-    int shrink = frame * 2;
-    canvas.fillRoundRect(30 + shrink, 28 - 7, 20, 14, 5, COLOR_WHITE);
-    canvas.fillRoundRect(78 - shrink, 28 - 7, 20, 14, 5, COLOR_WHITE);
+  if (frame < 8) {
+    // Eyes narrow and move inward, blush appears
+    // Left eye moves from x=38 rightward to x=44; right eye from x=90 leftward to x=84
+    int leftX = ease(38, 44, frame, 7);
+    int rightX = ease(90, 84, frame, 7);
+    int eyeH = ease(20, 14, frame, 7);
+    canvas.fillRoundRect(leftX - 12, 24 - eyeH / 2, 24, eyeH, 7, COLOR_WHITE);
+    canvas.fillRoundRect(rightX - 12, 24 - eyeH / 2, 24, eyeH, 7, COLOR_WHITE);
     if (frame >= 3) {
-      canvas.drawBlush(22, 40, 102, 40, 4);
+      canvas.drawBlush(18, 42, 110, 42, frame - 1);
     }
-    return;
+  } else if (frame < 16) {
+    // Look down: eyes shift to Y=32, H=10
+    int eyeY = ease(24, 32, frame - 8, 7);
+    int eyeH = ease(14, 10, frame - 8, 7);
+    canvas.fillRoundRect(44 - 12, eyeY - eyeH / 2, 24, eyeH, 7, COLOR_WHITE);
+    canvas.fillRoundRect(84 - 12, eyeY - eyeH / 2, 24, eyeH, 7, COLOR_WHITE);
+    canvas.drawBlush(18, 42, 110, 42, 5);
+    canvas.drawMouth(59, 53, 10, 4);
+  } else if (frame < 24) {
+    // Peek: right eye rises, left stays down
+    int rightY = ease(32, 27, frame - 16, 7);
+    canvas.fillRoundRect(44 - 12, 32 - 5, 24, 10, 7, COLOR_WHITE);  // left stays
+    canvas.fillRoundRect(84 - 12, rightY - 7, 24, 14, 7, COLOR_WHITE);  // right rises
+    int blushR = 6 - (frame - 16) / 4;
+    canvas.drawBlush(18, 42, 110, 42, blushR > 4 ? blushR : 4);
+    canvas.drawMouth(59, 53, 10, 4);
+  } else if (frame < 32) {
+    // Settle: both eyes partially recover
+    int leftX = ease(44, 38, frame - 24, 7);
+    int rightX = ease(84, 90, frame - 24, 7);
+    int eyeH = ease(10, 16, frame - 24, 7);
+    canvas.fillRoundRect(leftX - 12, 28 - eyeH / 2, 24, eyeH, 7, COLOR_WHITE);
+    canvas.fillRoundRect(rightX - 12, 27 - eyeH / 2, 24, eyeH, 7, COLOR_WHITE);
+    canvas.drawBlush(18, 42, 110, 42, 4);
+    canvas.fillRoundRect(56, 52, 16, 5, 3, COLOR_WHITE);
+  } else {
+    // Hold: shy pose with blush and small smile, right eye 1px higher (glance)
+    canvas.drawEyes(38, 28, 90, 27, 16);
+    canvas.drawBlush(18, 42, 110, 42, 4);
+    canvas.fillRoundRect(56, 52, 16, 5, 3, COLOR_WHITE);
   }
-  // Frames 8-15: eyes look down, small mouth
-  if (frame <= 15) {
-    int yOff = (frame - 8);
-    canvas.fillRoundRect(44, 28 + yOff - 5, 20, 10, 5, COLOR_WHITE);
-    canvas.fillRoundRect(64, 28 + yOff - 5, 20, 10, 5, COLOR_WHITE);
-    canvas.drawBlush(22, 40, 102, 40, 5);
-    canvas.fillRoundRect(56, 52, 16, 4, 2, COLOR_WHITE);
-    return;
-  }
-  // Frames 16-22: right eye peeks back up
-  if (frame <= 22) {
-    int peekY = 35 - (frame - 16);
-    canvas.fillRoundRect(44, 35 - 5, 20, 10, 5, COLOR_WHITE);
-    canvas.fillRoundRect(64, peekY - 5, 20, 10, 5, COLOR_WHITE);
-    canvas.drawBlush(22, 40, 102, 40, 6);
-    canvas.fillRoundRect(56, 52, 16, 4, 2, COLOR_WHITE);
-    return;
-  }
-  // Frames 23-29: both eyes return to normal, small smile
-  int returnY = 35 - (frame - 23);
-  if (returnY < 28) returnY = 28;
-  canvas.fillRoundRect(40, returnY - 7, 20, 14, 5, COLOR_WHITE);
-  canvas.fillRoundRect(68, returnY - 7, 20, 14, 5, COLOR_WHITE);
-  canvas.drawBlush(22, 40, 102, 40, 4);
-  canvas.fillRoundRect(54, 51, 20, 5, 2, COLOR_WHITE);
 }
 
+// ===== 2.8 LOVE — adoration =====
+// 44 frames @ 35ms = 1.54s loop.
+// Phases: transform (F0-5), pulse (F6-25), float (F26-35), settle (F36-43)
+
+void drawLove(ICanvas& canvas, int frame, const void* ctx) {
+  if (frame < 6) {
+    // Transform: rounded eyes morph into hearts
+    int r = ease(4, 7, frame, 5);
+    if (frame < 2) {
+      // Still rounded eyes in early frames
+      canvas.drawEyes(38, 28, 90, 28, ease(18, 12, frame, 5));
+    } else {
+      drawHeartEye(canvas, 38, ease(30, 24, frame, 5), r);
+      drawHeartEye(canvas, 90, ease(30, 24, frame, 5), r);
+    }
+    canvas.fillRoundRect(ease(57, 50, frame, 5), 51,
+                         ease(14, 28, frame, 5), ease(5, 8, frame, 5),
+                         4, COLOR_WHITE);
+  } else if (frame < 26) {
+    // Pulse: hearts alternate r=6↔8 every 2 frames
+    int r = ((frame % 2) == 0) ? 8 : 6;
+    drawHeartEye(canvas, 38, 24, r);
+    drawHeartEye(canvas, 90, 24, r);
+    canvas.fillRoundRect(48, 50, 32, 9, 4, COLOR_WHITE);
+    int blushR = ((frame % 2) == 0) ? 4 : 3;
+    canvas.drawBlush(16, 44, 112, 44, blushR);
+    // Floating mini-heart outlines (paired circles)
+    if ((frame % 4) < 2) {
+      canvas.drawCircle(12, 10, 2, COLOR_WHITE);
+      canvas.drawCircle(15, 10, 2, COLOR_WHITE);
+    } else {
+      canvas.drawCircle(116, 8, 2, COLOR_WHITE);
+      canvas.drawCircle(119, 8, 2, COLOR_WHITE);
+    }
+  } else if (frame < 36) {
+    // Float: heart outlines drift upward, stable hearts
+    drawHeartEye(canvas, 38, 24, 7);
+    drawHeartEye(canvas, 90, 24, 7);
+    canvas.fillRoundRect(48, 50, 32, 9, 4, COLOR_WHITE);
+    canvas.drawBlush(16, 44, 112, 44, 4);
+    // Hearts drifting up-right
+    int dy = (frame - 26);
+    canvas.drawCircle(12 + dy / 2, 10 - dy, 2, COLOR_WHITE);
+    canvas.drawCircle(15 + dy / 2, 10 - dy, 2, COLOR_WHITE);
+  } else {
+    // Settle: hearts at r=7, blush, wide smile
+    drawHeartEye(canvas, 38, 24, 7);
+    drawHeartEye(canvas, 90, 24, 7);
+    canvas.fillRoundRect(48, 50, 32, 9, 4, COLOR_WHITE);
+    canvas.drawBlush(16, 44, 112, 44, 5);
+  }
+}
+
+// ===== 2.9 EXCITED — high energy bounce =====
+// 36 frames @ 25ms = 0.9s loop. Fastest animation.
+// Phases: widen (F0-5), bounce (F6-25), settle (F26-31), ease back (F32-35)
+
+void drawExcited(ICanvas& canvas, int frame, const void* ctx) {
+  if (frame < 6) {
+    // Eyes widen H=22→28, pupils appear
+    int eyeH = ease(22, 28, frame, 5);
+    int eyeY = ease(28, 26, frame, 5);
+    int mouthW = ease(24, 36, frame, 5);
+    canvas.drawEyesWithPupils(38, eyeY, 90, eyeY, eyeH, 3);
+    canvas.fillRoundRect(64 - mouthW / 2, 50, mouthW, 10, 5, COLOR_WHITE);
+    if (frame >= 3) {
+      canvas.drawSparkles(10, 10, 118, 10, 2);
+    }
+  } else if (frame < 26) {
+    // Bounce: alternate up/down every frame
+    int yOff = ((frame % 2) == 0) ? -3 : 3;
+    canvas.drawEyesWithPupils(38, 26 + yOff, 90, 26 + yOff, 28, 3);
+    canvas.fillRoundRect(46, 50 + yOff, 36, 10, 5, COLOR_WHITE);
+    canvas.drawSparkles(((frame % 2) == 0) ? 12 : 10,
+                        ((frame % 2) == 0) ? 8 : 14,
+                        ((frame % 2) == 0) ? 116 : 118,
+                        ((frame % 2) == 0) ? 8 : 14, 2);
+  } else if (frame < 32) {
+    // Settle: bounce dampens 3→2→1→0
+    int amp = 3 - (frame - 26) / 2;
+    if (amp < 0) amp = 0;
+    int yOff = ((frame % 2) == 0) ? -amp : amp;
+    canvas.drawEyesWithPupils(38, 26 + yOff, 90, 26 + yOff, 28, 3);
+    canvas.fillRoundRect(46, 50 + yOff, 36, 10, 5, COLOR_WHITE);
+  } else {
+    // Ease back: eyes shrink slightly
+    int eyeH = ease(28, 24, frame - 32, 3);
+    canvas.drawEyesWithPupils(38, 26, 90, 26, eyeH, 3);
+    canvas.fillRoundRect(50, 50, 28, 8, 4, COLOR_WHITE);
+  }
+}
+
+// ===== 2.10 SLEEPY — drifting off =====
+// 50 frames @ 40ms = 2.0s loop.
+// Phases: closing (F0-10), sleeping/z-cascade (F11-35), micro-stir (F36-42), reopen (F43-49)
+
+void drawSleepy(ICanvas& canvas, int frame, const void* ctx) {
+  if (frame < 11) {
+    // Closing: eyes droop H=22→3, Y=28→32; yawn circle grows
+    int eyeH = ease(22, 3, frame, 10);
+    int eyeY = ease(28, 32, frame, 10);
+    int yawnR = ease(4, 7, frame, 10);
+    canvas.drawEyes(38, eyeY, 90, eyeY, eyeH);
+    if (frame < 8) {
+      canvas.drawCircle(64, 50, yawnR, COLOR_WHITE);
+    } else {
+      canvas.fillCircle(64, 52, yawnR, COLOR_WHITE);
+    }
+  } else if (frame < 36) {
+    // Sleeping: slit eyes, Z cascade builds up
+    canvas.drawEyes(38, 32, 90, 32, 2);
+    canvas.fillCircle(64, 52, 7, COLOR_WHITE);
+    // Z letters float up-right, one new Z added every 5 frames
+    int zCount = (frame - 11) / 5 + 1;
+    if (zCount > 4) zCount = 4;
+    for (int i = 0; i < zCount; i++) {
+      canvas.setTextSize(1);
+      canvas.setCursor(90 + i * 8, 28 - i * 6);
+      canvas.print("z");
+    }
+    // Capital Z at top when cascade is full
+    if (zCount >= 4) {
+      canvas.setTextSize(1);
+      canvas.setCursor(116, 6);
+      canvas.print("Z");
+    }
+  } else if (frame < 43) {
+    // Micro-stir: eyes crack open then close again
+    int stirH = (frame < 39) ? ease(2, 5, frame - 36, 3) : ease(5, 2, frame - 39, 3);
+    canvas.drawEyes(38, 32, 90, 32, stirH);
+    canvas.fillCircle(64, 52, 6, COLOR_WHITE);
+  } else {
+    // Reopen: eyes to H=18, yawn shrinks
+    int eyeH = ease(3, 18, frame - 43, 6);
+    int eyeY = ease(32, 28, frame - 43, 6);
+    int yawnR = ease(7, 4, frame - 43, 6);
+    canvas.drawEyes(38, eyeY, 90, eyeY, eyeH);
+    canvas.drawCircle(64, 50, yawnR, COLOR_WHITE);
+  }
+}
+
+// ===== 2.11 THINKING — contemplative gaze =====
+// 44 frames @ 35ms = 1.54s loop.
+// Phases: look up-left (F0-6), hold+dots (F7-20), look up-right (F21-28), aha! (F29-36), return (F37-43)
+
+void drawThinking(ICanvas& canvas, int frame, const void* ctx) {
+  if (frame < 7) {
+    // Look up-left: eyes shift -4px X, -4px Y
+    int eyeLX = ease(38, 34, frame, 6);
+    int eyeRX = ease(90, 86, frame, 6);
+    int eyeY = ease(28, 24, frame, 6);
+    canvas.drawEyes(eyeLX, eyeY, eyeRX, eyeY, 20);
+    canvas.fillRoundRect(58, 53, 12, 4, 2, COLOR_WHITE);
+  } else if (frame < 21) {
+    // Hold: eyes looking up-left, dots appear sequentially
+    canvas.drawEyes(34, 24, 86, 24, 20);
+    canvas.fillRoundRect(56, 53, 12, 4, 2, COLOR_WHITE);
+    // One dot appears every 4 frames
+    int dots = (frame - 7) / 4 + 1;
+    if (dots > 3) dots = 3;
+    for (int i = 0; i < dots; i++) {
+      canvas.fillRect(110 + i * 6, 10, 3, 3, COLOR_WHITE);
+    }
+  } else if (frame < 29) {
+    // Look up-right: eyes shift +4px X
+    int eyeLX = ease(34, 42, frame - 21, 7);
+    int eyeRX = ease(86, 94, frame - 21, 7);
+    canvas.drawEyes(eyeLX, 24, eyeRX, 24, 20);
+    canvas.fillRoundRect(58, 53, 12, 4, 2, COLOR_WHITE);
+    canvas.fillRect(110, 10, 3, 3, COLOR_WHITE);
+    canvas.fillRect(116, 10, 3, 3, COLOR_WHITE);
+    canvas.fillRect(122, 10, 3, 3, COLOR_WHITE);
+  } else if (frame < 37) {
+    // Aha! Eyes widen +2, "!" replaces dots
+    int eyeH = ease(20, 22, frame - 29, 4);
+    canvas.drawEyes(42, 24, 94, 24, eyeH);
+    canvas.fillRoundRect(60, 53, 12, 4, 2, COLOR_WHITE);
+    // Exclamation mark
+    canvas.fillRect(114, 6, 3, 14, COLOR_WHITE);
+    canvas.fillRect(114, 22, 3, 3, COLOR_WHITE);
+  } else {
+    // Return to center
+    int eyeLX = ease(42, 38, frame - 37, 6);
+    int eyeRX = ease(94, 90, frame - 37, 6);
+    int eyeY = ease(24, 28, frame - 37, 6);
+    canvas.drawEyes(eyeLX, eyeY, eyeRX, eyeY, 20);
+    canvas.fillRoundRect(58, 53, 12, 4, 2, COLOR_WHITE);
+  }
+}
+
+// ===== 2.12 SURPRISED — startled snap =====
+// 36 frames @ 30ms = 1.08s loop.
+// Phases: snap open (F0-5), hold shock (F6-10), double-take blink (F11-13),
+//         tremor hold (F14-25), settle (F26-35)
+
+void drawSurprised(ICanvas& canvas, int frame, const void* ctx) {
+  if (frame < 6) {
+    // Snap open: eyes widen H=20→28, mouth opens
+    int eyeH = ease(20, 28, frame, 5);
+    int eyeY = ease(28, 25, frame, 5);
+    int mouthR = ease(4, 7, frame, 5);
+    canvas.drawEyesWithPupils(38, eyeY, 90, eyeY, eyeH, 3);
+    canvas.fillCircle(64, 53, mouthR, COLOR_WHITE);
+  } else if (frame < 11) {
+    // Hold shock
+    canvas.drawEyesWithPupils(38, 25, 90, 25, 28, 3);
+    canvas.fillCircle(64, 53, 7, COLOR_WHITE);
+  } else if (frame == 11) {
+    // Double-take shut: quick blink, no pupils
+    canvas.drawEyes(38, 30, 90, 30, 4);
+    canvas.fillCircle(64, 53, 7, COLOR_WHITE);
+  } else if (frame < 14) {
+    // Double-take reopen
+    canvas.drawEyesWithPupils(38, 25, 90, 25, 28, 3);
+    canvas.fillCircle(64, 53, 7, COLOR_WHITE);
+  } else if (frame < 26) {
+    // Tremor hold: 1px vertical jitter, mouth pulses
+    int yOff = ((frame % 2) == 0) ? -1 : 1;
+    int mouthR = ((frame % 2) == 0) ? 8 : 6;
+    canvas.drawEyesWithPupils(38, 25 + yOff, 90, 25 + yOff, 28, 3);
+    canvas.fillCircle(64, 53, mouthR, COLOR_WHITE);
+  } else {
+    // Settle: eyes shrink H=28→22, mouth closes
+    int eyeH = ease(28, 22, frame - 26, 9);
+    int eyeY = ease(25, 28, frame - 26, 9);
+    int mouthR = ease(7, 4, frame - 26, 9);
+    canvas.drawEyesWithPupils(38, eyeY, 90, eyeY, eyeH, 3);
+    if (mouthR > 3) {
+      canvas.fillCircle(64, 53, mouthR, COLOR_WHITE);
+    } else {
+      canvas.drawCircle(64, 52, 4, COLOR_WHITE);
+    }
+  }
+}
+
+// ===== 2.13 DEAD — dark comedy knockout =====
+// 40 frames @ 40ms = 1.6s loop.
+// Phases: collapse (F0-8), X eyes form (F9-14), hold dead (F15-30), twitch (F31-39)
+
+void drawDead(ICanvas& canvas, int frame, const void* ctx) {
+  if (frame < 9) {
+    // Collapse: eyes close slowly
+    int eyeH = ease(20, 4, frame, 8);
+    int eyeY = ease(28, 30, frame, 8);
+    canvas.drawEyes(38, eyeY, 90, eyeY, eyeH);
+    canvas.drawCircle(64, 52, 4, COLOR_WHITE);
+  } else if (frame < 15) {
+    // X eyes form: thickness grows 2→5
+    int thick = ease(2, 5, frame - 9, 5);
+    drawXEyes(canvas, thick);
+    // Tongue starts protruding
+    if (frame >= 12) {
+      canvas.fillRoundRect(58, 52, 12, 4, 3, COLOR_WHITE);
+      canvas.fillRoundRect(61, 55, 6, 3, 2, COLOR_WHITE);
+    }
+  } else if (frame < 31) {
+    // Hold dead: X eyes, tongue out, dizzy circles orbit at edges
+    drawXEyes(canvas, 5);
+    canvas.fillRoundRect(58, 52, 12, 6, 3, COLOR_WHITE);
+    canvas.fillRoundRect(62, 56, 6, 6, 3, COLOR_WHITE);
+    // Dizzy circles shift positions every 5 frames
+    int dizzyPhase = (frame - 15) / 5;
+    int dx = (dizzyPhase % 2 == 0) ? 0 : 2;
+    canvas.drawCircle(16 + dx, 18, 3, COLOR_WHITE);
+    canvas.drawCircle(112 - dx, 22, 3, COLOR_WHITE);
+  } else {
+    // Twitch: 1px movements for dark comedy
+    int xOff = 0;
+    if (frame == 33 || frame == 34) xOff = 1;
+    if (frame == 36 || frame == 37) xOff = -1;
+    drawXEyes(canvas, 5);  // X eyes don't move (static)
+    canvas.fillRoundRect(58 + xOff, 52, 12, 6, 3, COLOR_WHITE);
+    canvas.fillRoundRect(62 + xOff, 56, 6, 6, 3, COLOR_WHITE);
+  }
+}
+
+// ===== 2.14 BORED — disinterested half-lids =====
+// 50 frames @ 55ms = 2.75s loop. Slowest animation.
+// Phases: droop (F0-12), hold (F13-18), slow blink (F19-22), drift (F23-35),
+//         sigh (F36-42), reopen (F43-49)
+
+void drawBored(ICanvas& canvas, int frame, const void* ctx) {
+  if (frame < 13) {
+    // Droop: eyes close H=22→8, right eye 2px lower (head tilt)
+    int eyeH = ease(22, 8, frame, 12);
+    int leftY = ease(28, 28, frame, 12);   // left stays at 28
+    int rightY = ease(30, 30, frame, 12);  // right 2px lower (tilt) — constant
+    canvas.fillRoundRect(26, leftY - eyeH / 2, 24, eyeH, 7, COLOR_WHITE);
+    canvas.fillRoundRect(78, rightY - eyeH / 2, 24, eyeH, 7, COLOR_WHITE);
+    canvas.fillRoundRect(57, 53, 14, 4, 2, COLOR_WHITE);
+  } else if (frame < 19) {
+    // Hold half-closed: H=8, tilt maintained
+    canvas.fillRoundRect(26, 28 - 4, 24, 8, 7, COLOR_WHITE);
+    canvas.fillRoundRect(78, 30 - 4, 24, 8, 7, COLOR_WHITE);
+    canvas.fillRoundRect(57, 53, 14, 4, 2, COLOR_WHITE);
+  } else if (frame < 23) {
+    // Slow blink: H=2 then back to H=8
+    int eyeH = (frame < 21) ? 2 : 8;
+    canvas.fillRoundRect(26, 28 - eyeH / 2, 24, eyeH, 7, COLOR_WHITE);
+    canvas.fillRoundRect(78, 30 - eyeH / 2, 24, eyeH, 7, COLOR_WHITE);
+    canvas.fillRoundRect(57, 53, 14, 4, 2, COLOR_WHITE);
+  } else if (frame < 36) {
+    // Drift: H=8, tilt; side glance on F28-30 (right eye shifts 2px right)
+    int rightXOff = (frame >= 28 && frame <= 30) ? 2 : 0;
+    canvas.fillRoundRect(26, 28 - 4, 24, 8, 7, COLOR_WHITE);
+    canvas.fillRoundRect(78 + rightXOff, 30 - 4, 24, 8, 7, COLOR_WHITE);
+    canvas.fillRoundRect(57, 53, 14, 4, 2, COLOR_WHITE);
+  } else if (frame < 43) {
+    // Sigh: mouth opens into small O
+    canvas.fillRoundRect(26, 28 - 4, 24, 8, 7, COLOR_WHITE);
+    canvas.fillRoundRect(78, 30 - 4, 24, 8, 7, COLOR_WHITE);
+    canvas.drawCircle(64, 54, 4, COLOR_WHITE);
+  } else {
+    // Reopen: eyes to H=16 (still somewhat bored)
+    int eyeH = ease(8, 16, frame - 43, 6);
+    canvas.fillRoundRect(26, 28 - eyeH / 2, 24, eyeH, 7, COLOR_WHITE);
+    canvas.fillRoundRect(78, 30 - eyeH / 2, 24, eyeH, 7, COLOR_WHITE);
+    canvas.fillRoundRect(57, 53, 14, 4, 2, COLOR_WHITE);
+  }
+}

@@ -42,17 +42,30 @@
 #define LONG_PRESS_MS 600
 #define DOUBLE_TAP_WINDOW_MS 300
 
-// ===== ANIMATION NEUTRAL STATE =====
-// Standard neutral pose for smooth transitions between emotions
-#define NEUTRAL_EYE_LEFT_X 40
-#define NEUTRAL_EYE_LEFT_Y 28
-#define NEUTRAL_EYE_RIGHT_X 88
-#define NEUTRAL_EYE_RIGHT_Y 28
-#define NEUTRAL_EYE_HEIGHT 18
-#define NEUTRAL_MOUTH_X 58
-#define NEUTRAL_MOUTH_Y 50
-#define NEUTRAL_MOUTH_WIDTH 12
-#define NEUTRAL_MOUTH_HEIGHT 5
+// ===== FACE GRAMMAR =====
+// Canonical neutral pose — every emotion deviates from these values.
+#define FACE_EYE_LX   38    // Left eye center X
+#define FACE_EYE_LY   28    // Left eye center Y
+#define FACE_EYE_RX   90    // Right eye center X
+#define FACE_EYE_RY   28    // Right eye center Y
+#define FACE_EYE_W    24    // Eye width (fillRoundRect)
+#define FACE_EYE_H    22    // Eye height (default)
+#define FACE_EYE_R     7    // Eye corner radius
+#define FACE_MOUTH_CX 64    // Mouth center X
+#define FACE_MOUTH_Y  52    // Mouth top Y
+#define FACE_MOUTH_W  14    // Mouth width (default)
+#define FACE_MOUTH_H   5    // Mouth height (default)
+
+// Legacy aliases (used by display.cpp transition code until migrated)
+#define NEUTRAL_EYE_LEFT_X  FACE_EYE_LX
+#define NEUTRAL_EYE_LEFT_Y  FACE_EYE_LY
+#define NEUTRAL_EYE_RIGHT_X FACE_EYE_RX
+#define NEUTRAL_EYE_RIGHT_Y FACE_EYE_RY
+#define NEUTRAL_EYE_HEIGHT  FACE_EYE_H
+#define NEUTRAL_MOUTH_X     (FACE_MOUTH_CX - FACE_MOUTH_W / 2)
+#define NEUTRAL_MOUTH_Y     FACE_MOUTH_Y
+#define NEUTRAL_MOUTH_WIDTH FACE_MOUTH_W
+#define NEUTRAL_MOUTH_HEIGHT FACE_MOUTH_H
 
 // ===== PERSONALITY CONFIGURATION =====
 #define ATTENTION_STAGE1_MS 300000    // 5 min → BORED (base, ±20% jitter)
@@ -64,7 +77,7 @@
 #define JITTER_PERCENT 20             // ±20% applied to all personality timings
 
 // ===== DEBUG MODE =====
-#define DEBUG_MODE_ENABLED false            // Set to true to enable debug mode (shows only DEBUG_MODE_EMOTION)
+#define DEBUG_MODE_ENABLED true            // Set to true to enable debug mode (shows only DEBUG_MODE_EMOTION)
 #define DEBUG_MODE_EMOTION EMOTION_HAPPY    // Which emotion to show in debug mode
 
 #endif // CONFIG_H

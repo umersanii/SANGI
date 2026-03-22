@@ -58,20 +58,21 @@ void onGesture(TouchGesture gesture, unsigned long currentTime) {
 
 // ===== EMOTION REGISTRY SETUP =====
 void registerEmotions() {
-  emotionRegistry.add({EMOTION_IDLE, "IDLE", 1, 0, LOOP_RESTART, true, drawIdle});
-  emotionRegistry.add({EMOTION_BLINK, "BLINK", 1, 0, LOOP_RESTART, false, drawBlink});
-  emotionRegistry.add({EMOTION_HAPPY, "HAPPY", 51, 30, LOOP_RESTART, true, drawHappy});
-  emotionRegistry.add({EMOTION_SLEEPY, "SLEEPY", 51, 30, LOOP_RESTART, false, drawSleepy});
-  emotionRegistry.add({EMOTION_EXCITED, "EXCITED", 51, 30, LOOP_RESTART, true, drawExcited});
-  emotionRegistry.add({EMOTION_SAD, "SAD", 51, 30, LOOP_RESTART, true, drawSad});
-  emotionRegistry.add({EMOTION_ANGRY, "ANGRY", 51, 30, LOOP_RESTART, true, drawAngry});
-  emotionRegistry.add({EMOTION_CONFUSED, "CONFUSED", 51, 30, LOOP_RESTART, true, drawConfused});
-  emotionRegistry.add({EMOTION_THINKING, "THINKING", 51, 30, LOOP_RESTART, true, drawThinking});
-  emotionRegistry.add({EMOTION_LOVE, "LOVE", 51, 30, LOOP_RESTART, true, drawLove});
-  emotionRegistry.add({EMOTION_SURPRISED, "SURPRISED", 51, 30, LOOP_RESTART, true, drawSurprised});
-  emotionRegistry.add({EMOTION_DEAD, "DEAD", 51, 30, LOOP_RESTART, false, drawDead});
-  emotionRegistry.add({EMOTION_BORED, "BORED", 51, 60, LOOP_RESTART, true, drawBored});
-  emotionRegistry.add({EMOTION_SHY, "SHY", 30, 40, LOOP_ONCE, false, drawShy});
+  // Frame counts and delays now vary per emotion — each has its own temporal character.
+  emotionRegistry.add({EMOTION_IDLE,      "IDLE",      60, 50, LOOP_RESTART, true,  drawIdle});
+  emotionRegistry.add({EMOTION_BLINK,     "BLINK",      1,  0, LOOP_RESTART, false, drawBlink});
+  emotionRegistry.add({EMOTION_HAPPY,     "HAPPY",     40, 35, LOOP_RESTART, true,  drawHappy});
+  emotionRegistry.add({EMOTION_SLEEPY,    "SLEEPY",    50, 40, LOOP_RESTART, false, drawSleepy});
+  emotionRegistry.add({EMOTION_EXCITED,   "EXCITED",   36, 25, LOOP_RESTART, true,  drawExcited});
+  emotionRegistry.add({EMOTION_SAD,       "SAD",       48, 35, LOOP_RESTART, true,  drawSad});
+  emotionRegistry.add({EMOTION_ANGRY,     "ANGRY",     44, 30, LOOP_RESTART, true,  drawAngry});
+  emotionRegistry.add({EMOTION_CONFUSED,  "CONFUSED",  44, 35, LOOP_RESTART, true,  drawConfused});
+  emotionRegistry.add({EMOTION_THINKING,  "THINKING",  44, 35, LOOP_RESTART, true,  drawThinking});
+  emotionRegistry.add({EMOTION_LOVE,      "LOVE",      44, 35, LOOP_RESTART, true,  drawLove});
+  emotionRegistry.add({EMOTION_SURPRISED, "SURPRISED", 36, 30, LOOP_RESTART, true,  drawSurprised});
+  emotionRegistry.add({EMOTION_DEAD,      "DEAD",      40, 40, LOOP_RESTART, false, drawDead});
+  emotionRegistry.add({EMOTION_BORED,     "BORED",     50, 55, LOOP_RESTART, true,  drawBored});
+  emotionRegistry.add({EMOTION_SHY,       "SHY",       36, 40, LOOP_ONCE,    false, drawShy});
 }
 
 // ===== POWER MANAGEMENT =====
