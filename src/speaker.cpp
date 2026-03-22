@@ -83,29 +83,6 @@ static const BeepTone PATTERN_DEAD[] = {
   {200, 300}
 };
 
-static const BeepTone PATTERN_MUSIC[] = {
-  {523, 100}, {0, 50},   // C5
-  {659, 100}, {0, 50},   // E5
-  {784, 100}, {0, 50},   // G5
-  {1047, 150}            // C6
-};
-
-static const BeepTone PATTERN_NOTIFICATION[] = {
-  {1200, 80}, {0, 60},
-  {1200, 80}, {0, 60},
-  {1500, 150}
-};
-
-static const BeepTone PATTERN_CODING[] = {
-  {1000, 40}, {0, 30},   // Keyboard tap 1
-  {1100, 40}, {0, 30},   // Keyboard tap 2
-  {950, 40}, {0, 30},    // Keyboard tap 3
-  {1050, 40}, {0, 30},   // Keyboard tap 4
-  {1000, 40}, {0, 100},  // Keyboard tap 5 + pause
-  {1300, 60}, {0, 40},   // Compile beep 1
-  {1500, 80}             // Compile beep 2 (success!)
-};
-
 // ===== BEEP MANAGER IMPLEMENTATION =====
 
 BeepManager::BeepManager()
@@ -189,9 +166,6 @@ static const EmotionPattern EMOTION_PATTERNS[] = {
   PATTERN_ENTRY(EMOTION_LOVE, PATTERN_LOVE),
   PATTERN_ENTRY(EMOTION_SURPRISED, PATTERN_SURPRISED),
   PATTERN_ENTRY(EMOTION_DEAD, PATTERN_DEAD),
-  PATTERN_ENTRY(EMOTION_MUSIC, PATTERN_MUSIC),
-  PATTERN_ENTRY(EMOTION_NOTIFICATION, PATTERN_NOTIFICATION),
-  PATTERN_ENTRY(EMOTION_CODING, PATTERN_CODING),
 };
 static const int NUM_PATTERNS = sizeof(EMOTION_PATTERNS) / sizeof(EmotionPattern);
 
