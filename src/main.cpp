@@ -12,6 +12,7 @@
 #include "input.h"
 #include "speaker.h"
 #include "ble_control.h"
+#include "personality.h"
 
 // ===== GLOBAL STATE =====
 unsigned long bootTime = 0;
@@ -36,18 +37,20 @@ void onBleEmotion(EmotionState e) {
 
 // ===== GESTURE CALLBACK =====
 void onGesture(TouchGesture gesture, unsigned long currentTime) {
+  bool wasNeglected = personality.onTouch(currentTime, emotionManager.getCurrentEmotion());
+  if (wasNeglected) {
+    emotionManager.setTargetEmotion(EMOTION_SHY);
+    return;
+  }
   switch (gesture) {
     case GESTURE_TAP:
       emotionManager.setTargetEmotion(EMOTION_HAPPY);
-      Serial.println("Gesture: TAP → HAPPY");
       break;
     case GESTURE_LONG_PRESS:
       emotionManager.setTargetEmotion(EMOTION_LOVE);
-      Serial.println("Gesture: LONG_PRESS → LOVE");
       break;
     case GESTURE_DOUBLE_TAP:
       emotionManager.setTargetEmotion(EMOTION_EXCITED);
-      Serial.println("Gesture: DOUBLE_TAP → EXCITED");
       break;
     default: break;
   }
@@ -107,6 +110,7 @@ void setup() {
   batteryManager.init();
   beepManager.init();
   bleControl.init(onBleEmotion);
+  personality.init(bootTime);
 
 #if !DEBUG_MODE_ENABLED
   displayManager.showBootScreen();
@@ -135,18 +139,9 @@ void loop() {
   bleControl.updateCurrentEmotion((uint8_t)emotionManager.getCurrentEmotion());
 
 #if !DEBUG_MODE_ENABLED
-  // Autonomous random cycling
-  static unsigned long lastSwitch = 0;
-  static EmotionState cyclable[EmotionRegistry::MAX_EMOTIONS];
-  static int numCyclable = 0;
-  static bool loaded = false;
-  if (!loaded) {
-    numCyclable = emotionRegistry.getCyclable(cyclable, EmotionRegistry::MAX_EMOTIONS);
-    loaded = true;
-  }
-  if (currentTime - lastSwitch > EMOTION_CHANGE_INTERVAL_BASE) {
-    emotionManager.setTargetEmotion(cyclable[random(0, numCyclable)]);
-    lastSwitch = currentTime;
+  Personality::Decision d = personality.update(currentTime, emotionManager.getCurrentEmotion());
+  if (d.shouldChange) {
+    emotionManager.setTargetEmotion(d.emotion);
   }
 #endif
 

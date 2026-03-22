@@ -10,6 +10,7 @@
 #include "emotion_draws.h"
 #include "animations.h"
 #include "input.h"
+#include "personality.h"
 #include "mock_canvas.h"
 
 // ===== TEST HELPERS =====
@@ -287,6 +288,77 @@ void test_shy_uses_blush() {
   TEST_ASSERT_TRUE(idx >= 0);
 }
 
+// ===== PERSONALITY ENGINE TESTS =====
+
+void test_attention_arc_escalates() {
+  Personality p;
+  p.init(0);
+  p.onTouch(0, EMOTION_IDLE);
+
+  // Beyond stage 1 threshold with max jitter
+  unsigned long t = ATTENTION_STAGE1_MS + ATTENTION_STAGE1_MS * JITTER_PERCENT / 100 + 1000;
+  stubSetMillis(t);
+  p.update(t, EMOTION_IDLE);
+  TEST_ASSERT_TRUE(p.getAttentionStage() >= 1);
+}
+
+void test_touch_during_neglect_triggers_recovery() {
+  Personality p;
+  p.init(0);
+
+  // Force into neglect state (stage 2)
+  unsigned long t = ATTENTION_STAGE2_MS + ATTENTION_STAGE2_MS * JITTER_PERCENT / 100 + 1000;
+  stubSetMillis(t);
+  // Drive through stages
+  p.update(t, EMOTION_IDLE);
+  p.update(t, EMOTION_BORED);
+
+  TEST_ASSERT_TRUE(p.getAttentionStage() >= 1);
+
+  bool wasNeglected = p.onTouch(t, EMOTION_SAD);
+  TEST_ASSERT_TRUE(wasNeglected);
+  TEST_ASSERT_EQUAL(0, p.getAttentionStage());
+}
+
+void test_touch_when_not_neglected_returns_false() {
+  Personality p;
+  p.init(0);
+  bool wasNeglected = p.onTouch(100, EMOTION_IDLE);
+  TEST_ASSERT_FALSE(wasNeglected);
+}
+
+void test_jitter_produces_variance() {
+  Personality p;
+  p.init(0);
+  unsigned long results[20];
+  for (int i = 0; i < 20; i++) {
+    results[i] = p.jitter(100000);
+  }
+  bool allSame = true;
+  for (int i = 1; i < 20; i++) {
+    if (results[i] != results[0]) { allSame = false; break; }
+  }
+  TEST_ASSERT_FALSE(allSame);
+}
+
+void test_recovery_transitions_to_happy() {
+  Personality p;
+  p.init(0);
+
+  // Force neglect and touch
+  unsigned long t = ATTENTION_STAGE1_MS + ATTENTION_STAGE1_MS * JITTER_PERCENT / 100 + 1000;
+  p.update(t, EMOTION_IDLE);  // trigger stage 1
+  bool wasNeglected = p.onTouch(t, EMOTION_BORED);
+  TEST_ASSERT_TRUE(wasNeglected);
+
+  // After SHY timer elapses (1300ms), should return HAPPY
+  unsigned long afterShy = t + 1400;
+  stubSetMillis(afterShy);
+  Personality::Decision d = p.update(afterShy, EMOTION_SHY);
+  TEST_ASSERT_TRUE(d.shouldChange);
+  TEST_ASSERT_EQUAL(EMOTION_HAPPY, d.emotion);
+}
+
 // ===== GESTURE DETECTION TESTS =====
 
 void test_classify_gesture_tap() {
@@ -372,6 +444,13 @@ int main(int argc, char** argv) {
   RUN_TEST(test_bored_draws_half_lidded_eyes);
   RUN_TEST(test_shy_uses_blush);
   RUN_TEST(test_all_emotions_draw_without_crash);
+
+  // Personality engine
+  RUN_TEST(test_attention_arc_escalates);
+  RUN_TEST(test_touch_during_neglect_triggers_recovery);
+  RUN_TEST(test_touch_when_not_neglected_returns_false);
+  RUN_TEST(test_jitter_produces_variance);
+  RUN_TEST(test_recovery_transitions_to_happy);
 
   // Gesture detection
   RUN_TEST(test_classify_gesture_tap);

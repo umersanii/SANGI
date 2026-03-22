@@ -54,6 +54,15 @@
 #define NEUTRAL_MOUTH_WIDTH 12
 #define NEUTRAL_MOUTH_HEIGHT 5
 
+// ===== PERSONALITY CONFIGURATION =====
+#define ATTENTION_STAGE1_MS 300000    // 5 min → BORED (base, ±20% jitter)
+#define ATTENTION_STAGE2_MS 600000    // 10 min → SAD
+#define ATTENTION_STAGE3_MS 750000    // 12.5 min → CONFUSED
+#define ATTENTION_STAGE4_MS 900000    // 15 min → ANGRY
+#define MOOD_DRIFT_INTERVAL_MS 120000 // 2 min between mood drift checks (base)
+#define MICRO_EXPRESSION_CHANCE 15    // % chance per drift check to do a micro-expression
+#define JITTER_PERCENT 20             // ±20% applied to all personality timings
+
 // ===== DEBUG MODE =====
 #define DEBUG_MODE_ENABLED false            // Set to true to enable debug mode (shows only DEBUG_MODE_EMOTION)
 #define DEBUG_MODE_EMOTION EMOTION_HAPPY    // Which emotion to show in debug mode
