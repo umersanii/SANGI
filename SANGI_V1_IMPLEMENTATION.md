@@ -1110,3 +1110,6 @@ void test_final_registry_integrity() {
   }
 }
 ```
+
+### For personal use
+```https://claude.ai/share/d0dc698d-d01d-40c4-a4bc-133716bdd7dc```

@@ -409,9 +409,6 @@ void DisplayManager::drawEmotionFace(EmotionState emotion) {
     case EMOTION_DEAD:
       drawFace_Dead();
       break;
-    case EMOTION_NOTIFICATION:
-      drawFace_Notification("", "");  // Default empty notification
-      break;
     default:
       drawFace_Normal();
       break;
@@ -426,11 +423,6 @@ TransitionResult DisplayManager::performTransitionFrame(int frame,
   // Special handling for sleepy transitions
   if (current == EMOTION_SLEEPY || target == EMOTION_SLEEPY) {
     return sleepyTransitionFrame(frame, target);
-  }
-
-  // Special handling ONLY when transitioning TO notification
-  if (target == EMOTION_NOTIFICATION && current != EMOTION_NOTIFICATION) {
-    return notificationTransitionFrame(frame, current);
   }
 
   // Standard 7-frame blink transition
@@ -528,56 +520,3 @@ TransitionResult DisplayManager::sleepyTransitionFrame(int frame,
   return TR_COMPLETE;
 }
 
-// Notification transition — surprise → run away → notification board appears
-TransitionResult DisplayManager::notificationTransitionFrame(int frame,
-                                                              EmotionState current) {
-  switch (frame) {
-    case 0:
-      drawEmotionFace(current);
-      delay(150);
-      return TR_DREW_FRAME;
-    case 1:
-      display.clearDisplay();
-      drawEyes(40, 27, 88, 27, 22);
-      display.fillCircle(40, 27, 2, SSD1306_BLACK);
-      display.fillCircle(88, 27, 2, SSD1306_BLACK);
-      display.drawCircle(64, 48, 6, SSD1306_WHITE);
-      display.display();
-      delay(100);
-      return TR_DREW_FRAME;
-    case 2:
-      display.clearDisplay();
-      drawEyes(40, 26, 88, 26, 26);
-      display.fillCircle(40, 26, 3, SSD1306_BLACK);
-      display.fillCircle(88, 26, 3, SSD1306_BLACK);
-      display.fillCircle(64, 50, 8, SSD1306_WHITE);
-      display.display();
-      delay(150);
-      return TR_DREW_FRAME;
-    case 3:
-      display.clearDisplay();
-      drawEyes(40, 28, 88, 28, 12);
-      display.drawLine(52, 50, 76, 50, SSD1306_WHITE);
-      display.display();
-      delay(100);
-      return TR_DREW_FRAME;
-    case 4:
-      display.clearDisplay();
-      drawEyes(60, 28, 108, 28, 14);
-      display.drawLine(72, 50, 96, 50, SSD1306_WHITE);
-      display.display();
-      delay(100);
-      return TR_DREW_FRAME;
-    case 5:
-      display.clearDisplay();
-      drawEyes(85, 28, 133, 28, 14);
-      display.display();
-      delay(100);
-      return TR_DREW_FRAME;
-    case 6:
-      drawEmotionFace(EMOTION_NOTIFICATION);
-      delay(200);
-      return TR_COMPLETE;
-  }
-  return TR_COMPLETE;
-}

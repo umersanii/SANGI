@@ -1,386 +1,397 @@
-# SANGI - Square Animated Networked Gizmo Interface
+# SANGI: Autonomous Emotion Robot
 
-A custom square-based Mochi robot with animated OLED expressions, built with ESP32-C3.
+[![Status](https://img.shields.io/badge/status-v1%20complete-brightgreen)](https://github.com/umersanii/SANGI)
+[![Tests](https://img.shields.io/badge/tests-37%2F37%20passing-brightgreen)](./test/)
+[![License](https://img.shields.io/badge/license-MIT-blue)](#license)
+[![Platform](https://img.shields.io/badge/platform-ESP32--C3-orange)](#hardware)
 
-> 🔗 **GitHub**: [@umersanii](https://github.com/umersanii)
+**A cute, standalone robot with animated expressions, personality-driven behavior, BLE control, and touch gestures—no WiFi required.**
 
-## 🤖 Project Overview
+---
 
-This project creates a Dasai M### Features
+## Table of Contents
 
-- 💬 **Discord Messages** - Personal account DM and mention monitoring every 5 minutes (selfbot ⚠️)
-- 🐙 **GitHub** - API polling for PRs, issues, mentions
-- 📊 **GitHub Stats** - Real-time profile statistics (contributions, repos, stars, followers) every 5 minutes
-- 🔄 **Auto-start** - Runs as systemd service on boot
-- 📊 **Rate limiting** - Prevents notification spam
-- 📝 **Logging** - Comprehensive logs to file and journal
-- 🐍 **Virtual Environment** - Isolated Python dependenciesrobot with cute animated facial expressions displayed on an SSD1306 OLED screen. The robot features 11 different emotions with smooth blinking and eye movement animations.
+- [What is SANGI?](#what-is-sangi)
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Hardware](#hardware)
+- [Usage](#usage)
+- [Architecture](#architecture)
+- [Testing](#testing)
+- [Configuration](#configuration)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [License](#license)
 
-**Architecture**: The codebase uses a clean modular design with separate manager classes for display, emotions, animations, battery, and input handling. See the [Modular Architecture](#️-modular-architecture) section below for details.
+---
 
-## 🔧 Hardware
+## What is SANGI?
 
-- **Microcontroller**: ESP32-C3
-- **Display**: 0.96" SSD1306 OLED (128x64, I2C)
-- **I2C Pins**: 
-  - SDA: GPIO 6
-  - SCL: GPIO 7
-- **I2C Address**: 0x3C
+SANGI is a **fully autonomous ESP32-C3 robot** with an animated OLED face that:
 
-## ✨ Features
+- Expresses 14 different emotions with smooth animations
+- Responds to touch with smart gesture recognition (tap, long-press, double-tap)
+- Has personality that evolves over time based on neglect and time of day
+- Works offline with optional BLE remote control
+- Runs forever on battery with zero external dependencies
 
-### Animated Expressions
-The robot displays 16 different emotions with smooth multi-frame animations:
+Perfect for a desk companion, IoT learning project, or just fun robot hacking.
 
-1. 😊 **Normal** - Calm resting face
-2. 😄 **Happy** - Slightly squinted eyes with smile
-3. 😲 **Surprised** - Wide eyes with open mouth
-4. 😢 **Sad** - Normal eyes with frown
-5. 😠 **Angry** - Narrowed eyes with angry eyebrows
-6. 😍 **Love** - Heart-shaped eyes with big smile
-7. 😴 **Sleepy** - Half-closed eyes with "Zzz" animation (51 frames)
-8. 🤩 **Excited** - Wide eyes with sparkles and big smile (51 frames)
-9. 🤔 **Thinking** - Eyes looking up with thought bubbles (51 frames)
-10. 😕 **Confused** - Asymmetric eyes with wavy mouth
-11. 💀 **Dead** - X eyes forming with tongue sticking out (51 frames)
-12. 🎵 **Music** - Closed eyes with smooth swaying motion and floating music notes (51 frames)
-13. 🔔 **Notification** - Alert state with notification indicator (86 frames)
-14. 🎯 **Focus** - Concentrated expression with enhanced attention
-15. 💻 **Coding** - Matrix-style with thick glasses, squinted eyes, and falling binary digits (25 frames)
-16. 📊 **GitHub Stats** - Dynamic stats display showing real-time GitHub activity (130 frames)
+---
 
-### Animations
-- **Smooth Blinking** - Eyes gradually close and open (3-frame transition)
-- **Look Around** - Eyes shift left and right
-- **Complex Emotions** - Multi-frame sequences for sleepy, excited, thinking, music, coding, and dead emotions
-- **Music Swaying** - Slow left-to-right humming motion with closed eyes (full cycle: 51 frames)
-- **Floating Music Notes** - Dispersed notes moving to top-left and top-right corners
-- **Matrix Binary Effect** - Falling 0s and 1s in 6 columns with synchronized speed (25 frames)
-- **Fast Focus Blinks** - Quick double blinks for concentrated expression
-- **X Eyes Formation** - Dead emotion features thick X eyes that form gradually (frames 9-15)
-- **Tongue Animation** - Tongue extends and retracts smoothly (frames 16-50)
-- **Ghost Effects** - Subtle floating particles during dead emotion hold phase
-- **Natural Timing** - Consistent 30ms frame delay (~20 FPS) across all animations
-- **Dynamic GitHub Stats** - Cycles through 8 stat screens (repos, followers, contributions, commits, PRs, issues, stars, summary)
-- **Real-time API Integration** - Fetches live GitHub data via Raspberry Pi service every 5 minutes
+## Features
 
-### Debug Mode
-- **Isolated Testing** - Set `DEBUG_MODE_ENABLED true` in `config.h` to test specific emotions
-- **Quick Iteration** - Bypass state machine for rapid animation development
-- **Configurable Target** - Use `DEBUG_MODE_EMOTION` to select which emotion to display
-- **Serial Logging** - Detailed frame and state information via serial monitor
+### 14 Animated Emotions
 
-### IoT & Remote Control ✅ OPERATIONAL
-- **MQTT Communication** - Remote emotion control via AWS IoT Core
-- **Cloud Telemetry** - Real-time battery, emotion, and status updates
-- **Autonomous Fallback** - Continues operation when network unavailable
-- **Secure Connection** - Certificate-based AWS authentication (TLS 1.2)
-- **Status**: Successfully deployed and tested (October 2025)
+<table>
+<tr>
+<td>😊 IDLE</td>
+<td>😄 HAPPY</td>
+<td>😴 SLEEPY</td>
+<td>😲 EXCITED</td>
+</tr>
+<tr>
+<td>😢 SAD</td>
+<td>😠 ANGRY</td>
+<td>🤔 THINKING</td>
+<td>😕 CONFUSED</td>
+</tr>
+<tr>
+<td>💕 LOVE</td>
+<td>😲 SURPRISED</td>
+<td>💀 DEAD</td>
+<td>😑 BORED</td>
+</tr>
+<tr>
+<td>😳 SHY</td>
+<td>⚡ BLINK</td>
+<td colspan="2"></td>
+</tr>
+</table>
 
-**MQTT Topics**:
-- 📥 Subscribe: `sangi/emotion/set` - Remote emotion commands
-- � Subscribe: `sangi/notification/push` - Notification messages
-- 📥 Subscribe: `sangi/github/commits` - GitHub contribution heatmap data
-- 📥 Subscribe: `sangi/github/stats` - GitHub profile statistics (real-time)
-- �📤 Publish: `sangi/status` - Connection status
-- 📤 Publish: `sangi/battery` - Battery telemetry (every 30s)
-- 📤 Publish: `sangi/emotion/current` - Current emotion state (every 30s)
+### 🧠 Personality Engine
 
-> 📡 See [MQTT_SETUP.md](docs/MQTT_SETUP.md) for full setup guide or [MQTT_QUICKSTART.md](docs/MQTT_QUICKSTART.md) for quick start.
+| Feature | Behavior |
+|---------|----------|
+| Attention Arc | Neglect for 5+ min → BORED → SAD → CONFUSED → ANGRY |
+| Mood Drift | Every ~2 min: random emotion weighted by time of day |
+| Micro-expressions | 15% chance of random blink for subtle personality |
+| Touch Recovery | Touch during neglect → bashful SHY → happy recovery |
+| Jittered Timing | All intervals ±20% variance for realistic behavior |
 
-## 📦 Dependencies
+### Gesture Recognition
 
-```ini
-lib_deps = 
-    adafruit/Adafruit GFX Library@^1.11.3
-    adafruit/Adafruit SSD1306@^2.5.7
-    knolleary/PubSubClient@^2.8        # MQTT client
-    bblanchon/ArduinoJson@^6.21.3      # JSON parsing
-```
+- TAP (< 600ms) → Shows HAPPY
+- LONG PRESS (≥ 600ms) → Shows LOVE
+- DOUBLE TAP (within 300ms) → Shows EXCITED
 
-> **Note**: MQTT libraries are optional. Set `ENABLE_MQTT false` in `config.h` to use autonomous mode only.
+### BLE Remote Control
 
-## 🚀 Quick Start
+- Advertise as "SANGI" with NimBLE stack
+- Write emotion ID (0–13) to change emotion
+- Read current emotion status
+- Control from nRF Connect app (iOS/Android)
+
+### Standalone Hardware
+
+- No network, no cloud, no internet required
+- Autonomous personality cycling
+- Local BLE for control
+- Touch interaction
+- Battery voltage monitoring
+- Audio feedback via speaker
+
+---
+
+## Quick Start
 
 ### Prerequisites
-- PlatformIO installed in VS Code
-- ESP32-C3 board connected via USB-C
 
-### Setup
+- ESP32-C3 microcontroller
+- SSD1306 OLED display (128×64, I2C)
+- PlatformIO (platformio run requires PlatformIO CLI)
+- USB cable for flashing and serial monitor
 
-1. **Clone the repository**:
+### Clone & Build
+
 ```bash
 git clone https://github.com/umersanii/SANGI.git
 cd SANGI
-```
 
-2. **Configure WiFi & MQTT** (optional):
-   - Copy `include/secrets.h.template` to `include/secrets.h`
-   - Add your WiFi credentials and AWS IoT certificates
-   - See [docs/MQTT_SETUP.md](docs/MQTT_SETUP.md) for detailed instructions
-   - Or set `ENABLE_MQTT false` in `config.h` for autonomous mode only
+# Build firmware
+platformio run
 
-   **Quick MQTT Test** (after setup):
-   ```bash
-   # In AWS IoT MQTT test client, publish to: sangi/emotion/set
-   {"emotion": 1}  # Makes SANGI happy! 😊
-   ```
-
-3. **Grant USB permissions** (Linux only):
-```bash
-sudo chmod 666 /dev/ttyUSB0
-```
-
-4. **Build and Upload**:
-```bash
+# Upload to device
 platformio run --target upload
 ```
 
-5. **Monitor Serial Output** (optional):
-```bash
-platformio device monitor
-```
-
-### Testing Specific Animations
-
-To test individual emotions during development:
-
-1. Open `include/config.h`
-2. Set `#define DEBUG_MODE_ENABLED true`
-3. Set `#define DEBUG_MODE_EMOTION EMOTION_DEAD` (or any emotion)
-4. Build and upload - the robot will display only that emotion
-
-Available emotions: `EMOTION_NORMAL`, `EMOTION_HAPPY`, `EMOTION_SURPRISED`, `EMOTION_SAD`, `EMOTION_ANGRY`, `EMOTION_LOVE`, `EMOTION_SLEEPY`, `EMOTION_EXCITED`, `EMOTION_THINKING`, `EMOTION_CONFUSED`, `EMOTION_DEAD`, `EMOTION_MUSIC`, `EMOTION_NOTIFICATION`, `EMOTION_FOCUS`, `EMOTION_CODING`
-
-### Hardware Wiring
-See [HARDWARE_WIRING.md](HARDWARE_WIRING.md) for detailed wiring instructions.
-
-## 🏗️ Modular Architecture
-
-The codebase uses a clean, modular design with separate components for each functionality:
-
-### Core Modules
-
-- **`config.h`** - Hardware pin definitions and timing constants
-- **`emotion.h/cpp`** - Emotion state management with `EmotionManager` class
-- **`display.h/cpp`** - OLED display operations with `DisplayManager` class
-- **`animations.h/cpp`** - Complex animation engine with `AnimationManager` class
-- **`battery.h/cpp`** - Battery monitoring with `BatteryManager` class
-- **`input.h/cpp`** - Touch sensor handling with `InputManager` class
-- **`network.h/cpp`** - WiFi & MQTT communication with `NetworkManager` class
-- **`main.cpp`** - Clean orchestration layer (~150 lines)
-
-### Benefits
-
-✅ **Maintainable**: Easy to locate and modify specific features  
-✅ **Scalable**: Simple to add new emotions or sensors  
-✅ **Testable**: Each module can be tested independently  
-✅ **Readable**: Clear separation of concerns  
-
-> See [COPILOT.md](COPILOT.md) for detailed refactoring documentation and [REFACTORING_SUMMARY.md](REFACTORING_SUMMARY.md) for module descriptions.
-
-## 🔔 Notification Service (Raspberry Pi)
-
-**NEW**: Standalone 24/7 notification monitoring service for Raspberry Pi!
-
-Monitor Discord messages and GitHub activity and forward them to SANGI automatically.
-
-### Quick Setup
+### Monitor Serial Output
 
 ```bash
-cd pi-setup
-chmod +x setup.sh
-./setup.sh
+platformio device monitor --port /dev/ttyUSB1 --baud 115200
 ```
 
-The setup script will:
-1. ✅ Check Python installation (3.7+)
-2. ✅ Install system dependencies
-3. ✅ Create virtual environment
-4. ✅ Install AWS IoT SDK, Discord.py, and dependencies
-5. ✅ Create `config.json` from template
-6. ✅ Setup `certs/` and `logs/` directories
-7. ✅ Install and configure systemd service
+Expected output:
+```
+>>> ESP32 BOOT SUCCESSFUL <<<
+=== SANGI Robot Initializing ===
+BLE: advertising as 'SANGI'
+=== SANGI Ready! (14 emotions registered) ===
+Battery: 4.15V | Emotion: IDLE | Uptime: 0s
+```
 
-### Post-Setup Configuration
+### Verify It Works
 
-After running `setup.sh`, you need to:
+- Touch the sensor → Robot shows HAPPY
+- Hold for 600ms → Robot shows LOVE
+- Double tap → Robot shows EXCITED
 
-1. **Configure AWS IoT endpoint** - Edit `pi-setup/config.json`:
-   ```json
-   {
-     "mqtt": {
-       "endpoint": "xxxxx-ats.iot.us-east-1.amazonaws.com",
-       "client_id": "sangi-notification-monitor"
-     }
-   }
-   ```
+---
 
-2. **Copy AWS IoT certificates** to `pi-setup/certs/`:
-   ```bash
-   cp ~/path/to/AmazonRootCA1.pem pi-setup/certs/
-   cp ~/path/to/certificate.pem pi-setup/certs/cert.pem
-   cp ~/path/to/private.key pi-setup/certs/private.key
-   ```
+## Hardware
 
-3. **(Optional) Configure GitHub** - Add your token to `config.json`:
-   ```json
-   {
-     "notifications": {
-       "github": {
-         "enabled": true,
-         "token": "ghp_your_token_here",
-         "username": "your_github_username"
-       }
-     },
-     "github_stats": {
-       "enabled": true,
-       "token": "ghp_your_token_here",
-       "username": "your_github_username",
-       "poll_interval": 300
-     }
-   }
-   ```
+### Circuit
+![alt text](image.png)
 
-4. **(Optional) Configure Discord Messages** - ⚠️ WARNING: Violates Discord ToS!
-   ```json
-   {
-     "discord_messages": {
-       "enabled": false,
-       "user_token": "YOUR_DISCORD_USER_TOKEN",
-       "poll_interval": 300,
-       "monitor_dms": true,
-       "monitor_mentions": true
-     }
-   }
-   ```
-   > See [pi-setup/README.md](pi-setup/README.md) for how to obtain your user token.
+### Pinout
 
-5. **Start the service**:
-   ```bash
-   sudo systemctl start sangi-notification-monitor@$(whoami).service
-   sudo systemctl enable sangi-notification-monitor@$(whoami).service  # Auto-start on boot
-   ```
+| Component | Spec | Pin Assignment |
+|-----------|------|----------------|
+| Microcontroller | ESP32-C3 | — |
+| Display | SSD1306 OLED 128×64 (I2C) | GPIO 6 (SDA), GPIO 7 (SCL) |
+| Touch Sensor | Capacitive button | GPIO 3 |
+| Battery ADC | Voltage monitoring | GPIO 2 |
+| Speaker | PWM beeper | GPIO 10 |
 
-### Features
+### Wiring
 
-- 🎮 **Discord** - Desktop app notifications via D-Bus
-- � **Discord Messages** - Personal account DM and mention monitoring every 5 minutes (selfbot)
-- �🐙 **GitHub** - API polling for PRs, issues, mentions
-- 📊 **GitHub Stats** - Real-time profile statistics (contributions, repos, stars, followers) every 5 minutes
-- 💬 **WhatsApp** - Desktop app notifications via D-Bus
-- 🔄 **Auto-start** - Runs as systemd service on boot
-- 📊 **Rate limiting** - Prevents notification spam
-- 📝 **Logging** - Comprehensive logs to file and journal
-- 🐍 **Virtual Environment** - Isolated Python dependencies with system PyGObject/D-Bus access
+```
+ESP32-C3 → SSD1306 OLED
+GPIO 6 (SDA) → SDA
+GPIO 7 (SCL) → SCL
+GND → GND
+3V3 → VCC
 
-### Service Management
+ESP32-C3 → Touch Sensor
+GPIO 3 → Touch input
+GND → GND
+
+ESP32-C3 → Speaker
+GPIO 10 → Positive lead
+GND → Negative lead
+
+ESP32-C3 → Battery
+GPIO 2 (ADC) → Positive terminal (voltage divider recommended)
+GND → Negative terminal
+```
+
+---
+
+## Usage
+
+### Via Touch Gestures (Default)
+
+Simply interact with the capacitive touch sensor:
+
+```
+Quick tap (< 600ms)          → HAPPY 😄
+Hold down (600ms+)           → LOVE 💕
+Double tap (within 300ms)    → EXCITED 😲
+Leave alone (5+ min)         → Auto-degrade: BORED → SAD → CONFUSED → ANGRY
+Touch during neglect         → Recovery: SHY → HAPPY
+```
+
+### Via BLE Remote Control
+
+1. Download nRF Connect (free, iOS/Android)
+2. Scan for devices → Find "SANGI"
+3. Connect to device
+4. Find service `face0001-...`
+5. Find characteristic `face0002-...`
+6. Write emotion ID to change emotion:
+
+```
+0x00 = IDLE          0x08 = LOVE
+0x01 = HAPPY         0x09 = SURPRISED
+0x02 = SLEEPY        0x0A = DEAD
+0x03 = EXCITED       0x0B = BORED
+0x04 = SAD           0x0C = SHY
+0x05 = ANGRY         0x0D = BLINK
+0x06 = THINKING
+0x07 = CONFUSED
+```
+
+### Via Serial Debug
+
+When `DEBUG_MODE_ENABLED` is set, the robot displays a fixed emotion and ignores personalities.
+
+---
+
+## Testing
+
+Run all 37 native unit tests (no hardware needed):
 
 ```bash
-sudo systemctl start sangi-notification-monitor@$(whoami).service    # Start
-sudo systemctl stop sangi-notification-monitor@$(whoami).service     # Stop
-sudo systemctl status sangi-notification-monitor@$(whoami).service   # Status
-journalctl -u sangi-notification-monitor@$(whoami).service -f        # Logs
+platformio test -e native
 ```
 
-### Troubleshooting
+**Test coverage includes:**
+- Emotion state transitions and registry
+- Animation frame timing and caching
+- Display rendering (MockCanvas)
+- Gesture classification state machine
+- Personality engine (attention arc, mood drift, recovery)
+- BLE validation logic
+- Battery monitoring
 
-**Test the service manually**:
-```bash
-cd pi-setup
-./venv/bin/python notification_service.py
+All tests pass with zero warnings.
+
+---
+
+## Architecture
+
+### Core Classes
+
+```cpp
+EmotionManager      // State machine: emotion transitions with 7-frame blink
+EmotionRegistry     // Registry pattern: enum → metadata + draw function
+AnimationManager    // Generic frame-based animation tick engine
+DisplayManager      // OLED rendering via ICanvas interface
+InputManager        // Gesture detection & state tracking
+BleControl          // NimBLE server with emotion control characteristic
+Personality         // Attention arc, mood drift, micro-expressions, recovery
 ```
 
-**Check Python dependencies**:
-```bash
-cd pi-setup
-./venv/bin/python -c "import gi; import dbus; import awsiotsdk; print('✓ All imports OK')"
-```
+**Zero circular dependencies.** All modules communicate via callback injection.
 
-**Verify certificates**:
-```bash
-ls -l pi-setup/certs/
-# Should show: AmazonRootCA1.pem, cert.pem, private.key
-```
+### Design Patterns
 
-> 📚 See [pi-setup/README.md](pi-setup/README.md) for detailed documentation
+- Registry Pattern — No switch statements; emotions added via `registry.add()`
+- Callback Injection — `EmotionManager` decoupled from beeps, MQTT, animations
+- Strategy Pattern — Draw functions registered in registry, called dynamically
+- ICanvas Interface — Display abstraction for hardware (`DisplayManager`) and testing (`MockCanvas`)
 
-## �📐 Future Plans
-
-- [x] ~~Add Bluetooth/WiFi remote control~~ **✅ COMPLETED: MQTT via AWS IoT Core (Oct 2025)**
-- [x] ~~Implement cloud telemetry~~ **✅ COMPLETED: Real-time battery & emotion updates**
-- [x] ~~Battery monitoring with visual indicators~~ **✅ COMPLETED: Published via MQTT**
-- [x] ~~24/7 notification monitoring~~ **✅ COMPLETED: Standalone service for Pi (Oct 2025)**
-- [ ] Sound/buzzer feedback
-- [ ] Touch sensor integration for interaction
-- [ ] Home Assistant / Node-RED integration
-- [ ] Web dashboard for MQTT control
-
-## 🎨 Design Philosophy
-
-Simple geometric eyes (rounded rectangles) inspired by classic Dasai Mochi robots, prioritizing clarity and expressiveness on the small OLED display.
-
-## 📁 Project Structure
+### Project Structure
 
 ```
 SANGI/
 ├── src/
-│   ├── main.cpp              # Main orchestration layer
-│   ├── emotion.cpp           # Emotion state management
-│   ├── display.cpp           # Display operations
-│   ├── animations.cpp        # Animation engine
-│   ├── battery.cpp           # Battery monitoring
-│   ├── input.cpp             # Input handling
-│   └── network.cpp           # WiFi & MQTT communication
+│   ├── main.cpp              # Orchestration (wires modules, callbacks)
+│   ├── emotion.cpp           # State machine
+│   ├── emotion_registry.cpp  # Registry lookup
+│   ├── emotion_draws.cpp     # 14 emotion animations (51 frames each)
+│   ├── animations.cpp        # Generic frame-based ticker
+│   ├── display.cpp           # OLED rendering
+│   ├── battery.cpp           # ADC voltage reading
+│   ├── input.cpp             # Gesture detection state machine
+│   ├── speaker.cpp           # Beep pattern generation
+│   ├── ble_control.cpp       # NimBLE server
+│   └── personality.cpp       # Personality engine
 ├── include/
-│   ├── config.h              # Hardware & timing configuration
-│   ├── emotion.h             # Emotion manager interface
-│   ├── display.h             # Display manager interface
-│   ├── animations.h          # Animation manager interface
-│   ├── battery.h             # Battery manager interface
-│   ├── input.h               # Input manager interface
-│   ├── network.h             # Network manager interface
-│   └── secrets.h.template    # Template for AWS IoT credentials
-├── lib/                      # Custom libraries
-├── test/                     # Unit tests
-├── platformio.ini            # PlatformIO configuration
-├── HARDWARE_WIRING.md        # Detailed wiring guide
-├── MQTT_SETUP.md             # Complete MQTT/AWS IoT setup guide
-├── MQTT_QUICKSTART.md        # Quick MQTT setup reference
-├── PHASE1_IMPLEMENTATION.md  # Development roadmap
-├── REFACTORING_SUMMARY.md    # Module architecture details
-├── COPILOT.md                # AI-assisted development log
+│   ├── config.h              # Hardware pins & timing constants
+│   ├── emotion.h             # EmotionManager class
+│   ├── emotion_registry.h    # Registry class
+│   ├── emotion_draws.h       # Draw function declarations
+│   ├── animations.h          # AnimationManager class
+│   ├── display.h             # DisplayManager class
+│   ├── battery.h             # BatteryManager class
+│   ├── input.h               # InputManager & gesture enums
+│   ├── speaker.h             # BeepManager class
+│   ├── ble_control.h         # BleControl class
+│   ├── canvas.h              # ICanvas interface
+│   └── personality.h         # Personality engine class
+├── test/
+│   ├── test_sangi.cpp        # 37 unit tests
+│   ├── mock_canvas.h         # Mock display for testing
+│   └── arduino_stub/         # Arduino API stubs (millis, Serial, GPIO)
+├── platformio.ini
+├── CLAUDE.md                 # Development guide for Claude Code
 └── README.md                 # This file
 ```
 
-## 🤝 Contributing
+---
 
-Contributions are welcome! Feel free to:
-- Report bugs
-- Suggest new features
-- Submit pull requests
-- Improve documentation
+## Configuration
 
-## 📄 License
+All timing and hardware config lives in `include/config.h`:
 
-This project is open source and available for personal and educational use.
+```cpp
+// Gesture Timing
+#define LONG_PRESS_MS 600
+#define DOUBLE_TAP_WINDOW_MS 300
 
-## 👤 Author
+// Personality Timings
+#define ATTENTION_STAGE1_MS 300000    // 5 min → BORED
+#define ATTENTION_STAGE2_MS 600000    // 10 min → SAD
+#define ATTENTION_STAGE3_MS 750000    // 12.5 min → CONFUSED
+#define ATTENTION_STAGE4_MS 900000    // 15 min → ANGRY
+#define MOOD_DRIFT_INTERVAL_MS 120000 // ~2 min between changes
+#define MICRO_EXPRESSION_CHANCE 15    // % chance for random BLINK
+#define JITTER_PERCENT 20             // ±20% variance on all timings
 
-**Umer Sani**
-- GitHub: [@umersanii](https://github.com/umersanii)
+// Hardware Pins
+#define TOUCH_PIN 3
+#define SPEAKER_PIN 10
+#define BATTERY_PIN 2
+
+// Feature Flags
+#define DEBUG_MODE_ENABLED 0
+#define DEBUG_MODE_EMOTION EMOTION_HAPPY
+#define ENABLE_EMOTION_BEEP 1
+```
 
 ---
 
-**Created**: October 2025  
-**Platform**: PlatformIO + ESP32-C3  
-**Framework**: Arduino
+## Dependencies
 
+```ini
+adafruit/Adafruit SSD1306@^2.5.7
+adafruit/Adafruit GFX Library@^1.11.3
+h2zero/NimBLE-Arduino@^1.4.0
+```
+
+**Zero network, cloud, or external service dependencies.** Fully autonomous and offline-capable.
 
 ---
 
-```lsof /dev/ttyUSB1 2>/dev/null | grep -v COMMAND```
-to check where the port is active
-``` kill <port>```
+## Known Limitations
 
-```~/.platformio/penv/bin/platformio device monitor --port /dev/ttyUSB0 --baud 115200```
+- No SD card logging (flash storage only)
+- No WiFi or internet (intentional v1 design)
+- BLE range ~10m (NimBLE at +3dBm)
+- Battery monitoring is read-only (no charge cycle detection)
+
+---
+
+## Roadmap
+
+## Contributing
+
+Pull requests are welcome! Please ensure:
+
+1. Tests pass: `platformio test -e native`
+2. Code compiles: `platformio run`
+3. Hardware tested: Flash and verify on device
+4. No new globals: Use callbacks for decoupling
+5. Registry pattern: Add emotions via registry, not switch statements
+
+---
+
+## License
+
+MIT License — See [LICENSE](./LICENSE) for details.
+
+---
+
+## Author
+
+**Umer Sani** ([@umersanii](https://github.com/umersanii))
+
+- Framework: Arduino + PlatformIO
+- Platform: ESP32-C3 + SSD1306 OLED
+- Created: March 2026
+
+---
+
+**Status:** v1 Complete — Tested on hardware, all 37 tests passing.
+
