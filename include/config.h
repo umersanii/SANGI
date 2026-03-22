@@ -39,6 +39,8 @@
 #define BLINK_INTERVAL 3000  // 3 seconds
 #define SLEEP_TIMEOUT 300000  // 5 minutes
 #define HOUR_IN_MILLIS 3600000
+#define LONG_PRESS_MS 600
+#define DOUBLE_TAP_WINDOW_MS 300
 
 // ===== ANIMATION NEUTRAL STATE =====
 // Standard neutral pose for smooth transitions between emotions

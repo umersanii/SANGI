@@ -9,6 +9,7 @@
 #include "emotion_registry.h"
 #include "emotion_draws.h"
 #include "animations.h"
+#include "input.h"
 #include "mock_canvas.h"
 
 // ===== TEST HELPERS =====
@@ -286,6 +287,34 @@ void test_shy_uses_blush() {
   TEST_ASSERT_TRUE(idx >= 0);
 }
 
+// ===== GESTURE DETECTION TESTS =====
+
+void test_classify_gesture_tap() {
+  TEST_ASSERT_EQUAL(GESTURE_TAP, classifyGesture(100, 999));
+}
+
+void test_classify_gesture_long_press() {
+  TEST_ASSERT_EQUAL(GESTURE_LONG_PRESS, classifyGesture(700, 999));
+}
+
+void test_classify_gesture_double_tap() {
+  TEST_ASSERT_EQUAL(GESTURE_DOUBLE_TAP, classifyGesture(100, 200));
+}
+
+void test_classify_gesture_boundary_long_press() {
+  // At exactly LONG_PRESS_MS → long press
+  TEST_ASSERT_EQUAL(GESTURE_LONG_PRESS, classifyGesture(LONG_PRESS_MS, 999));
+  // One below → tap
+  TEST_ASSERT_EQUAL(GESTURE_TAP, classifyGesture(LONG_PRESS_MS - 1, 999));
+}
+
+void test_classify_gesture_boundary_double_tap() {
+  // At exactly DOUBLE_TAP_WINDOW_MS → double tap
+  TEST_ASSERT_EQUAL(GESTURE_DOUBLE_TAP, classifyGesture(100, DOUBLE_TAP_WINDOW_MS));
+  // One above → tap
+  TEST_ASSERT_EQUAL(GESTURE_TAP, classifyGesture(100, DOUBLE_TAP_WINDOW_MS + 1));
+}
+
 void test_all_emotions_draw_without_crash() {
   MockCanvas canvas;
   DrawFrameFn drawFns[] = {
@@ -343,6 +372,13 @@ int main(int argc, char** argv) {
   RUN_TEST(test_bored_draws_half_lidded_eyes);
   RUN_TEST(test_shy_uses_blush);
   RUN_TEST(test_all_emotions_draw_without_crash);
+
+  // Gesture detection
+  RUN_TEST(test_classify_gesture_tap);
+  RUN_TEST(test_classify_gesture_long_press);
+  RUN_TEST(test_classify_gesture_double_tap);
+  RUN_TEST(test_classify_gesture_boundary_long_press);
+  RUN_TEST(test_classify_gesture_boundary_double_tap);
 
   return UNITY_END();
 }

@@ -34,13 +34,22 @@ void onBleEmotion(EmotionState e) {
   Serial.printf("BLE: emotion set to %s\n", emotionRegistry.getName(e));
 }
 
-// ===== TOUCH CALLBACK =====
-void onTouch(unsigned long currentTime) {
-  int r = random(0, 100);
-  if (r < 50) {
-    emotionManager.setTargetEmotion(EMOTION_EXCITED);
-  } else {
-    emotionManager.setTargetEmotion(EMOTION_SURPRISED);
+// ===== GESTURE CALLBACK =====
+void onGesture(TouchGesture gesture, unsigned long currentTime) {
+  switch (gesture) {
+    case GESTURE_TAP:
+      emotionManager.setTargetEmotion(EMOTION_HAPPY);
+      Serial.println("Gesture: TAP → HAPPY");
+      break;
+    case GESTURE_LONG_PRESS:
+      emotionManager.setTargetEmotion(EMOTION_LOVE);
+      Serial.println("Gesture: LONG_PRESS → LOVE");
+      break;
+    case GESTURE_DOUBLE_TAP:
+      emotionManager.setTargetEmotion(EMOTION_EXCITED);
+      Serial.println("Gesture: DOUBLE_TAP → EXCITED");
+      break;
+    default: break;
   }
 }
 
@@ -94,7 +103,7 @@ void setup() {
 
   inputManager.init();
   inputManager.updateLastInteraction(bootTime);
-  inputManager.setOnTouch(onTouch);
+  inputManager.setOnGesture(onGesture);
   batteryManager.init();
   beepManager.init();
   bleControl.init(onBleEmotion);
