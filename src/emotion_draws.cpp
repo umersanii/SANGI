@@ -1151,3 +1151,94 @@ void drawDead(ICanvas& canvas, int frame, const void* ctx) {
   }
 }
 
+// ===== BORED =====
+// 51 frames @ 60ms — droopy, half-lidded, lethargic
+// Left eye Y = 28, right eye Y = 30 for subtle head tilt
+
+void drawBored(ICanvas& canvas, int frame, const void* ctx) {
+  // Frames 0-15: eyes droop from height 18 down to ~11
+  if (frame <= 15) {
+    int eyeH = 18 - frame / 2;
+    canvas.fillRoundRect(30, 28 - eyeH / 2, 20, eyeH, 5, COLOR_WHITE);
+    canvas.fillRoundRect(78, 30 - eyeH / 2, 20, eyeH, 5, COLOR_WHITE);
+    canvas.fillRoundRect(52, 50, 24, 4, 2, COLOR_WHITE);
+    return;
+  }
+  // Frames 16-19: hold half-closed
+  if (frame <= 19) {
+    canvas.fillRoundRect(30, 28 - 4, 20, 9, 5, COLOR_WHITE);
+    canvas.fillRoundRect(78, 30 - 4, 20, 9, 5, COLOR_WHITE);
+    canvas.fillRoundRect(52, 50, 24, 4, 2, COLOR_WHITE);
+    return;
+  }
+  // Frames 20-22: slow blink (fully closed)
+  if (frame <= 22) {
+    canvas.fillRoundRect(30, 29, 20, 3, 1, COLOR_WHITE);
+    canvas.fillRoundRect(78, 31, 20, 3, 1, COLOR_WHITE);
+    canvas.fillRoundRect(52, 50, 24, 4, 2, COLOR_WHITE);
+    return;
+  }
+  // Frames 23-25: re-open to half
+  if (frame <= 25) {
+    canvas.fillRoundRect(30, 28 - 4, 20, 9, 5, COLOR_WHITE);
+    canvas.fillRoundRect(78, 30 - 4, 20, 9, 5, COLOR_WHITE);
+    canvas.fillRoundRect(52, 50, 24, 4, 2, COLOR_WHITE);
+    return;
+  }
+  // Frames 26-40: eyes drift down slightly
+  if (frame <= 40) {
+    int drift = (frame - 26) / 5;
+    canvas.fillRoundRect(30, 30 - 4 + drift, 20, 9, 5, COLOR_WHITE);
+    canvas.fillRoundRect(78, 32 - 4 + drift, 20, 9, 5, COLOR_WHITE);
+    canvas.fillRoundRect(52, 50, 24, 4, 2, COLOR_WHITE);
+    return;
+  }
+  // Frames 41-50: slowly re-open
+  int reopenH = 9 + (frame - 41);
+  if (reopenH > 14) reopenH = 14;
+  canvas.fillRoundRect(30, 28 - reopenH / 2, 20, reopenH, 5, COLOR_WHITE);
+  canvas.fillRoundRect(78, 30 - reopenH / 2, 20, reopenH, 5, COLOR_WHITE);
+  canvas.fillRoundRect(52, 50, 24, 4, 2, COLOR_WHITE);
+}
+
+// ===== SHY =====
+// 30 frames @ 40ms — bashful, eyes narrow inward, blush, peek
+
+void drawShy(ICanvas& canvas, int frame, const void* ctx) {
+  // Frames 0-7: eyes shrink inward, blush appears
+  if (frame <= 7) {
+    int shrink = frame * 2;
+    canvas.fillRoundRect(30 + shrink, 28 - 7, 20, 14, 5, COLOR_WHITE);
+    canvas.fillRoundRect(78 - shrink, 28 - 7, 20, 14, 5, COLOR_WHITE);
+    if (frame >= 3) {
+      canvas.drawBlush(22, 40, 102, 40, 4);
+    }
+    return;
+  }
+  // Frames 8-15: eyes look down, small mouth
+  if (frame <= 15) {
+    int yOff = (frame - 8);
+    canvas.fillRoundRect(44, 28 + yOff - 5, 20, 10, 5, COLOR_WHITE);
+    canvas.fillRoundRect(64, 28 + yOff - 5, 20, 10, 5, COLOR_WHITE);
+    canvas.drawBlush(22, 40, 102, 40, 5);
+    canvas.fillRoundRect(56, 52, 16, 4, 2, COLOR_WHITE);
+    return;
+  }
+  // Frames 16-22: right eye peeks back up
+  if (frame <= 22) {
+    int peekY = 35 - (frame - 16);
+    canvas.fillRoundRect(44, 35 - 5, 20, 10, 5, COLOR_WHITE);
+    canvas.fillRoundRect(64, peekY - 5, 20, 10, 5, COLOR_WHITE);
+    canvas.drawBlush(22, 40, 102, 40, 6);
+    canvas.fillRoundRect(56, 52, 16, 4, 2, COLOR_WHITE);
+    return;
+  }
+  // Frames 23-29: both eyes return to normal, small smile
+  int returnY = 35 - (frame - 23);
+  if (returnY < 28) returnY = 28;
+  canvas.fillRoundRect(40, returnY - 7, 20, 14, 5, COLOR_WHITE);
+  canvas.fillRoundRect(68, returnY - 7, 20, 14, 5, COLOR_WHITE);
+  canvas.drawBlush(22, 40, 102, 40, 4);
+  canvas.fillRoundRect(54, 51, 20, 5, 2, COLOR_WHITE);
+}
+

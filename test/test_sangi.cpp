@@ -36,6 +36,8 @@ static void registerTestEmotions() {
   emotionRegistry.add({EMOTION_LOVE, "LOVE", 51, 30, LOOP_RESTART, true, drawLove});
   emotionRegistry.add({EMOTION_SURPRISED, "SURPRISED", 51, 30, LOOP_RESTART, true, drawSurprised});
   emotionRegistry.add({EMOTION_DEAD, "DEAD", 51, 30, LOOP_RESTART, false, drawDead});
+  emotionRegistry.add({EMOTION_BORED, "BORED", 51, 60, LOOP_RESTART, true, drawBored});
+  emotionRegistry.add({EMOTION_SHY, "SHY", 30, 40, LOOP_ONCE, false, drawShy});
 }
 
 void setUp() {
@@ -130,6 +132,14 @@ void test_emotion_validation_uses_registry() {
   TEST_ASSERT_TRUE(emotionManager.isTransitionActive());
 }
 
+// ===== BLE VALIDATION TEST (logic only — NimBLE not available natively) =====
+
+void test_ble_emotion_validation_rejects_unregistered() {
+  EmotionState invalid = (EmotionState)99;
+  TEST_ASSERT_NULL(emotionRegistry.get(invalid));
+  TEST_ASSERT_NOT_NULL(emotionRegistry.get(EMOTION_HAPPY));
+}
+
 // ===== EMOTION REGISTRY TESTS =====
 
 void test_registry_add_and_get() {
@@ -167,8 +177,8 @@ void test_registry_cyclable_excludes_blink() {
 }
 
 void test_registry_count() {
-  // Global registry populated by setUp — 12 emotions (networking-tied removed)
-  TEST_ASSERT_EQUAL(12, emotionRegistry.count());
+  // Global registry populated by setUp — 14 emotions
+  TEST_ASSERT_EQUAL(14, emotionRegistry.count());
 }
 
 // ===== ANIMATION TICK ENGINE TESTS =====
@@ -221,6 +231,18 @@ void test_tick_returns_false_for_unknown_emotion() {
   TEST_ASSERT_FALSE(drew);
 }
 
+void test_tick_loop_once_holds_last_frame() {
+  MockCanvas canvas;
+  animationManager.resetAnimation(EMOTION_SHY);
+  // Advance through all 30 frames of SHY
+  for (int i = 0; i < 40; i++) {
+    stubSetMillis((unsigned long)i * 41);
+    animationManager.tick(EMOTION_SHY, canvas);
+  }
+  // Should not crash, should have drawn many times
+  TEST_ASSERT_TRUE(canvas.callCount() > 0);
+}
+
 // ===== DRAW FUNCTION TESTS (via MockCanvas) =====
 
 void test_draw_idle_draws_eyes() {
@@ -249,15 +271,30 @@ void test_draw_happy_frame0_has_content() {
   TEST_ASSERT_TRUE(canvas.callCount() > 0);
 }
 
+void test_bored_draws_half_lidded_eyes() {
+  MockCanvas canvas;
+  drawBored(canvas, 20, nullptr);  // Mid-animation, eyes should be half-closed
+  int idx = canvas.findCall(DrawCall::FILL_RRECT);
+  TEST_ASSERT_TRUE(idx >= 0);
+  TEST_ASSERT_TRUE(canvas.call(idx).h < 18);
+}
+
+void test_shy_uses_blush() {
+  MockCanvas canvas;
+  drawShy(canvas, 10, nullptr);  // Mid-animation, blush should be visible
+  int idx = canvas.findCall(DrawCall::FILL_CIRCLE);
+  TEST_ASSERT_TRUE(idx >= 0);
+}
+
 void test_all_emotions_draw_without_crash() {
   MockCanvas canvas;
   DrawFrameFn drawFns[] = {
     drawIdle, drawBlink, drawHappy, drawSleepy, drawExcited,
     drawSad, drawAngry, drawConfused, drawThinking, drawLove,
-    drawSurprised, drawDead
+    drawSurprised, drawDead, drawBored, drawShy
   };
 
-  for (int fn = 0; fn < 12; fn++) {
+  for (int fn = 0; fn < 14; fn++) {
     for (int frame = 0; frame < 51; frame++) {
       canvas.reset();
       drawFns[fn](canvas, frame, nullptr);
@@ -283,6 +320,7 @@ int main(int argc, char** argv) {
   RUN_TEST(test_previous_emotion_tracks_history);
   RUN_TEST(test_transition_frame_advance_and_complete);
   RUN_TEST(test_emotion_validation_uses_registry);
+  RUN_TEST(test_ble_emotion_validation_rejects_unregistered);
 
   // Emotion registry
   RUN_TEST(test_registry_add_and_get);
@@ -296,11 +334,14 @@ int main(int argc, char** argv) {
   RUN_TEST(test_tick_respects_frame_delay);
   RUN_TEST(test_tick_advances_frame);
   RUN_TEST(test_tick_returns_false_for_unknown_emotion);
+  RUN_TEST(test_tick_loop_once_holds_last_frame);
 
   // Draw functions
   RUN_TEST(test_draw_idle_draws_eyes);
   RUN_TEST(test_draw_blink_draws_narrow_eyes);
   RUN_TEST(test_draw_happy_frame0_has_content);
+  RUN_TEST(test_bored_draws_half_lidded_eyes);
+  RUN_TEST(test_shy_uses_blush);
   RUN_TEST(test_all_emotions_draw_without_crash);
 
   return UNITY_END();

@@ -11,6 +11,7 @@
 #include "battery.h"
 #include "input.h"
 #include "speaker.h"
+#include "ble_control.h"
 
 // ===== GLOBAL STATE =====
 unsigned long bootTime = 0;
@@ -25,6 +26,12 @@ void onEmotionChange(EmotionState from, EmotionState to) {
 #if ENABLE_EMOTION_BEEP
   beepManager.queueEmotionBeep(to);
 #endif
+}
+
+// ===== BLE CALLBACK =====
+void onBleEmotion(EmotionState e) {
+  emotionManager.setTargetEmotion(e);
+  Serial.printf("BLE: emotion set to %s\n", emotionRegistry.getName(e));
 }
 
 // ===== TOUCH CALLBACK =====
@@ -51,6 +58,8 @@ void registerEmotions() {
   emotionRegistry.add({EMOTION_LOVE, "LOVE", 51, 30, LOOP_RESTART, true, drawLove});
   emotionRegistry.add({EMOTION_SURPRISED, "SURPRISED", 51, 30, LOOP_RESTART, true, drawSurprised});
   emotionRegistry.add({EMOTION_DEAD, "DEAD", 51, 30, LOOP_RESTART, false, drawDead});
+  emotionRegistry.add({EMOTION_BORED, "BORED", 51, 60, LOOP_RESTART, true, drawBored});
+  emotionRegistry.add({EMOTION_SHY, "SHY", 30, 40, LOOP_ONCE, false, drawShy});
 }
 
 // ===== POWER MANAGEMENT =====
@@ -88,6 +97,7 @@ void setup() {
   inputManager.setOnTouch(onTouch);
   batteryManager.init();
   beepManager.init();
+  bleControl.init(onBleEmotion);
 
 #if !DEBUG_MODE_ENABLED
   displayManager.showBootScreen();
@@ -113,6 +123,7 @@ void loop() {
   unsigned long currentTime = millis();
   beepManager.update();
   emotionManager.update(currentTime);
+  bleControl.updateCurrentEmotion((uint8_t)emotionManager.getCurrentEmotion());
 
 #if !DEBUG_MODE_ENABLED
   // Autonomous random cycling
