@@ -279,53 +279,44 @@ void drawAngry(ICanvas& canvas, int frame, const void* ctx) {
   }
 }
 
-// ===== 2.7 SHY — bashful peek =====
-// 36 frames @ 40ms = 1.44s loop (LOOP_ONCE — holds final frame)
-// Phases: shrink (F0-7), look down (F8-15), peek (F16-23), settle (F24-31), hold (F32-35)
+// ===== 2.7 SHY — flustered =====
+// 16 frames @ 70ms = 1.12s per direction. LOOP_PINGPONG for gentle shimmer.
+// Grammar: eye centers x=38/90, y=28, H=22, r=7. Mouth baseline y=53-55.
+// Features: bubble highlights drift inside iris, filled-circle blush, soft curved mouth.
+// Blink on F13.
 
 void drawShy(ICanvas& canvas, int frame, const void* ctx) {
-  if (frame < 8) {
-    // Eyes narrow and move inward, blush appears
-    // Left eye moves from x=38 rightward to x=44; right eye from x=90 leftward to x=84
-    int leftX = ease(38, 44, frame, 7);
-    int rightX = ease(90, 84, frame, 7);
-    int eyeH = ease(20, 14, frame, 7);
-    canvas.fillRoundRect(leftX - 12, 24 - eyeH / 2, 24, eyeH, 7, COLOR_WHITE);
-    canvas.fillRoundRect(rightX - 12, 24 - eyeH / 2, 24, eyeH, 7, COLOR_WHITE);
-    if (frame >= 3) {
-      canvas.drawBlush(18, 42, 110, 42, frame - 1);
-    }
-  } else if (frame < 16) {
-    // Look down: eyes shift to Y=32, H=10
-    int eyeY = ease(24, 32, frame - 8, 7);
-    int eyeH = ease(14, 10, frame - 8, 7);
-    canvas.fillRoundRect(44 - 12, eyeY - eyeH / 2, 24, eyeH, 7, COLOR_WHITE);
-    canvas.fillRoundRect(84 - 12, eyeY - eyeH / 2, 24, eyeH, 7, COLOR_WHITE);
-    canvas.drawBlush(18, 42, 110, 42, 5);
-    canvas.drawMouth(59, 53, 10, 4);
-  } else if (frame < 24) {
-    // Peek: right eye rises, left stays down
-    int rightY = ease(32, 27, frame - 16, 7);
-    canvas.fillRoundRect(44 - 12, 32 - 5, 24, 10, 7, COLOR_WHITE);  // left stays
-    canvas.fillRoundRect(84 - 12, rightY - 7, 24, 14, 7, COLOR_WHITE);  // right rises
-    int blushR = 6 - (frame - 16) / 4;
-    canvas.drawBlush(18, 42, 110, 42, blushR > 4 ? blushR : 4);
-    canvas.drawMouth(59, 53, 10, 4);
-  } else if (frame < 32) {
-    // Settle: both eyes partially recover
-    int leftX = ease(44, 38, frame - 24, 7);
-    int rightX = ease(84, 90, frame - 24, 7);
-    int eyeH = ease(10, 16, frame - 24, 7);
-    canvas.fillRoundRect(leftX - 12, 28 - eyeH / 2, 24, eyeH, 7, COLOR_WHITE);
-    canvas.fillRoundRect(rightX - 12, 27 - eyeH / 2, 24, eyeH, 7, COLOR_WHITE);
-    canvas.drawBlush(18, 42, 110, 42, 4);
-    canvas.fillRoundRect(56, 52, 16, 5, 3, COLOR_WHITE);
+  // Bubble drift: slow triangle wave, amplitude ±2px
+  static const int8_t drift[] = {0,0,1,1,1,2,2,2,2,2,1,1,1,0,0,0};
+
+  // --- Eyes ---
+  if (frame == 13) {
+    // Blink frame: near-closed slits
+    canvas.drawEyes(38, 30, 90, 30, 4);
   } else {
-    // Hold: shy pose with blush and small smile, right eye 1px higher (glance)
-    canvas.drawEyes(38, 28, 90, 27, 16);
-    canvas.drawBlush(18, 42, 110, 42, 4);
-    canvas.fillRoundRect(56, 52, 16, 5, 3, COLOR_WHITE);
+    // Standard grammar eyes + 4px black lid cut at eye top
+    canvas.drawEyes(38, 28, 90, 28, 22);
+    canvas.fillRect(26, 17, 24, 4, COLOR_BLACK);  // left lid
+    canvas.fillRect(78, 17, 24, 4, COLOR_BLACK);  // right lid
+
+    // Hollow bubble highlights (drift inside iris)
+    int smallDy = drift[frame];
+    int medDy   = -drift[frame];
+    canvas.drawCircle(34, 24 + smallDy, 1, COLOR_WHITE);  // left small
+    canvas.drawCircle(42, 30 + medDy,   2, COLOR_WHITE);  // left medium
+    canvas.drawCircle(86, 24 + smallDy, 1, COLOR_WHITE);  // right small
+    canvas.drawCircle(94, 30 + medDy,   2, COLOR_WHITE);  // right medium
   }
+
+  // --- Blush: two filled circles per cheek ---
+  canvas.fillCircle(34, 44, 3, COLOR_WHITE);  // left inner
+  canvas.fillCircle(44, 44, 3, COLOR_WHITE);  // left outer
+  canvas.fillCircle(86, 44, 3, COLOR_WHITE);  // right inner
+  canvas.fillCircle(96, 44, 3, COLOR_WHITE);  // right outer
+
+  // --- Mouth: shallow upward curve ---
+  canvas.drawLine(58, 55, 63, 53, COLOR_WHITE);  // left half
+  canvas.drawLine(63, 53, 68, 55, COLOR_WHITE);  // right half
 }
 
 // ===== 2.8 LOVE — adoration =====
@@ -638,10 +629,9 @@ void drawBored(ICanvas& canvas, int frame, const void* ctx) {
     canvas.fillRoundRect(78, 30 - eyeH / 2, 24, eyeH, 7, COLOR_WHITE);
     canvas.fillRoundRect(57, 53, 14, 4, 2, COLOR_WHITE);
   } else if (frame < 36) {
-    // Drift: H=8, tilt; side glance on F28-30 (right eye shifts 2px right)
-    int rightXOff = (frame >= 28 && frame <= 30) ? 2 : 0;
+    // Drift: H=8, tilt
     canvas.fillRoundRect(26, 28 - 4, 24, 8, 7, COLOR_WHITE);
-    canvas.fillRoundRect(78 + rightXOff, 30 - 4, 24, 8, 7, COLOR_WHITE);
+    canvas.fillRoundRect(78, 30 - 4, 24, 8, 7, COLOR_WHITE);
     canvas.fillRoundRect(57, 53, 14, 4, 2, COLOR_WHITE);
   } else if (frame < 43) {
     // Sigh: mouth opens into small O

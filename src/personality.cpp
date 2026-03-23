@@ -156,9 +156,12 @@ bool Personality::onTouch(unsigned long currentTime, EmotionState currentEmotion
   nextStageThreshold_ = jitter(ATTENTION_STAGE1_MS);
 
   if (wasNeglected) {
-    // Start recovery arc: SHY plays (~1.2s), then HAPPY
+    // Start recovery arc: SHY plays, then HAPPY.
+    // Timer accounts for blink transition (~1390ms) + SHY animation (~1800ms) + buffer.
+    // Recovery must fire after currentEmotion becomes SHY, otherwise setTargetEmotion(HAPPY)
+    // is a no-op when previousEmotion was already HAPPY (guard: currentEmotion != newEmotion).
     recoveryActive_ = true;
-    recoveryEndTime_ = currentTime + 1300;
+    recoveryEndTime_ = currentTime + 3300;
     Serial.println("[Personality] Touch during neglect → SHY recovery");
   }
 

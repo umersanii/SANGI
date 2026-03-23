@@ -39,7 +39,7 @@ static void registerTestEmotions() {
   emotionRegistry.add({EMOTION_SURPRISED, "SURPRISED", 44, 30, LOOP_RESTART,  true,  drawSurprised});
   emotionRegistry.add({EMOTION_DEAD,      "DEAD",      70, 55, LOOP_RESTART,  false, drawDead});
   emotionRegistry.add({EMOTION_BORED,     "BORED",     60, 65, LOOP_PINGPONG, true,  drawBored});
-  emotionRegistry.add({EMOTION_SHY,       "SHY",       36, 40, LOOP_ONCE,     false, drawShy});
+  emotionRegistry.add({EMOTION_SHY,       "SHY",       16, 70,  LOOP_PINGPONG, false, drawShy});
 }
 
 void setUp() {
@@ -236,12 +236,12 @@ void test_tick_returns_false_for_unknown_emotion() {
   TEST_ASSERT_FALSE(drew);
 }
 
-void test_tick_loop_once_holds_last_frame() {
+void test_tick_loop_pingpong_plays_shy() {
   MockCanvas canvas;
   animationManager.resetAnimation(EMOTION_SHY);
-  // Advance through all 30 frames of SHY
+  // Advance through all 16 frames of SHY (pingpong)
   for (int i = 0; i < 40; i++) {
-    stubSetMillis((unsigned long)i * 41);
+    stubSetMillis((unsigned long)i * 71);
     animationManager.tick(EMOTION_SHY, canvas);
   }
   // Should not crash, should have drawn many times
@@ -308,7 +308,7 @@ void test_bored_draws_half_lidded_eyes() {
 
 void test_shy_uses_blush() {
   MockCanvas canvas;
-  drawShy(canvas, 10, nullptr);  // Mid-animation, blush should be visible
+  drawShy(canvas, 3, nullptr);
   int idx = canvas.findCall(DrawCall::FILL_CIRCLE);
   TEST_ASSERT_TRUE(idx >= 0);
 }
@@ -376,8 +376,8 @@ void test_recovery_transitions_to_happy() {
   bool wasNeglected = p.onTouch(t, EMOTION_BORED);
   TEST_ASSERT_TRUE(wasNeglected);
 
-  // After SHY timer elapses (1300ms), should return HAPPY
-  unsigned long afterShy = t + 1400;
+  // After SHY timer elapses (3300ms), should return HAPPY
+  unsigned long afterShy = t + 3400;
   stubSetMillis(afterShy);
   Personality::Decision d = p.update(afterShy, EMOTION_SHY);
   TEST_ASSERT_TRUE(d.shouldChange);
@@ -418,7 +418,7 @@ void test_all_emotions_draw_without_crash() {
     {drawIdle, 60}, {drawBlink, 1}, {drawHappy, 50}, {drawSleepy, 60},
     {drawExcited, 40}, {drawSad, 56}, {drawAngry, 56}, {drawConfused, 44},
     {drawThinking, 44}, {drawLove, 44}, {drawSurprised, 44},
-    {drawDead, 70}, {drawBored, 60}, {drawShy, 36}
+    {drawDead, 70}, {drawBored, 60}, {drawShy, 10}
   };
   MockCanvas canvas;
   for (int i = 0; i < 14; i++) {
@@ -518,19 +518,32 @@ void test_angry_eyes_narrow_at_peak() {
 
 void test_shy_has_blush_mid_animation() {
   MockCanvas canvas;
-  drawShy(canvas, 12, nullptr);
+  drawShy(canvas, 3, nullptr);
   int idx = canvas.findCall(DrawCall::FILL_CIRCLE);
   TEST_ASSERT_TRUE(idx >= 0);
 }
 
-void test_shy_peek_is_asymmetric() {
+void test_shy_blink_frame_has_no_bubbles() {
   MockCanvas canvas;
-  drawShy(canvas, 20, nullptr);  // peek phase: right eye rising
-  // Two FILL_RRCTs with different Y positions
-  int idx1 = canvas.findCall(DrawCall::FILL_RRECT, 0);
-  int idx2 = canvas.findCall(DrawCall::FILL_RRECT, idx1 + 1);
-  TEST_ASSERT_TRUE(idx1 >= 0 && idx2 >= 0);
-  TEST_ASSERT_TRUE(canvas.call(idx1).y != canvas.call(idx2).y);
+  drawShy(canvas, 13, nullptr);  // Blink frame — no bubble highlights
+  int idx = canvas.findCall(DrawCall::DRAW_CIRCLE);
+  TEST_ASSERT_TRUE(idx < 0);  // No hollow circles during blink
+}
+
+void test_shy_has_bubble_highlights() {
+  MockCanvas canvas;
+  drawShy(canvas, 5, nullptr);  // Mid-animation, eyes open
+  int idx = canvas.findCall(DrawCall::DRAW_CIRCLE);
+  TEST_ASSERT_TRUE(idx >= 0);
+}
+
+void test_shy_mouth_is_curved() {
+  MockCanvas canvas;
+  drawShy(canvas, 0, nullptr);
+  int idx1 = canvas.findCall(DrawCall::DRAW_LINE);
+  TEST_ASSERT_TRUE(idx1 >= 0);
+  int idx2 = canvas.findCall(DrawCall::DRAW_LINE, idx1 + 1);
+  TEST_ASSERT_TRUE(idx2 >= 0);
 }
 
 void test_love_has_heart_components() {
@@ -717,7 +730,7 @@ int main(int argc, char** argv) {
   RUN_TEST(test_tick_respects_frame_delay);
   RUN_TEST(test_tick_advances_frame);
   RUN_TEST(test_tick_returns_false_for_unknown_emotion);
-  RUN_TEST(test_tick_loop_once_holds_last_frame);
+  RUN_TEST(test_tick_loop_pingpong_plays_shy);
   RUN_TEST(test_tick_pingpong_reverses_at_ends);
 
   // Draw functions — legacy
@@ -739,7 +752,9 @@ int main(int argc, char** argv) {
   RUN_TEST(test_angry_has_brow_lines);
   RUN_TEST(test_angry_eyes_narrow_at_peak);
   RUN_TEST(test_shy_has_blush_mid_animation);
-  RUN_TEST(test_shy_peek_is_asymmetric);
+  RUN_TEST(test_shy_blink_frame_has_no_bubbles);
+  RUN_TEST(test_shy_has_bubble_highlights);
+  RUN_TEST(test_shy_mouth_is_curved);
   RUN_TEST(test_love_has_heart_components);
   RUN_TEST(test_excited_has_pupils);
   RUN_TEST(test_excited_bounce_moves_face);
