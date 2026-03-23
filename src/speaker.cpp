@@ -87,10 +87,6 @@ static const BeepTone PATTERN_BORED[] = {
   {400, 300}, {0, 200}, {300, 400}
 };
 
-static const BeepTone PATTERN_SHY[] = {
-  {1000, 40}, {0, 30}, {800, 40}, {0, 30}, {600, 60}
-};
-
 // ===== BEEP MANAGER IMPLEMENTATION =====
 
 BeepManager::BeepManager()
@@ -175,7 +171,6 @@ static const EmotionPattern EMOTION_PATTERNS[] = {
   PATTERN_ENTRY(EMOTION_SURPRISED, PATTERN_SURPRISED),
   PATTERN_ENTRY(EMOTION_DEAD, PATTERN_DEAD),
   PATTERN_ENTRY(EMOTION_BORED, PATTERN_BORED),
-  PATTERN_ENTRY(EMOTION_SHY, PATTERN_SHY),
 };
 static const int NUM_PATTERNS = sizeof(EMOTION_PATTERNS) / sizeof(EmotionPattern);
 

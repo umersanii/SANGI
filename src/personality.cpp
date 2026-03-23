@@ -9,9 +9,7 @@ Personality::Personality()
     lastDriftTime_(0),
     nextDriftInterval_(MOOD_DRIFT_INTERVAL_MS),
     nextStageThreshold_(ATTENTION_STAGE1_MS),
-    recoveryEndTime_(0),
-    attentionStage_(0),
-    recoveryActive_(false) {
+    attentionStage_(0) {
 }
 
 void Personality::init(unsigned long currentTime) {
@@ -20,8 +18,6 @@ void Personality::init(unsigned long currentTime) {
   nextDriftInterval_ = jitter(MOOD_DRIFT_INTERVAL_MS);
   nextStageThreshold_ = jitter(ATTENTION_STAGE1_MS);
   attentionStage_ = 0;
-  recoveryActive_ = false;
-  recoveryEndTime_ = 0;
 }
 
 // Returns base ± JITTER_PERCENT%, clamped to [base/2, base*2].
@@ -115,15 +111,7 @@ bool Personality::shouldMicroExpress() {
 
 Personality::Decision Personality::update(unsigned long currentTime,
                                            EmotionState currentEmotion) {
-  // 1. If recovery is active and SHY timer has elapsed → HAPPY
-  if (recoveryActive_ && currentTime >= recoveryEndTime_) {
-    recoveryActive_ = false;
-    Serial.println("[Personality] Recovery: SHY → HAPPY");
-    return {EMOTION_HAPPY, true};
-  }
-  if (recoveryActive_) return {currentEmotion, false};
-
-  // 2. Attention arc escalation
+  // 1. Attention arc escalation
   Decision arc = attentionArc(currentTime, currentEmotion);
   if (arc.shouldChange) return arc;
 
@@ -154,16 +142,6 @@ bool Personality::onTouch(unsigned long currentTime, EmotionState currentEmotion
   attentionStage_ = 0;
   lastTouchTime_ = currentTime;
   nextStageThreshold_ = jitter(ATTENTION_STAGE1_MS);
-
-  if (wasNeglected) {
-    // Start recovery arc: SHY plays, then HAPPY.
-    // Timer accounts for blink transition (~1390ms) + SHY animation (~1800ms) + buffer.
-    // Recovery must fire after currentEmotion becomes SHY, otherwise setTargetEmotion(HAPPY)
-    // is a no-op when previousEmotion was already HAPPY (guard: currentEmotion != newEmotion).
-    recoveryActive_ = true;
-    recoveryEndTime_ = currentTime + 3300;
-    Serial.println("[Personality] Touch during neglect → SHY recovery");
-  }
 
   return wasNeglected;
 }

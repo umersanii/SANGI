@@ -39,7 +39,7 @@ void onBleEmotion(EmotionState e) {
 void onGesture(TouchGesture gesture, unsigned long currentTime) {
   bool wasNeglected = personality.onTouch(currentTime, emotionManager.getCurrentEmotion());
   if (wasNeglected) {
-    emotionManager.setTargetEmotion(EMOTION_SHY);
+    emotionManager.setTargetEmotion(EMOTION_HAPPY);
     return;
   }
   switch (gesture) {
@@ -72,7 +72,6 @@ void registerEmotions() {
   emotionRegistry.add({EMOTION_SURPRISED, "SURPRISED", 44, 30, LOOP_RESTART,  true,  drawSurprised});
   emotionRegistry.add({EMOTION_DEAD,      "DEAD",      70, 55, LOOP_RESTART,  false, drawDead});
   emotionRegistry.add({EMOTION_BORED,     "BORED",     60, 65, LOOP_PINGPONG, true,  drawBored});
-  emotionRegistry.add({EMOTION_SHY,       "SHY",       16, 70,  LOOP_PINGPONG, false, drawShy});
 }
 
 // ===== POWER MANAGEMENT =====

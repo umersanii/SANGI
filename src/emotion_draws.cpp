@@ -279,46 +279,6 @@ void drawAngry(ICanvas& canvas, int frame, const void* ctx) {
   }
 }
 
-// ===== 2.7 SHY — flustered =====
-// 16 frames @ 70ms = 1.12s per direction. LOOP_PINGPONG for gentle shimmer.
-// Grammar: eye centers x=38/90, y=28, H=22, r=7. Mouth baseline y=53-55.
-// Features: bubble highlights drift inside iris, filled-circle blush, soft curved mouth.
-// Blink on F13.
-
-void drawShy(ICanvas& canvas, int frame, const void* ctx) {
-  // Bubble drift: slow triangle wave, amplitude ±2px
-  static const int8_t drift[] = {0,0,1,1,1,2,2,2,2,2,1,1,1,0,0,0};
-
-  // --- Eyes ---
-  if (frame == 13) {
-    // Blink frame: near-closed slits
-    canvas.drawEyes(38, 30, 90, 30, 4);
-  } else {
-    // Standard grammar eyes + 4px black lid cut at eye top
-    canvas.drawEyes(38, 28, 90, 28, 22);
-    canvas.fillRect(26, 17, 24, 4, COLOR_BLACK);  // left lid
-    canvas.fillRect(78, 17, 24, 4, COLOR_BLACK);  // right lid
-
-    // Hollow bubble highlights (drift inside iris)
-    int smallDy = drift[frame];
-    int medDy   = -drift[frame];
-    canvas.drawCircle(34, 24 + smallDy, 1, COLOR_WHITE);  // left small
-    canvas.drawCircle(42, 30 + medDy,   2, COLOR_WHITE);  // left medium
-    canvas.drawCircle(86, 24 + smallDy, 1, COLOR_WHITE);  // right small
-    canvas.drawCircle(94, 30 + medDy,   2, COLOR_WHITE);  // right medium
-  }
-
-  // --- Blush: two filled circles per cheek ---
-  canvas.fillCircle(34, 44, 3, COLOR_WHITE);  // left inner
-  canvas.fillCircle(44, 44, 3, COLOR_WHITE);  // left outer
-  canvas.fillCircle(86, 44, 3, COLOR_WHITE);  // right inner
-  canvas.fillCircle(96, 44, 3, COLOR_WHITE);  // right outer
-
-  // --- Mouth: shallow upward curve ---
-  canvas.drawLine(58, 55, 63, 53, COLOR_WHITE);  // left half
-  canvas.drawLine(63, 53, 68, 55, COLOR_WHITE);  // right half
-}
-
 // ===== 2.8 LOVE — adoration =====
 // 44 frames @ 35ms = 1.54s loop.
 // Phases: transform (F0-5), pulse (F6-25), float (F26-35), settle (F36-43)

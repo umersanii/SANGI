@@ -412,9 +412,6 @@ void DisplayManager::drawEmotionFace(EmotionState emotion) {
     case EMOTION_BORED:
       drawFace_Normal();  // half-lid bored is handled by animation; Normal is fine for 200ms transition frame
       break;
-    case EMOTION_SHY:
-      drawFace_Blink();  // eyes slightly shut — reasonable approximation for transition frame
-      break;
     case EMOTION_BLINK:
       drawFace_Blink();
       break;
