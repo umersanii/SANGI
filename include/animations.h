@@ -16,6 +16,7 @@
 struct AnimState {
   int frame;
   unsigned long lastTick;
+  int8_t direction;  // 1 = forward, -1 = backward (used by LOOP_PINGPONG)
 };
 
 class AnimationManager {

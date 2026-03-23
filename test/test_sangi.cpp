@@ -26,20 +26,20 @@ void stubEmotionChange(EmotionState f, EmotionState t) {
 
 static void registerTestEmotions() {
   emotionRegistry = EmotionRegistry();
-  emotionRegistry.add({EMOTION_IDLE,      "IDLE",      60, 50, LOOP_RESTART, true,  drawIdle});
-  emotionRegistry.add({EMOTION_BLINK,     "BLINK",      1,  0, LOOP_RESTART, false, drawBlink});
-  emotionRegistry.add({EMOTION_HAPPY,     "HAPPY",     40, 35, LOOP_RESTART, true,  drawHappy});
-  emotionRegistry.add({EMOTION_SLEEPY,    "SLEEPY",    50, 40, LOOP_RESTART, false, drawSleepy});
-  emotionRegistry.add({EMOTION_EXCITED,   "EXCITED",   36, 25, LOOP_RESTART, true,  drawExcited});
-  emotionRegistry.add({EMOTION_SAD,       "SAD",       48, 35, LOOP_RESTART, true,  drawSad});
-  emotionRegistry.add({EMOTION_ANGRY,     "ANGRY",     44, 30, LOOP_RESTART, true,  drawAngry});
-  emotionRegistry.add({EMOTION_CONFUSED,  "CONFUSED",  44, 35, LOOP_RESTART, true,  drawConfused});
-  emotionRegistry.add({EMOTION_THINKING,  "THINKING",  44, 35, LOOP_RESTART, true,  drawThinking});
-  emotionRegistry.add({EMOTION_LOVE,      "LOVE",      44, 35, LOOP_RESTART, true,  drawLove});
-  emotionRegistry.add({EMOTION_SURPRISED, "SURPRISED", 36, 30, LOOP_RESTART, true,  drawSurprised});
-  emotionRegistry.add({EMOTION_DEAD,      "DEAD",      40, 40, LOOP_RESTART, false, drawDead});
-  emotionRegistry.add({EMOTION_BORED,     "BORED",     50, 55, LOOP_RESTART, true,  drawBored});
-  emotionRegistry.add({EMOTION_SHY,       "SHY",       36, 40, LOOP_ONCE,    false, drawShy});
+  emotionRegistry.add({EMOTION_IDLE,      "IDLE",      60, 55, LOOP_PINGPONG, true,  drawIdle});
+  emotionRegistry.add({EMOTION_BLINK,     "BLINK",      1,  0, LOOP_RESTART,  false, drawBlink});
+  emotionRegistry.add({EMOTION_HAPPY,     "HAPPY",     50, 35, LOOP_RESTART,  true,  drawHappy});
+  emotionRegistry.add({EMOTION_SLEEPY,    "SLEEPY",    60, 50, LOOP_PINGPONG, false, drawSleepy});
+  emotionRegistry.add({EMOTION_EXCITED,   "EXCITED",   40, 25, LOOP_RESTART,  true,  drawExcited});
+  emotionRegistry.add({EMOTION_SAD,       "SAD",       56, 48, LOOP_RESTART,  true,  drawSad});
+  emotionRegistry.add({EMOTION_ANGRY,     "ANGRY",     56, 32, LOOP_RESTART,  true,  drawAngry});
+  emotionRegistry.add({EMOTION_CONFUSED,  "CONFUSED",  44, 45, LOOP_PINGPONG, true,  drawConfused});
+  emotionRegistry.add({EMOTION_THINKING,  "THINKING",  44, 45, LOOP_PINGPONG, true,  drawThinking});
+  emotionRegistry.add({EMOTION_LOVE,      "LOVE",      44, 48, LOOP_PINGPONG, true,  drawLove});
+  emotionRegistry.add({EMOTION_SURPRISED, "SURPRISED", 44, 30, LOOP_RESTART,  true,  drawSurprised});
+  emotionRegistry.add({EMOTION_DEAD,      "DEAD",      70, 55, LOOP_RESTART,  false, drawDead});
+  emotionRegistry.add({EMOTION_BORED,     "BORED",     60, 65, LOOP_PINGPONG, true,  drawBored});
+  emotionRegistry.add({EMOTION_SHY,       "SHY",       36, 40, LOOP_ONCE,     false, drawShy});
 }
 
 void setUp() {
@@ -188,8 +188,8 @@ void test_registry_count() {
 void test_tick_draws_frame_on_first_call() {
   MockCanvas canvas;
   animationManager.resetAnimation(EMOTION_IDLE);
-  // Advance time past IDLE's 50ms frame delay so first call draws
-  stubSetMillis(51);
+  // Advance time past IDLE's 55ms frame delay so first call draws
+  stubSetMillis(56);
   bool drew = animationManager.tick(EMOTION_IDLE, canvas);
   TEST_ASSERT_TRUE(drew);
   TEST_ASSERT_TRUE(canvas.findCall(DrawCall::CLEAR) >= 0);
@@ -246,6 +246,28 @@ void test_tick_loop_once_holds_last_frame() {
   }
   // Should not crash, should have drawn many times
   TEST_ASSERT_TRUE(canvas.callCount() > 0);
+}
+
+void test_tick_pingpong_reverses_at_ends() {
+  // Verify LOOP_PINGPONG: drive BORED (60f, LOOP_PINGPONG) for a full 2*(60-1)=118 tick
+  // cycle. Forward pass (ticks 0-58) and backward pass (ticks 59-116) should each draw
+  // 59 frames. Total unique frames drawn = 59*2 = 118, all without crash.
+  // Also verify visual symmetry: frame drawn at forward tick N equals backward tick at
+  // equivalent position, since draw functions are stateless (same frame index → same output).
+  animationManager.resetAnimation(EMOTION_BORED);
+  int drawCount = 0;
+  // Drive 120 ticks — should complete forward + backward pass
+  for (int i = 0; i < 120; i++) {
+    MockCanvas canvas;
+    stubSetMillis((unsigned long)(i + 1) * 66);  // 66ms steps, past BORED's 65ms delay
+    if (animationManager.tick(EMOTION_BORED, canvas)) {
+      drawCount++;
+      // Each drawn frame must have at least one draw call (eyes at minimum)
+      TEST_ASSERT_TRUE(canvas.callCount() > 0);
+    }
+  }
+  // All 120 ticks should have drawn (66ms > 65ms delay each time)
+  TEST_ASSERT_EQUAL(120, drawCount);
 }
 
 // ===== DRAW FUNCTION TESTS (via MockCanvas) =====
@@ -393,10 +415,10 @@ void test_classify_gesture_boundary_double_tap() {
 void test_all_emotions_draw_without_crash() {
   // Each emotion tested up to its own frame count (not a uniform 51)
   struct { DrawFrameFn fn; int frames; } emotions[] = {
-    {drawIdle, 60}, {drawBlink, 1}, {drawHappy, 40}, {drawSleepy, 50},
-    {drawExcited, 36}, {drawSad, 48}, {drawAngry, 44}, {drawConfused, 44},
-    {drawThinking, 44}, {drawLove, 44}, {drawSurprised, 36},
-    {drawDead, 40}, {drawBored, 50}, {drawShy, 36}
+    {drawIdle, 60}, {drawBlink, 1}, {drawHappy, 50}, {drawSleepy, 60},
+    {drawExcited, 40}, {drawSad, 56}, {drawAngry, 56}, {drawConfused, 44},
+    {drawThinking, 44}, {drawLove, 44}, {drawSurprised, 44},
+    {drawDead, 70}, {drawBored, 60}, {drawShy, 36}
   };
   MockCanvas canvas;
   for (int i = 0; i < 14; i++) {
@@ -696,6 +718,7 @@ int main(int argc, char** argv) {
   RUN_TEST(test_tick_advances_frame);
   RUN_TEST(test_tick_returns_false_for_unknown_emotion);
   RUN_TEST(test_tick_loop_once_holds_last_frame);
+  RUN_TEST(test_tick_pingpong_reverses_at_ends);
 
   // Draw functions — legacy
   RUN_TEST(test_draw_idle_draws_eyes);

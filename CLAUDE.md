@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## v1 Status
 
-✅ **Modules 1–6 complete.** Standalone ESP32-C3 robot with personality engine, gesture detection, and BLE control. All 37 tests passing.
+✅ **Modules 1–6 complete.** Standalone ESP32-C3 robot with personality engine, gesture detection, and BLE control. All 64 tests passing.
 
 **Next:** Module 7 (Captive Portal WiFi) not yet started.
 
@@ -18,27 +18,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Hardware Build (ESP32-C3)
 ```bash
 # Build firmware for hardware
-platformio run
+~/.platformio/penv/bin/pio run
 
 # Upload to device
-platformio run --target upload
+~/.platformio/penv/bin/pio run --target upload
 
 # Monitor serial output (adjust port as needed)
-platformio device monitor --port /dev/ttyUSB1 --baud 115200
+~/.platformio/penv/bin/pio device monitor --port /dev/ttyUSB1 --baud 115200
 ```
 
 **What runs:** Full firmware including display, BLE, input, speaker, battery ADC. Uses real Adafruit and NimBLE libraries.
 
 ### Native Tests (Host Machine)
 ```bash
-# Run all 37 native unit tests (no hardware required)
-platformio test -e native
+# Run all 64 native unit tests (no hardware required)
+~/.platformio/penv/bin/pio test -e native
 
 # Run a single test file
-platformio test -e native -f test_sangi
+~/.platformio/penv/bin/pio test -e native -f test_sangi
 
 # Verbose output with test names
-platformio test -e native -vvv
+~/.platformio/penv/bin/pio test -e native -vvv
 ```
 
 **What runs:** Core logic (emotion, registry, animation, gesture, personality) against stubbed hardware APIs and MockCanvas. No ESP32-C3, no real OLED, no BLE stack needed.
@@ -218,7 +218,7 @@ This keeps native tests fast and hardware-agnostic.
 - BLE emotion validation (call stubs, not real BLE)
 - Battery monitoring
 
-**37/37 tests passing, zero warnings.**
+**64/64 tests passing, zero warnings.**
 
 ---
 
@@ -325,7 +325,7 @@ emotionManager.tick(canvas);  // Pass mock, not DisplayManager
    });
    ```
 
-5. **Test** — Add test in `test/test_sangi.cpp`, then run `platformio test -e native`
+5. **Test** — Add test in `test/test_sangi.cpp`, then run `~/.platformio/penv/bin/pio test -e native`
 
 ---
 

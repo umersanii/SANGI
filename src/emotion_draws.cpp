@@ -79,8 +79,8 @@ void drawIdle(ICanvas& canvas, int frame, const void* ctx) {
 }
 
 // ===== 2.3 HAPPY — warm contentment =====
-// 40 frames @ 35ms = 1.4s loop.
-// Phases: squish (F0-7), hold smile (F8-25), small bounce (F26-33), relax (F34-39)
+// 50 frames @ 35ms = 1.75s loop.
+// Phases: squish (F0-7), hold smile (F8-25), small bounce (F26-33), relax (F34-39), recover (F40-49)
 
 void drawHappy(ICanvas& canvas, int frame, const void* ctx) {
   if (frame < 8) {
@@ -111,7 +111,7 @@ void drawHappy(ICanvas& canvas, int frame, const void* ctx) {
     canvas.drawEyes(38, 31 + off, 90, 31 + off, 8);
     canvas.fillRoundRect(47, 49 + off, 34, 9, 5, COLOR_WHITE);
     canvas.drawBlush(18, 42 + off, 110, 42 + off, 4);
-  } else {
+  } else if (frame < 40) {
     // Relax: eyes partially reopen H=8→16, mouth shrinks
     int eyeH = ease(8, 16, frame - 34, 5);
     int eyeY = ease(31, 29, frame - 34, 5);
@@ -119,12 +119,20 @@ void drawHappy(ICanvas& canvas, int frame, const void* ctx) {
     canvas.drawEyes(38, eyeY, 90, eyeY, eyeH);
     canvas.fillRoundRect(57 - mouthW / 2 + 7, 51, mouthW, 6, 3, COLOR_WHITE);
     canvas.drawBlush(18, 42, 110, 42, 3);
+  } else {
+    // Recover: ease back to near-neutral (H=22, Y=28) for invisible loop seam
+    int eyeH = ease(16, 22, frame - 40, 9);
+    int eyeY = ease(29, 28, frame - 40, 9);
+    int mouthW = ease(18, 16, frame - 40, 9);
+    canvas.drawEyes(38, eyeY, 90, eyeY, eyeH);
+    canvas.fillRoundRect(57 - mouthW / 2 + 7, 51, mouthW, 6, 3, COLOR_WHITE);
+    canvas.drawBlush(18, 42, 110, 42, 2);
   }
 }
 
 // ===== 2.4 SAD — melancholy =====
-// 48 frames @ 35ms = 1.7s loop.
-// Phases: droop (F0-8), tear forms (F9-14), tear falls (F15-30), tremble (F31-40), recover (F41-47)
+// 56 frames @ 48ms = 2.69s loop.
+// Phases: droop (F0-8), tear forms (F9-14), tear falls (F15-30), tremble (F31-40), recover (F41-55)
 
 void drawSad(ICanvas& canvas, int frame, const void* ctx) {
   if (frame < 9) {
@@ -156,11 +164,15 @@ void drawSad(ICanvas& canvas, int frame, const void* ctx) {
     canvas.drawEyes(38 + xOff, 33, 90 + xOff, 33, 16);
     canvas.drawMouth(59 + xOff, 55, 8, 3);
   } else {
-    // Partial recovery: eyes rise Y=33→30, H=16→18
-    int eyeY = ease(33, 30, frame - 41, 6);
-    int eyeH = ease(16, 18, frame - 41, 6);
+    // Full recovery: eyes rise Y=33→28, H=16→22 — full neutral before next wave
+    int eyeY = ease(33, 28, frame - 41, 14);
+    int eyeH = ease(16, 22, frame - 41, 14);
     canvas.drawEyes(38, eyeY, 90, eyeY, eyeH);
-    canvas.drawMouth(59, 53, 10, 4);
+    if (frame >= 50) {
+      canvas.drawMouth(57, 52, 14, 5);  // neutral mouth for final frames
+    } else {
+      canvas.drawMouth(59, 53, 10, 4);
+    }
   }
 }
 
@@ -222,8 +234,8 @@ void drawConfused(ICanvas& canvas, int frame, const void* ctx) {
 }
 
 // ===== 2.6 ANGRY — fuming frustration =====
-// 44 frames @ 30ms = 1.3s loop.
-// Phases: furrow (F0-6), hold glare (F7-10), shake (F11-30), intensify (F31-37), settle (F38-43)
+// 56 frames @ 32ms = 1.79s loop.
+// Phases: furrow (F0-6), hold glare (F7-14), shake (F15-34), intensify (F35-44), settle (F45-55)
 
 void drawAngry(ICanvas& canvas, int frame, const void* ctx) {
   if (frame < 7) {
@@ -235,20 +247,20 @@ void drawAngry(ICanvas& canvas, int frame, const void* ctx) {
     canvas.drawBrow(18, ease(22, 16, frame, 6), 50, ease(28, 24, frame, 6), browThick);
     canvas.drawBrow(78, ease(28, 24, frame, 6), 110, ease(22, 16, frame, 6), browThick);
     canvas.fillRoundRect(54, 55, 20, 4, 2, COLOR_WHITE);
-  } else if (frame < 11) {
-    // Hold glare: max furrow
+  } else if (frame < 15) {
+    // Hold glare: max furrow — extended pause builds menace before the explosion
     canvas.drawEyes(38, 33, 90, 33, 12);
     canvas.drawBrow(18, 16, 50, 24, 5);
     canvas.drawBrow(78, 24, 110, 16, 5);
     canvas.fillRoundRect(54, 55, 20, 4, 2, COLOR_WHITE);
-  } else if (frame < 31) {
+  } else if (frame < 35) {
     // Shake: ±3px horizontal alternation
     int xOff = ((frame % 2) == 0) ? -3 : 3;
     canvas.drawEyes(38 + xOff, 33, 90 + xOff, 33, 12);
     canvas.drawBrow(18 + xOff, 16, 50 + xOff, 24, 5);
     canvas.drawBrow(78 + xOff, 24, 110 + xOff, 16, 5);
     canvas.fillRoundRect(54 + xOff, 55, 20, 4, 2, COLOR_WHITE);
-  } else if (frame < 38) {
+  } else if (frame < 45) {
     // Intensify: ±4px shake, brows thicker
     int xOff = ((frame % 2) == 0) ? -4 : 4;
     canvas.drawEyes(38 + xOff, 33, 90 + xOff, 33, 11);
@@ -256,11 +268,13 @@ void drawAngry(ICanvas& canvas, int frame, const void* ctx) {
     canvas.drawBrow(78 + xOff, 25, 110 + xOff, 15, 6);
     canvas.fillRoundRect(54 + xOff, 55, 20, 4, 2, COLOR_WHITE);
   } else {
-    // Settle: shake dampens, brows lift, eyes widen
-    int eyeH = ease(12, 14, frame - 38, 5);
-    canvas.drawEyes(38, 32, 90, 32, eyeH);
-    canvas.drawBrow(18, 17, 50, 23, 4);
-    canvas.drawBrow(78, 23, 110, 17, 4);
+    // Settle: brows lift, eyes widen back to furrow-start — invisible seam with F0
+    int eyeH = ease(12, 18, frame - 45, 10);
+    int eyeY = ease(33, 30, frame - 45, 10);
+    int browThick = ease(5, 2, frame - 45, 10);
+    canvas.drawEyes(38, eyeY, 90, eyeY, eyeH);
+    canvas.drawBrow(18, ease(16, 22, frame - 45, 10), 50, ease(24, 28, frame - 45, 10), browThick);
+    canvas.drawBrow(78, ease(24, 28, frame - 45, 10), 110, ease(16, 22, frame - 45, 10), browThick);
     canvas.fillRoundRect(54, 54, 20, 4, 2, COLOR_WHITE);
   }
 }
@@ -368,8 +382,8 @@ void drawLove(ICanvas& canvas, int frame, const void* ctx) {
 }
 
 // ===== 2.9 EXCITED — high energy bounce =====
-// 36 frames @ 25ms = 0.9s loop. Fastest animation.
-// Phases: widen (F0-5), bounce (F6-25), settle (F26-31), ease back (F32-35)
+// 40 frames @ 25ms = 1.0s loop.
+// Phases: widen (F0-5), bounce (F6-25), settle (F26-31), ease back (F32-35), return (F36-39)
 
 void drawExcited(ICanvas& canvas, int frame, const void* ctx) {
   if (frame < 6) {
@@ -398,17 +412,23 @@ void drawExcited(ICanvas& canvas, int frame, const void* ctx) {
     int yOff = ((frame % 2) == 0) ? -amp : amp;
     canvas.drawEyesWithPupils(38, 26 + yOff, 90, 26 + yOff, 28, 3);
     canvas.fillRoundRect(46, 50 + yOff, 36, 10, 5, COLOR_WHITE);
-  } else {
+  } else if (frame < 36) {
     // Ease back: eyes shrink slightly
     int eyeH = ease(28, 24, frame - 32, 3);
     canvas.drawEyesWithPupils(38, 26, 90, 26, eyeH, 3);
     canvas.fillRoundRect(50, 50, 28, 8, 4, COLOR_WHITE);
+  } else {
+    // Return: ease to neutral (H=22, Y=28) — invisible seam with F0
+    int eyeH = ease(24, 22, frame - 36, 3);
+    int eyeY = ease(26, 28, frame - 36, 3);
+    canvas.drawEyesWithPupils(38, eyeY, 90, eyeY, eyeH, 3);
+    canvas.fillRoundRect(51, 51, 26, 7, 4, COLOR_WHITE);
   }
 }
 
 // ===== 2.10 SLEEPY — drifting off =====
-// 50 frames @ 40ms = 2.0s loop.
-// Phases: closing (F0-10), sleeping/z-cascade (F11-35), micro-stir (F36-42), reopen (F43-49)
+// 60 frames @ 50ms = 3.0s half-cycle, 6.0s full ping-pong cycle.
+// Phases: closing (F0-10), sleeping/z-cascade (F11-35), micro-stir (F36-42), reopen (F43-59)
 
 void drawSleepy(ICanvas& canvas, int frame, const void* ctx) {
   if (frame < 11) {
@@ -446,12 +466,14 @@ void drawSleepy(ICanvas& canvas, int frame, const void* ctx) {
     canvas.drawEyes(38, 32, 90, 32, stirH);
     canvas.fillCircle(64, 52, 6, COLOR_WHITE);
   } else {
-    // Reopen: eyes to H=18, yawn shrinks
-    int eyeH = ease(3, 18, frame - 43, 6);
-    int eyeY = ease(32, 28, frame - 43, 6);
-    int yawnR = ease(7, 4, frame - 43, 6);
+    // Reopen: eyes to H=22 (full neutral), yawn shrinks to 0 — clean ping-pong turnaround
+    int eyeH = ease(3, 22, frame - 43, 16);
+    int eyeY = ease(32, 28, frame - 43, 16);
+    int yawnR = ease(7, 0, frame - 43, 16);
     canvas.drawEyes(38, eyeY, 90, eyeY, eyeH);
-    canvas.drawCircle(64, 50, yawnR, COLOR_WHITE);
+    if (yawnR > 0) {
+      canvas.drawCircle(64, 50, yawnR, COLOR_WHITE);
+    }
   }
 }
 
@@ -505,9 +527,9 @@ void drawThinking(ICanvas& canvas, int frame, const void* ctx) {
 }
 
 // ===== 2.12 SURPRISED — startled snap =====
-// 36 frames @ 30ms = 1.08s loop.
+// 44 frames @ 30ms = 1.32s loop.
 // Phases: snap open (F0-5), hold shock (F6-10), double-take blink (F11-13),
-//         tremor hold (F14-25), settle (F26-35)
+//         tremor hold (F14-25), settle (F26-43)
 
 void drawSurprised(ICanvas& canvas, int frame, const void* ctx) {
   if (frame < 6) {
@@ -536,10 +558,10 @@ void drawSurprised(ICanvas& canvas, int frame, const void* ctx) {
     canvas.drawEyesWithPupils(38, 25 + yOff, 90, 25 + yOff, 28, 3);
     canvas.fillCircle(64, 53, mouthR, COLOR_WHITE);
   } else {
-    // Settle: eyes shrink H=28→22, mouth closes
-    int eyeH = ease(28, 22, frame - 26, 9);
-    int eyeY = ease(25, 28, frame - 26, 9);
-    int mouthR = ease(7, 4, frame - 26, 9);
+    // Settle: eyes shrink H=28→20, mouth closes — extended to F43 for invisible seam
+    int eyeH = ease(28, 20, frame - 26, 17);
+    int eyeY = ease(25, 28, frame - 26, 17);
+    int mouthR = ease(7, 4, frame - 26, 17);
     canvas.drawEyesWithPupils(38, eyeY, 90, eyeY, eyeH, 3);
     if (mouthR > 3) {
       canvas.fillCircle(64, 53, mouthR, COLOR_WHITE);
@@ -550,8 +572,8 @@ void drawSurprised(ICanvas& canvas, int frame, const void* ctx) {
 }
 
 // ===== 2.13 DEAD — dark comedy knockout =====
-// 40 frames @ 40ms = 1.6s loop.
-// Phases: collapse (F0-8), X eyes form (F9-14), hold dead (F15-30), twitch (F31-39)
+// 70 frames @ 55ms = 3.85s loop.
+// Phases: collapse (F0-8), X eyes form (F9-14), hold dead (F15-54), twitch (F55-69)
 
 void drawDead(ICanvas& canvas, int frame, const void* ctx) {
   if (frame < 9) {
@@ -569,21 +591,21 @@ void drawDead(ICanvas& canvas, int frame, const void* ctx) {
       canvas.fillRoundRect(58, 52, 12, 4, 3, COLOR_WHITE);
       canvas.fillRoundRect(61, 55, 6, 3, 2, COLOR_WHITE);
     }
-  } else if (frame < 31) {
-    // Hold dead: X eyes, tongue out, dizzy circles orbit at edges
+  } else if (frame < 55) {
+    // Hold dead: X eyes, tongue out, dizzy circles orbit at edges — extended 2.2s hold
     drawXEyes(canvas, 5);
     canvas.fillRoundRect(58, 52, 12, 6, 3, COLOR_WHITE);
     canvas.fillRoundRect(62, 56, 6, 6, 3, COLOR_WHITE);
-    // Dizzy circles shift positions every 5 frames
-    int dizzyPhase = (frame - 15) / 5;
+    // Dizzy circles shift positions every 7 frames (slower orbit)
+    int dizzyPhase = (frame - 15) / 7;
     int dx = (dizzyPhase % 2 == 0) ? 0 : 2;
     canvas.drawCircle(16 + dx, 18, 3, COLOR_WHITE);
     canvas.drawCircle(112 - dx, 22, 3, COLOR_WHITE);
   } else {
-    // Twitch: 1px movements for dark comedy
+    // Twitch: two isolated clusters for dark comedy, holds still between them
     int xOff = 0;
-    if (frame == 33 || frame == 34) xOff = 1;
-    if (frame == 36 || frame == 37) xOff = -1;
+    if (frame == 57 || frame == 58) xOff = 1;
+    if (frame == 62 || frame == 63) xOff = -1;
     drawXEyes(canvas, 5);  // X eyes don't move (static)
     canvas.fillRoundRect(58 + xOff, 52, 12, 6, 3, COLOR_WHITE);
     canvas.fillRoundRect(62 + xOff, 56, 6, 6, 3, COLOR_WHITE);
@@ -591,9 +613,9 @@ void drawDead(ICanvas& canvas, int frame, const void* ctx) {
 }
 
 // ===== 2.14 BORED — disinterested half-lids =====
-// 50 frames @ 55ms = 2.75s loop. Slowest animation.
+// 60 frames @ 65ms = 3.9s half-cycle, 7.8s full ping-pong cycle.
 // Phases: droop (F0-12), hold (F13-18), slow blink (F19-22), drift (F23-35),
-//         sigh (F36-42), reopen (F43-49)
+//         sigh (F36-42), reopen (F43-59)
 
 void drawBored(ICanvas& canvas, int frame, const void* ctx) {
   if (frame < 13) {
@@ -627,8 +649,8 @@ void drawBored(ICanvas& canvas, int frame, const void* ctx) {
     canvas.fillRoundRect(78, 30 - 4, 24, 8, 7, COLOR_WHITE);
     canvas.drawCircle(64, 54, 4, COLOR_WHITE);
   } else {
-    // Reopen: eyes to H=16 (still somewhat bored)
-    int eyeH = ease(8, 16, frame - 43, 6);
+    // Reopen: eyes to H=22 (full neutral) — clean ping-pong turnaround at F59
+    int eyeH = ease(8, 22, frame - 43, 16);
     canvas.fillRoundRect(26, 28 - eyeH / 2, 24, eyeH, 7, COLOR_WHITE);
     canvas.fillRoundRect(78, 30 - eyeH / 2, 24, eyeH, 7, COLOR_WHITE);
     canvas.fillRoundRect(57, 53, 14, 4, 2, COLOR_WHITE);
