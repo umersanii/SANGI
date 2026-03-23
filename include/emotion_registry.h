@@ -11,8 +11,9 @@ class ICanvas;  // Forward declaration
 
 // How an animation behaves when it reaches the last frame
 enum LoopBehavior {
-  LOOP_RESTART,  // Loop from frame 0 (most emotions)
-  LOOP_ONCE      // Play once, hold last frame (notification)
+  LOOP_RESTART,   // Loop from frame 0 (most emotions)
+  LOOP_ONCE,      // Play once, hold last frame (notification)
+  LOOP_PINGPONG   // Reverse direction at each end (ambient emotions)
 };
 
 // Signature for a function that draws one animation frame.

@@ -10,11 +10,13 @@
 #include <Arduino.h>
 #include "config.h"
 #include "emotion.h"
+#include "emotion_registry.h"
 #include "canvas.h"
 
 struct AnimState {
   int frame;
   unsigned long lastTick;
+  int8_t direction;  // 1 = forward, -1 = backward (used by LOOP_PINGPONG)
 };
 
 class AnimationManager {
@@ -28,7 +30,7 @@ public:
   bool tick(EmotionState emotion, ICanvas& canvas, const void* context = nullptr);
 
 private:
-  AnimState states_[EMOTION_GITHUB_STATS + 1];
+  AnimState states_[EmotionRegistry::MAX_EMOTIONS];
 };
 
 extern AnimationManager animationManager;

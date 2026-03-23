@@ -4,6 +4,7 @@
 // EmotionManager fully self-contained and testable in isolation.
 
 #include "emotion.h"
+#include "emotion_registry.h"
 
 EmotionManager emotionManager;
 
@@ -26,7 +27,7 @@ void EmotionManager::init(unsigned long currentTime) {
 }
 
 void EmotionManager::setTargetEmotion(EmotionState newEmotion) {
-  if (newEmotion < EMOTION_IDLE || newEmotion > EMOTION_GITHUB_STATS) {
+  if (emotionRegistry.get(newEmotion) == nullptr) {
     Serial.printf("ERROR: Invalid emotion state %d\n", newEmotion);
     return;
   }

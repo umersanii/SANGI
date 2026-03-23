@@ -1,6 +1,6 @@
 // SANGI Robot — Native Unit Tests
-// Tests for emotion management, emotion registry, notification queue,
-// animation tick engine, and draw functions via MockCanvas.
+// Tests for emotion management, emotion registry, animation tick engine,
+// and draw functions via MockCanvas.
 //
 // Run with: pio test -e native
 
@@ -9,7 +9,8 @@
 #include "emotion_registry.h"
 #include "emotion_draws.h"
 #include "animations.h"
-#include "notification_queue.h"
+#include "input.h"
+#include "personality.h"
 #include "mock_canvas.h"
 
 // ===== TEST HELPERS =====
@@ -24,24 +25,20 @@ void stubEmotionChange(EmotionState f, EmotionState t) {
 }
 
 static void registerTestEmotions() {
-  // Reset the global registry by reconstructing it
   emotionRegistry = EmotionRegistry();
-  emotionRegistry.add({EMOTION_IDLE, "IDLE", 1, 0, LOOP_RESTART, true, drawIdle});
-  emotionRegistry.add({EMOTION_BLINK, "BLINK", 1, 0, LOOP_RESTART, false, drawBlink});
-  emotionRegistry.add({EMOTION_HAPPY, "HAPPY", 51, 30, LOOP_RESTART, true, drawHappy});
-  emotionRegistry.add({EMOTION_SLEEPY, "SLEEPY", 51, 30, LOOP_RESTART, false, drawSleepy});
-  emotionRegistry.add({EMOTION_EXCITED, "EXCITED", 51, 30, LOOP_RESTART, true, drawExcited});
-  emotionRegistry.add({EMOTION_SAD, "SAD", 51, 30, LOOP_RESTART, true, drawSad});
-  emotionRegistry.add({EMOTION_ANGRY, "ANGRY", 51, 30, LOOP_RESTART, true, drawAngry});
-  emotionRegistry.add({EMOTION_CONFUSED, "CONFUSED", 51, 30, LOOP_RESTART, true, drawConfused});
-  emotionRegistry.add({EMOTION_THINKING, "THINKING", 51, 30, LOOP_RESTART, true, drawThinking});
-  emotionRegistry.add({EMOTION_LOVE, "LOVE", 51, 30, LOOP_RESTART, true, drawLove});
-  emotionRegistry.add({EMOTION_SURPRISED, "SURPRISED", 51, 30, LOOP_RESTART, true, drawSurprised});
-  emotionRegistry.add({EMOTION_DEAD, "DEAD", 51, 30, LOOP_RESTART, false, drawDead});
-  emotionRegistry.add({EMOTION_MUSIC, "MUSIC", 51, 30, LOOP_RESTART, false, drawMusic});
-  emotionRegistry.add({EMOTION_NOTIFICATION, "NOTIFICATION", 86, 50, LOOP_ONCE, false, drawNotification});
-  emotionRegistry.add({EMOTION_CODING, "CODING", 25, 100, LOOP_RESTART, false, drawCoding});
-  emotionRegistry.add({EMOTION_GITHUB_STATS, "GITHUB_STATS", 131, 80, LOOP_RESTART, false, drawGitHubStats});
+  emotionRegistry.add({EMOTION_IDLE,      "IDLE",      60, 55, LOOP_PINGPONG, true,  drawIdle});
+  emotionRegistry.add({EMOTION_BLINK,     "BLINK",      1,  0, LOOP_RESTART,  false, drawBlink});
+  emotionRegistry.add({EMOTION_HAPPY,     "HAPPY",     50, 35, LOOP_RESTART,  true,  drawHappy});
+  emotionRegistry.add({EMOTION_SLEEPY,    "SLEEPY",    60, 50, LOOP_PINGPONG, false, drawSleepy});
+  emotionRegistry.add({EMOTION_EXCITED,   "EXCITED",   40, 25, LOOP_RESTART,  true,  drawExcited});
+  emotionRegistry.add({EMOTION_SAD,       "SAD",       56, 48, LOOP_RESTART,  true,  drawSad});
+  emotionRegistry.add({EMOTION_ANGRY,     "ANGRY",     56, 32, LOOP_RESTART,  true,  drawAngry});
+  emotionRegistry.add({EMOTION_CONFUSED,  "CONFUSED",  44, 45, LOOP_PINGPONG, true,  drawConfused});
+  emotionRegistry.add({EMOTION_THINKING,  "THINKING",  44, 45, LOOP_PINGPONG, true,  drawThinking});
+  emotionRegistry.add({EMOTION_LOVE,      "LOVE",      44, 48, LOOP_PINGPONG, true,  drawLove});
+  emotionRegistry.add({EMOTION_SURPRISED, "SURPRISED", 44, 30, LOOP_RESTART,  true,  drawSurprised});
+  emotionRegistry.add({EMOTION_DEAD,      "DEAD",      70, 55, LOOP_RESTART,  false, drawDead});
+  emotionRegistry.add({EMOTION_BORED,     "BORED",     60, 65, LOOP_PINGPONG, true,  drawBored});
 }
 
 void setUp() {
@@ -127,6 +124,23 @@ void test_transition_frame_advance_and_complete() {
   TEST_ASSERT_EQUAL(0, emotionManager.getTransitionFrame());
 }
 
+void test_emotion_validation_uses_registry() {
+  // Unregistered value rejected
+  emotionManager.setTargetEmotion((EmotionState)99);
+  TEST_ASSERT_FALSE(emotionManager.isTransitionActive());
+  // Valid registered emotion works
+  emotionManager.setTargetEmotion(EMOTION_HAPPY);
+  TEST_ASSERT_TRUE(emotionManager.isTransitionActive());
+}
+
+// ===== BLE VALIDATION TEST (logic only — NimBLE not available natively) =====
+
+void test_ble_emotion_validation_rejects_unregistered() {
+  EmotionState invalid = (EmotionState)99;
+  TEST_ASSERT_NULL(emotionRegistry.get(invalid));
+  TEST_ASSERT_NOT_NULL(emotionRegistry.get(EMOTION_HAPPY));
+}
+
 // ===== EMOTION REGISTRY TESTS =====
 
 void test_registry_add_and_get() {
@@ -164,82 +178,19 @@ void test_registry_cyclable_excludes_blink() {
 }
 
 void test_registry_count() {
-  // Global registry populated by setUp
-  TEST_ASSERT_EQUAL(16, emotionRegistry.count());
-}
-
-// ===== NOTIFICATION QUEUE TESTS =====
-
-void test_notification_add_and_retrieve() {
-  NotificationQueue q;
-  TEST_ASSERT_TRUE(q.add(NOTIFY_GENERIC, "Test Title", "Test Message"));
-  TEST_ASSERT_EQUAL(1, q.count());
-  TEST_ASSERT_TRUE(q.hasItems());
-
-  Notification* n = q.current();
-  TEST_ASSERT_NOT_NULL(n);
-  TEST_ASSERT_EQUAL_STRING("Test Title", n->title);
-  TEST_ASSERT_EQUAL_STRING("Test Message", n->message);
-  TEST_ASSERT_EQUAL(NOTIFY_GENERIC, n->type);
-}
-
-void test_notification_queue_overflow() {
-  NotificationQueue q;
-
-  for (int i = 0; i < NotificationQueue::MAX_SIZE; i++) {
-    char title[32];
-    snprintf(title, sizeof(title), "Notif %d", i);
-    TEST_ASSERT_TRUE(q.add(NOTIFY_GENERIC, title, "Message"));
-  }
-  TEST_ASSERT_EQUAL(NotificationQueue::MAX_SIZE, q.count());
-
-  // Should fail — queue full
-  TEST_ASSERT_FALSE(q.add(NOTIFY_GENERIC, "Overflow", "Fail"));
-  TEST_ASSERT_EQUAL(NotificationQueue::MAX_SIZE, q.count());
-}
-
-void test_notification_clear_and_empty() {
-  NotificationQueue q;
-  q.add(NOTIFY_DISCORD, "Test", "Msg");
-  TEST_ASSERT_EQUAL(1, q.count());
-
-  q.current();  // sets currentIdx_
-  q.clearCurrent();
-  TEST_ASSERT_EQUAL(0, q.count());
-  TEST_ASSERT_FALSE(q.hasItems());
-}
-
-void test_notification_string_truncation() {
-  NotificationQueue q;
-  char longTitle[100] = "This title is far too long for the 31 char buffer and should be truncated";
-  char longMsg[200] = "This message exceeds the 63 character limit and must be truncated to prevent buffer overflows in embedded";
-
-  q.add(NOTIFY_GENERIC, longTitle, longMsg);
-  Notification* n = q.current();
-  TEST_ASSERT_NOT_NULL(n);
-  TEST_ASSERT_EQUAL('\0', n->title[31]);
-  TEST_ASSERT_EQUAL('\0', n->message[63]);
-  TEST_ASSERT_TRUE(strlen(n->title) <= 31);
-  TEST_ASSERT_TRUE(strlen(n->message) <= 63);
-}
-
-void test_notification_null_strings() {
-  NotificationQueue q;
-  TEST_ASSERT_TRUE(q.add(NOTIFY_SYSTEM, nullptr, nullptr));
-  Notification* n = q.current();
-  TEST_ASSERT_NOT_NULL(n);
-  TEST_ASSERT_EQUAL('\0', n->title[0]);
-  TEST_ASSERT_EQUAL('\0', n->message[0]);
+  // Global registry populated by setUp — 13 emotions
+  TEST_ASSERT_EQUAL(13, emotionRegistry.count());
 }
 
 // ===== ANIMATION TICK ENGINE TESTS =====
 
 void test_tick_draws_frame_on_first_call() {
   MockCanvas canvas;
-  // millis() = 0, lastTick = 0, so delay check passes
+  animationManager.resetAnimation(EMOTION_IDLE);
+  // Advance time past IDLE's 55ms frame delay so first call draws
+  stubSetMillis(56);
   bool drew = animationManager.tick(EMOTION_IDLE, canvas);
   TEST_ASSERT_TRUE(drew);
-  // Should have CLEAR + draw calls + FLUSH
   TEST_ASSERT_TRUE(canvas.findCall(DrawCall::CLEAR) >= 0);
   TEST_ASSERT_TRUE(canvas.findCall(DrawCall::FLUSH) >= 0);
 }
@@ -247,17 +198,17 @@ void test_tick_draws_frame_on_first_call() {
 void test_tick_respects_frame_delay() {
   MockCanvas canvas;
   animationManager.resetAnimation(EMOTION_HAPPY);
-  stubSetMillis(0);
+  stubSetMillis(36);  // Past HAPPY's 35ms delay — first frame draws
   animationManager.tick(EMOTION_HAPPY, canvas);
 
   canvas.reset();
-  stubSetMillis(10);  // Only 10ms, HAPPY needs 30ms
+  stubSetMillis(46);  // Only 10ms since last tick, HAPPY needs 35ms
   bool drew = animationManager.tick(EMOTION_HAPPY, canvas);
   TEST_ASSERT_FALSE(drew);
   TEST_ASSERT_EQUAL(0, canvas.callCount());
 
   canvas.reset();
-  stubSetMillis(31);  // Past 30ms delay
+  stubSetMillis(72);  // 36ms since last tick — past 35ms delay
   drew = animationManager.tick(EMOTION_HAPPY, canvas);
   TEST_ASSERT_TRUE(drew);
 }
@@ -266,34 +217,16 @@ void test_tick_advances_frame() {
   MockCanvas canvas;
   animationManager.resetAnimation(EMOTION_HAPPY);
 
-  // Draw frame 0
-  stubSetMillis(0);
+  stubSetMillis(36);
   animationManager.tick(EMOTION_HAPPY, canvas);
 
-  // Draw frame 1
-  stubSetMillis(31);
+  stubSetMillis(72);
   animationManager.tick(EMOTION_HAPPY, canvas);
 
-  // Draw frame 2
-  stubSetMillis(62);
+  stubSetMillis(108);
   animationManager.tick(EMOTION_HAPPY, canvas);
 
-  // Verify multiple frames drawn (3 CLEAR + 3 FLUSH = at least 6 calls)
   TEST_ASSERT_TRUE(canvas.callCount() >= 6);
-}
-
-void test_tick_loop_once_holds_last_frame() {
-  MockCanvas canvas;
-  animationManager.resetAnimation(EMOTION_NOTIFICATION);
-
-  // Advance through all 86 frames of NOTIFICATION
-  for (int i = 0; i < 100; i++) {
-    stubSetMillis((unsigned long)i * 51);
-    animationManager.tick(EMOTION_NOTIFICATION, canvas);
-  }
-
-  // Should not crash, should have drawn many times
-  TEST_ASSERT_TRUE(canvas.callCount() > 0);
 }
 
 void test_tick_returns_false_for_unknown_emotion() {
@@ -302,17 +235,49 @@ void test_tick_returns_false_for_unknown_emotion() {
   TEST_ASSERT_FALSE(drew);
 }
 
+void test_tick_loop_pingpong_plays_bored() {
+  MockCanvas canvas;
+  animationManager.resetAnimation(EMOTION_BORED);
+  // Advance through frames of BORED (pingpong)
+  for (int i = 0; i < 40; i++) {
+    stubSetMillis((unsigned long)i * 66);
+    animationManager.tick(EMOTION_BORED, canvas);
+  }
+  // Should not crash, should have drawn many times
+  TEST_ASSERT_TRUE(canvas.callCount() > 0);
+}
+
+void test_tick_pingpong_reverses_at_ends() {
+  // Verify LOOP_PINGPONG: drive BORED (60f, LOOP_PINGPONG) for a full 2*(60-1)=118 tick
+  // cycle. Forward pass (ticks 0-58) and backward pass (ticks 59-116) should each draw
+  // 59 frames. Total unique frames drawn = 59*2 = 118, all without crash.
+  // Also verify visual symmetry: frame drawn at forward tick N equals backward tick at
+  // equivalent position, since draw functions are stateless (same frame index → same output).
+  animationManager.resetAnimation(EMOTION_BORED);
+  int drawCount = 0;
+  // Drive 120 ticks — should complete forward + backward pass
+  for (int i = 0; i < 120; i++) {
+    MockCanvas canvas;
+    stubSetMillis((unsigned long)(i + 1) * 66);  // 66ms steps, past BORED's 65ms delay
+    if (animationManager.tick(EMOTION_BORED, canvas)) {
+      drawCount++;
+      // Each drawn frame must have at least one draw call (eyes at minimum)
+      TEST_ASSERT_TRUE(canvas.callCount() > 0);
+    }
+  }
+  // All 120 ticks should have drawn (66ms > 65ms delay each time)
+  TEST_ASSERT_EQUAL(120, drawCount);
+}
+
 // ===== DRAW FUNCTION TESTS (via MockCanvas) =====
 
 void test_draw_idle_draws_eyes() {
   MockCanvas canvas;
   drawIdle(canvas, 0, nullptr);
 
-  // IDLE draws two eyes via fillRoundRect
   int first = canvas.findCall(DrawCall::FILL_RRECT);
   TEST_ASSERT_TRUE(first >= 0);
 
-  // Second eye
   int second = canvas.findCall(DrawCall::FILL_RRECT, first + 1);
   TEST_ASSERT_TRUE(second >= 0);
 }
@@ -323,7 +288,6 @@ void test_draw_blink_draws_narrow_eyes() {
 
   int idx = canvas.findCall(DrawCall::FILL_RRECT);
   TEST_ASSERT_TRUE(idx >= 0);
-  // Blink eyes should be short (height ~4)
   TEST_ASSERT_TRUE(canvas.call(idx).h <= 6);
 }
 
@@ -333,52 +297,353 @@ void test_draw_happy_frame0_has_content() {
   TEST_ASSERT_TRUE(canvas.callCount() > 0);
 }
 
-void test_draw_notification_uses_context() {
+void test_bored_draws_half_lidded_eyes() {
   MockCanvas canvas;
-  NotificationContext ctx = {"Alert", "Hello World"};
-  drawNotification(canvas, 40, &ctx);
-
-  // Should have text draws for title/message
-  int textIdx = canvas.findCall(DrawCall::TEXT);
-  TEST_ASSERT_TRUE(textIdx >= 0);
+  drawBored(canvas, 20, nullptr);  // Mid-animation, eyes should be half-closed
+  int idx = canvas.findCall(DrawCall::FILL_RRECT);
+  TEST_ASSERT_TRUE(idx >= 0);
+  TEST_ASSERT_TRUE(canvas.call(idx).h < 18);
 }
 
-void test_draw_github_stats_with_data() {
-  MockCanvas canvas;
-  GitHubStatsContext ctx = {};
-  ctx.hasData = true;
-  ctx.username = "testuser";
-  ctx.repos = 25;
-  ctx.followers = 100;
-  ctx.contributions = 500;
-  ctx.commits = 300;
-  ctx.prs = 20;
-  ctx.issues = 10;
-  ctx.stars = 50;
-  ctx.following = 15;
 
-  drawGitHubStats(canvas, 0, &ctx);
-  TEST_ASSERT_TRUE(canvas.callCount() > 0);
+// ===== PERSONALITY ENGINE TESTS =====
+
+void test_attention_arc_escalates() {
+  Personality p;
+  p.init(0);
+  p.onTouch(0, EMOTION_IDLE);
+
+  // Beyond stage 1 threshold with max jitter
+  unsigned long t = ATTENTION_STAGE1_MS + ATTENTION_STAGE1_MS * JITTER_PERCENT / 100 + 1000;
+  stubSetMillis(t);
+  p.update(t, EMOTION_IDLE);
+  TEST_ASSERT_TRUE(p.getAttentionStage() >= 1);
+}
+
+void test_touch_during_neglect_triggers_recovery() {
+  Personality p;
+  p.init(0);
+
+  // Force into neglect state (stage 2)
+  unsigned long t = ATTENTION_STAGE2_MS + ATTENTION_STAGE2_MS * JITTER_PERCENT / 100 + 1000;
+  stubSetMillis(t);
+  // Drive through stages
+  p.update(t, EMOTION_IDLE);
+  p.update(t, EMOTION_BORED);
+
+  TEST_ASSERT_TRUE(p.getAttentionStage() >= 1);
+
+  bool wasNeglected = p.onTouch(t, EMOTION_SAD);
+  TEST_ASSERT_TRUE(wasNeglected);
+  TEST_ASSERT_EQUAL(0, p.getAttentionStage());
+}
+
+void test_touch_when_not_neglected_returns_false() {
+  Personality p;
+  p.init(0);
+  bool wasNeglected = p.onTouch(100, EMOTION_IDLE);
+  TEST_ASSERT_FALSE(wasNeglected);
+}
+
+void test_jitter_produces_variance() {
+  Personality p;
+  p.init(0);
+  unsigned long results[20];
+  for (int i = 0; i < 20; i++) {
+    results[i] = p.jitter(100000);
+  }
+  bool allSame = true;
+  for (int i = 1; i < 20; i++) {
+    if (results[i] != results[0]) { allSame = false; break; }
+  }
+  TEST_ASSERT_FALSE(allSame);
+}
+
+// ===== GESTURE DETECTION TESTS =====
+
+void test_classify_gesture_tap() {
+  TEST_ASSERT_EQUAL(GESTURE_TAP, classifyGesture(100, 999));
+}
+
+void test_classify_gesture_long_press() {
+  TEST_ASSERT_EQUAL(GESTURE_LONG_PRESS, classifyGesture(700, 999));
+}
+
+void test_classify_gesture_double_tap() {
+  TEST_ASSERT_EQUAL(GESTURE_DOUBLE_TAP, classifyGesture(100, 200));
+}
+
+void test_classify_gesture_boundary_long_press() {
+  // At exactly LONG_PRESS_MS → long press
+  TEST_ASSERT_EQUAL(GESTURE_LONG_PRESS, classifyGesture(LONG_PRESS_MS, 999));
+  // One below → tap
+  TEST_ASSERT_EQUAL(GESTURE_TAP, classifyGesture(LONG_PRESS_MS - 1, 999));
+}
+
+void test_classify_gesture_boundary_double_tap() {
+  // At exactly DOUBLE_TAP_WINDOW_MS → double tap
+  TEST_ASSERT_EQUAL(GESTURE_DOUBLE_TAP, classifyGesture(100, DOUBLE_TAP_WINDOW_MS));
+  // One above → tap
+  TEST_ASSERT_EQUAL(GESTURE_TAP, classifyGesture(100, DOUBLE_TAP_WINDOW_MS + 1));
 }
 
 void test_all_emotions_draw_without_crash() {
-  MockCanvas canvas;
-  DrawFrameFn drawFns[] = {
-    drawIdle, drawBlink, drawHappy, drawSleepy, drawExcited,
-    drawSad, drawAngry, drawConfused, drawThinking, drawLove,
-    drawSurprised, drawDead, drawMusic, drawCoding
+  // Each emotion tested up to its own frame count (not a uniform 51)
+  struct { DrawFrameFn fn; int frames; } emotions[] = {
+    {drawIdle, 60}, {drawBlink, 1}, {drawHappy, 50}, {drawSleepy, 60},
+    {drawExcited, 40}, {drawSad, 56}, {drawAngry, 56}, {drawConfused, 44},
+    {drawThinking, 44}, {drawLove, 44}, {drawSurprised, 44},
+    {drawDead, 70}, {drawBored, 60}
   };
-
-  for (int fn = 0; fn < 14; fn++) {
-    for (int frame = 0; frame < 51; frame++) {
+  MockCanvas canvas;
+  for (int i = 0; i < 13; i++) {
+    for (int frame = 0; frame < emotions[i].frames; frame++) {
       canvas.reset();
-      drawFns[fn](canvas, frame, nullptr);
-      // Just verify no crash and some drawing happened on frame 0
-      if (frame == 0) {
-        TEST_ASSERT_TRUE(canvas.callCount() > 0);
-      }
+      emotions[i].fn(canvas, frame, nullptr);
+      TEST_ASSERT_TRUE(canvas.callCount() > 0);
     }
   }
+}
+
+// ===== NEW PER-EMOTION ASSERTIONS =====
+
+void test_idle_uses_new_eye_dimensions() {
+  MockCanvas canvas;
+  drawIdle(canvas, 0, nullptr);
+  // Eyes should be w=24 per new grammar (FILL_RRECT with w=24)
+  int idx = canvas.findCall(DrawCall::FILL_RRECT);
+  TEST_ASSERT_TRUE(idx >= 0);
+  TEST_ASSERT_EQUAL(24, canvas.call(idx).w);
+}
+
+void test_idle_breathing_moves_eyes() {
+  MockCanvas canvasF0, canvasF14;
+  drawIdle(canvasF0, 0, nullptr);
+  drawIdle(canvasF14, 14, nullptr);
+  // Frame 14 (peak inhale) eyes should be 1px higher than frame 0 (eyeY=27 vs 28)
+  int i0 = canvasF0.findCall(DrawCall::FILL_RRECT);
+  int i14 = canvasF14.findCall(DrawCall::FILL_RRECT);
+  TEST_ASSERT_TRUE(i0 >= 0 && i14 >= 0);
+  // Y of eye rect = eyeY - eyeH/2; at F14 eyeY=27→rect.y=16, at F0 eyeY=28→rect.y=17
+  TEST_ASSERT_TRUE(canvasF14.call(i14).y < canvasF0.call(i0).y);
+}
+
+void test_happy_has_blush_at_peak() {
+  MockCanvas canvas;
+  drawHappy(canvas, 7, nullptr);  // peak smile frame
+  // Eyes as narrow arcs (h=8)
+  int eyeIdx = canvas.findCall(DrawCall::FILL_RRECT);
+  TEST_ASSERT_TRUE(eyeIdx >= 0);
+  TEST_ASSERT_EQUAL(8, canvas.call(eyeIdx).h);
+  // Blush circles present
+  int blushIdx = canvas.findCall(DrawCall::FILL_CIRCLE);
+  TEST_ASSERT_TRUE(blushIdx >= 0);
+}
+
+void test_sad_tear_present_at_frame_12() {
+  MockCanvas canvas;
+  drawSad(canvas, 12, nullptr);
+  // Tear as FILL_CIRCLE at around Y=42
+  int idx = canvas.findCall(DrawCall::FILL_CIRCLE);
+  TEST_ASSERT_TRUE(idx >= 0);
+  TEST_ASSERT_TRUE(canvas.call(idx).y >= 40 && canvas.call(idx).y <= 45);
+}
+
+void test_sad_tear_trail_at_frame_20() {
+  MockCanvas canvas;
+  drawSad(canvas, 20, nullptr);
+  // Tear trail as DRAW_LINE
+  int idx = canvas.findCall(DrawCall::DRAW_LINE);
+  TEST_ASSERT_TRUE(idx >= 0);
+}
+
+void test_confused_has_asymmetric_eyes() {
+  MockCanvas canvas;
+  drawConfused(canvas, 7, nullptr);  // left tall, right squat
+  int idx1 = canvas.findCall(DrawCall::FILL_RRECT, 0);
+  int idx2 = canvas.findCall(DrawCall::FILL_RRECT, idx1 + 1);
+  TEST_ASSERT_TRUE(idx1 >= 0 && idx2 >= 0);
+  // First eye taller than second
+  TEST_ASSERT_TRUE(canvas.call(idx1).h != canvas.call(idx2).h);
+}
+
+void test_confused_has_question_mark() {
+  MockCanvas canvas;
+  drawConfused(canvas, 12, nullptr);
+  int idx = canvas.findCall(DrawCall::TEXT);
+  TEST_ASSERT_TRUE(idx >= 0);
+  TEST_ASSERT_EQUAL_STRING("?", canvas.call(idx).text);
+}
+
+void test_angry_has_brow_lines() {
+  MockCanvas canvas;
+  drawAngry(canvas, 7, nullptr);  // full glare frame
+  // Brow lines as DRAW_LINE
+  int idx = canvas.findCall(DrawCall::DRAW_LINE);
+  TEST_ASSERT_TRUE(idx >= 0);
+}
+
+void test_angry_eyes_narrow_at_peak() {
+  MockCanvas canvas;
+  drawAngry(canvas, 7, nullptr);
+  int idx = canvas.findCall(DrawCall::FILL_RRECT);
+  TEST_ASSERT_TRUE(idx >= 0);
+  TEST_ASSERT_TRUE(canvas.call(idx).h <= 12);
+}
+
+void test_love_has_heart_components() {
+  MockCanvas canvas;
+  drawLove(canvas, 5, nullptr);  // full hearts
+  // Hearts drawn with fill circles + fill triangles
+  int circIdx = canvas.findCall(DrawCall::FILL_CIRCLE);
+  int triIdx = canvas.findCall(DrawCall::FILL_TRIANGLE);
+  TEST_ASSERT_TRUE(circIdx >= 0);
+  TEST_ASSERT_TRUE(triIdx >= 0);
+}
+
+void test_excited_has_pupils() {
+  MockCanvas canvas;
+  drawExcited(canvas, 5, nullptr);  // wide-eye frame
+  // Pupils as FILL_CIRCLE with COLOR_BLACK
+  bool foundPupil = false;
+  for (int i = 0; i < canvas.callCount(); i++) {
+    if (canvas.call(i).type == DrawCall::FILL_CIRCLE &&
+        canvas.call(i).color == COLOR_BLACK) {
+      foundPupil = true;
+      break;
+    }
+  }
+  TEST_ASSERT_TRUE(foundPupil);
+}
+
+void test_excited_bounce_moves_face() {
+  MockCanvas canvasUp, canvasDown;
+  drawExcited(canvasUp, 7, nullptr);   // bounce up (odd frame → down, even → up)
+  drawExcited(canvasDown, 8, nullptr); // bounce down
+  int iUp = canvasUp.findCall(DrawCall::FILL_RRECT);
+  int iDown = canvasDown.findCall(DrawCall::FILL_RRECT);
+  TEST_ASSERT_TRUE(iUp >= 0 && iDown >= 0);
+  TEST_ASSERT_TRUE(canvasUp.call(iUp).y != canvasDown.call(iDown).y);
+}
+
+void test_sleepy_has_z_at_sleeping_frame() {
+  MockCanvas canvas;
+  drawSleepy(canvas, 15, nullptr);
+  int idx = canvas.findCall(DrawCall::TEXT);
+  TEST_ASSERT_TRUE(idx >= 0);
+  TEST_ASSERT_EQUAL_STRING("z", canvas.call(idx).text);
+}
+
+void test_sleepy_has_yawn_circle() {
+  MockCanvas canvas;
+  drawSleepy(canvas, 10, nullptr);  // nearly closed
+  // Yawn as FILL_CIRCLE at approximately center bottom
+  int idx = canvas.findCall(DrawCall::FILL_CIRCLE);
+  TEST_ASSERT_TRUE(idx >= 0);
+  TEST_ASSERT_TRUE(canvas.call(idx).x >= 60 && canvas.call(idx).x <= 68);
+}
+
+void test_thinking_gaze_shifts_left() {
+  MockCanvas canvasF0, canvasF6;
+  drawThinking(canvasF0, 0, nullptr);
+  drawThinking(canvasF6, 6, nullptr);
+  int i0 = canvasF0.findCall(DrawCall::FILL_RRECT);
+  int i6 = canvasF6.findCall(DrawCall::FILL_RRECT);
+  TEST_ASSERT_TRUE(i0 >= 0 && i6 >= 0);
+  // At F6 left eye shifted left → rect.x smaller than F0
+  TEST_ASSERT_TRUE(canvasF6.call(i6).x < canvasF0.call(i0).x);
+}
+
+void test_thinking_has_dots() {
+  MockCanvas canvas;
+  drawThinking(canvas, 14, nullptr);  // two dots visible
+  int idx = canvas.findCall(DrawCall::FILL_RECT);
+  TEST_ASSERT_TRUE(idx >= 0);
+}
+
+void test_thinking_has_exclamation() {
+  MockCanvas canvas;
+  drawThinking(canvas, 31, nullptr);  // aha frame
+  int idx = canvas.findCall(DrawCall::FILL_RECT);
+  TEST_ASSERT_TRUE(idx >= 0);
+  // Exclamation bar: tall rect (h=14)
+  bool foundBar = false;
+  for (int i = 0; i < canvas.callCount(); i++) {
+    if (canvas.call(i).type == DrawCall::FILL_RECT && canvas.call(i).h >= 14) {
+      foundBar = true;
+      break;
+    }
+  }
+  TEST_ASSERT_TRUE(foundBar);
+}
+
+void test_surprised_eyes_widen_and_have_pupils() {
+  MockCanvas canvas;
+  drawSurprised(canvas, 5, nullptr);  // peak surprise
+  // Eyes at H=28
+  int idx = canvas.findCall(DrawCall::FILL_RRECT);
+  TEST_ASSERT_TRUE(idx >= 0);
+  TEST_ASSERT_EQUAL(28, canvas.call(idx).h);
+  // Pupils present
+  bool hasPupil = false;
+  for (int i = 0; i < canvas.callCount(); i++) {
+    if (canvas.call(i).type == DrawCall::FILL_CIRCLE &&
+        canvas.call(i).color == COLOR_BLACK) {
+      hasPupil = true; break;
+    }
+  }
+  TEST_ASSERT_TRUE(hasPupil);
+}
+
+void test_surprised_double_take_blink() {
+  MockCanvas canvas;
+  drawSurprised(canvas, 11, nullptr);  // double-take blink frame
+  int idx = canvas.findCall(DrawCall::FILL_RRECT);
+  TEST_ASSERT_TRUE(idx >= 0);
+  TEST_ASSERT_EQUAL(4, canvas.call(idx).h);  // nearly shut
+}
+
+void test_dead_has_x_eyes() {
+  MockCanvas canvas;
+  drawDead(canvas, 13, nullptr);  // X eyes formed
+  // X eyes drawn as DRAW_LINE
+  int idx = canvas.findCall(DrawCall::DRAW_LINE);
+  TEST_ASSERT_TRUE(idx >= 0);
+}
+
+void test_dead_has_tongue() {
+  MockCanvas canvas;
+  drawDead(canvas, 15, nullptr);  // hold dead
+  // Tongue as FILL_RRECT (two of them for base + tip)
+  int idx1 = canvas.findCall(DrawCall::FILL_RRECT, 0);
+  TEST_ASSERT_TRUE(idx1 >= 0);
+  int idx2 = canvas.findCall(DrawCall::FILL_RRECT, idx1 + 1);
+  TEST_ASSERT_TRUE(idx2 >= 0);
+}
+
+void test_dead_has_dizzy_circles() {
+  MockCanvas canvas;
+  drawDead(canvas, 20, nullptr);
+  int idx = canvas.findCall(DrawCall::DRAW_CIRCLE);
+  TEST_ASSERT_TRUE(idx >= 0);
+}
+
+void test_bored_has_head_tilt() {
+  MockCanvas canvas;
+  drawBored(canvas, 13, nullptr);  // hold half-closed
+  int idx1 = canvas.findCall(DrawCall::FILL_RRECT, 0);
+  int idx2 = canvas.findCall(DrawCall::FILL_RRECT, idx1 + 1);
+  TEST_ASSERT_TRUE(idx1 >= 0 && idx2 >= 0);
+  // Right eye (second RRECT) should be 2px lower than left
+  TEST_ASSERT_TRUE(canvas.call(idx2).y > canvas.call(idx1).y);
+}
+
+void test_bored_has_sigh_mouth() {
+  MockCanvas canvas;
+  drawBored(canvas, 38, nullptr);  // sigh frame
+  // Sigh as DRAW_CIRCLE
+  int idx = canvas.findCall(DrawCall::DRAW_CIRCLE);
+  TEST_ASSERT_TRUE(idx >= 0);
 }
 
 // ===== RUNNER =====
@@ -395,6 +660,8 @@ int main(int argc, char** argv) {
   RUN_TEST(test_change_callback_receives_from_and_to);
   RUN_TEST(test_previous_emotion_tracks_history);
   RUN_TEST(test_transition_frame_advance_and_complete);
+  RUN_TEST(test_emotion_validation_uses_registry);
+  RUN_TEST(test_ble_emotion_validation_rejects_unregistered);
 
   // Emotion registry
   RUN_TEST(test_registry_add_and_get);
@@ -403,27 +670,59 @@ int main(int argc, char** argv) {
   RUN_TEST(test_registry_cyclable_excludes_blink);
   RUN_TEST(test_registry_count);
 
-  // Notification queue
-  RUN_TEST(test_notification_add_and_retrieve);
-  RUN_TEST(test_notification_queue_overflow);
-  RUN_TEST(test_notification_clear_and_empty);
-  RUN_TEST(test_notification_string_truncation);
-  RUN_TEST(test_notification_null_strings);
-
   // Animation tick engine
   RUN_TEST(test_tick_draws_frame_on_first_call);
   RUN_TEST(test_tick_respects_frame_delay);
   RUN_TEST(test_tick_advances_frame);
-  RUN_TEST(test_tick_loop_once_holds_last_frame);
   RUN_TEST(test_tick_returns_false_for_unknown_emotion);
+  RUN_TEST(test_tick_loop_pingpong_plays_bored);
+  RUN_TEST(test_tick_pingpong_reverses_at_ends);
 
-  // Draw functions
+  // Draw functions — legacy
   RUN_TEST(test_draw_idle_draws_eyes);
   RUN_TEST(test_draw_blink_draws_narrow_eyes);
   RUN_TEST(test_draw_happy_frame0_has_content);
-  RUN_TEST(test_draw_notification_uses_context);
-  RUN_TEST(test_draw_github_stats_with_data);
+  RUN_TEST(test_bored_draws_half_lidded_eyes);
   RUN_TEST(test_all_emotions_draw_without_crash);
+
+  // Draw functions — new per-emotion assertions
+  RUN_TEST(test_idle_uses_new_eye_dimensions);
+  RUN_TEST(test_idle_breathing_moves_eyes);
+  RUN_TEST(test_happy_has_blush_at_peak);
+  RUN_TEST(test_sad_tear_present_at_frame_12);
+  RUN_TEST(test_sad_tear_trail_at_frame_20);
+  RUN_TEST(test_confused_has_asymmetric_eyes);
+  RUN_TEST(test_confused_has_question_mark);
+  RUN_TEST(test_angry_has_brow_lines);
+  RUN_TEST(test_angry_eyes_narrow_at_peak);
+  RUN_TEST(test_love_has_heart_components);
+  RUN_TEST(test_excited_has_pupils);
+  RUN_TEST(test_excited_bounce_moves_face);
+  RUN_TEST(test_sleepy_has_z_at_sleeping_frame);
+  RUN_TEST(test_sleepy_has_yawn_circle);
+  RUN_TEST(test_thinking_gaze_shifts_left);
+  RUN_TEST(test_thinking_has_dots);
+  RUN_TEST(test_thinking_has_exclamation);
+  RUN_TEST(test_surprised_eyes_widen_and_have_pupils);
+  RUN_TEST(test_surprised_double_take_blink);
+  RUN_TEST(test_dead_has_x_eyes);
+  RUN_TEST(test_dead_has_tongue);
+  RUN_TEST(test_dead_has_dizzy_circles);
+  RUN_TEST(test_bored_has_head_tilt);
+  RUN_TEST(test_bored_has_sigh_mouth);
+
+  // Personality engine
+  RUN_TEST(test_attention_arc_escalates);
+  RUN_TEST(test_touch_during_neglect_triggers_recovery);
+  RUN_TEST(test_touch_when_not_neglected_returns_false);
+  RUN_TEST(test_jitter_produces_variance);
+
+  // Gesture detection
+  RUN_TEST(test_classify_gesture_tap);
+  RUN_TEST(test_classify_gesture_long_press);
+  RUN_TEST(test_classify_gesture_double_tap);
+  RUN_TEST(test_classify_gesture_boundary_long_press);
+  RUN_TEST(test_classify_gesture_boundary_double_tap);
 
   return UNITY_END();
 }

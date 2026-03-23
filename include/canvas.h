@@ -44,20 +44,29 @@ public:
 
   // --- Concrete helpers (implemented via primitives above) ---
 
-  // Standard rounded-rect eye pair used across nearly all emotions
-  void drawEyes(int leftX, int leftY, int rightX, int rightY, int eyeHeight) {
-    fillRoundRect(leftX - 10, leftY - eyeHeight / 2, 20, eyeHeight, 5,
+  // Standard rounded-rect eye pair used across nearly all emotions.
+  // Defaults match the face grammar: width=24, corner radius=7.
+  void drawEyes(int leftX, int leftY, int rightX, int rightY, int eyeHeight,
+                int eyeW = 24, int r = 7) {
+    fillRoundRect(leftX - eyeW / 2, leftY - eyeHeight / 2, eyeW, eyeHeight, r,
                   COLOR_WHITE);
-    fillRoundRect(rightX - 10, rightY - eyeHeight / 2, 20, eyeHeight, 5,
-                  COLOR_WHITE);
+    fillRoundRect(rightX - eyeW / 2, rightY - eyeHeight / 2, eyeW, eyeHeight,
+                  r, COLOR_WHITE);
   }
 
   // Eyes with circular pupils (excited, surprised)
   void drawEyesWithPupils(int leftX, int leftY, int rightX, int rightY,
-                          int eyeHeight, int pupilR) {
-    drawEyes(leftX, leftY, rightX, rightY, eyeHeight);
+                          int eyeHeight, int pupilR, int eyeW = 24,
+                          int r = 7) {
+    drawEyes(leftX, leftY, rightX, rightY, eyeHeight, eyeW, r);
     fillCircle(leftX, leftY, pupilR, COLOR_BLACK);
     fillCircle(rightX, rightY, pupilR, COLOR_BLACK);
+  }
+
+  // Angled eyebrow line (thickness via repeated drawLine)
+  void drawBrow(int x0, int y0, int x1, int y1, int thickness) {
+    for (int i = 0; i < thickness; i++)
+      drawLine(x0, y0 + i, x1, y1 + i, COLOR_WHITE);
   }
 
   // Simple filled rounded-rect mouth

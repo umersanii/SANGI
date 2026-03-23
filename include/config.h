@@ -35,62 +35,49 @@
 #define ENABLE_EMOTION_BEEP true  // Set to false to disable beep on emotion change
 
 // ===== TIMING CONFIGURATION =====
-#define EMOTION_CHANGE_INTERVAL 30000  // 30 seconds
+#define EMOTION_CHANGE_INTERVAL_BASE 30000  // 30s base for autonomous cycling
 #define BLINK_INTERVAL 3000  // 3 seconds
 #define SLEEP_TIMEOUT 300000  // 5 minutes
 #define HOUR_IN_MILLIS 3600000
+#define LONG_PRESS_MS 600
+#define DOUBLE_TAP_WINDOW_MS 300
 
-// ===== ANIMATION NEUTRAL STATE =====
-// Standard neutral pose for smooth transitions between emotions
-#define NEUTRAL_EYE_LEFT_X 40
-#define NEUTRAL_EYE_LEFT_Y 28
-#define NEUTRAL_EYE_RIGHT_X 88
-#define NEUTRAL_EYE_RIGHT_Y 28
-#define NEUTRAL_EYE_HEIGHT 18
-#define NEUTRAL_MOUTH_X 58
-#define NEUTRAL_MOUTH_Y 50
-#define NEUTRAL_MOUTH_WIDTH 12
-#define NEUTRAL_MOUTH_HEIGHT 5
+// ===== FACE GRAMMAR =====
+// Canonical neutral pose — every emotion deviates from these values.
+#define FACE_EYE_LX   38    // Left eye center X
+#define FACE_EYE_LY   28    // Left eye center Y
+#define FACE_EYE_RX   90    // Right eye center X
+#define FACE_EYE_RY   28    // Right eye center Y
+#define FACE_EYE_W    24    // Eye width (fillRoundRect)
+#define FACE_EYE_H    22    // Eye height (default)
+#define FACE_EYE_R     7    // Eye corner radius
+#define FACE_MOUTH_CX 64    // Mouth center X
+#define FACE_MOUTH_Y  52    // Mouth top Y
+#define FACE_MOUTH_W  14    // Mouth width (default)
+#define FACE_MOUTH_H   5    // Mouth height (default)
 
-// ===== NETWORK CONFIGURATION =====
-// MQTT Topics for AWS IoT Core
-#define MQTT_TOPIC_EMOTION_SET "sangi/emotion/set"        // Subscribe: receive emotion commands
-#define MQTT_TOPIC_STATUS "sangi/status"                  // Publish: device status
-#define MQTT_TOPIC_BATTERY "sangi/status/battery"         // Publish: battery status (level, voltage, charging)
-#define MQTT_TOPIC_SYSTEM "sangi/status/system"           // Publish: system status (uptime, heap, rssi)
-#define MQTT_TOPIC_EMOTION "sangi/status/emotion"         // Publish: current emotion state
-#define MQTT_TOPIC_SERIAL_LOGS "sangi/logs/serial"        // Publish: buffered serial logs (every 5s)
+// Legacy aliases (used by display.cpp transition code until migrated)
+#define NEUTRAL_EYE_LEFT_X  FACE_EYE_LX
+#define NEUTRAL_EYE_LEFT_Y  FACE_EYE_LY
+#define NEUTRAL_EYE_RIGHT_X FACE_EYE_RX
+#define NEUTRAL_EYE_RIGHT_Y FACE_EYE_RY
+#define NEUTRAL_EYE_HEIGHT  FACE_EYE_H
+#define NEUTRAL_MOUTH_X     (FACE_MOUTH_CX - FACE_MOUTH_W / 2)
+#define NEUTRAL_MOUTH_Y     FACE_MOUTH_Y
+#define NEUTRAL_MOUTH_WIDTH FACE_MOUTH_W
+#define NEUTRAL_MOUTH_HEIGHT FACE_MOUTH_H
 
-// Workspace activity topics
-#define MQTT_TOPIC_WORKSPACE_PC "workspace/pc/activity"   // Subscribe: PC activity data
-#define MQTT_TOPIC_WORKSPACE_PI "workspace/pi/activity"   // Subscribe: Pi activity data
-#define MQTT_TOPIC_PC_STATUS "workspace/pc/status"        // Subscribe: PC online/offline
-#define MQTT_TOPIC_PI_STATUS "workspace/pi/status"        // Subscribe: Pi online/offline
-#define MQTT_TOPIC_GITHUB_COMMITS "sangi/github/commits"  // Subscribe: GitHub commit history updates
-
-// Network timing
-#define MQTT_RECONNECT_INTERVAL 5000      // 5 seconds between reconnection attempts
-#define STATUS_PUBLISH_INTERVAL 30000     // 30 seconds between status updates
-#define NETWORK_TIMEOUT 10000              // 10 seconds WiFi connection timeout
-
-// Workspace mode settings
-#define WORKSPACE_MODE true                               // Enable workspace activity monitoring
-#define WORKSPACE_ACTIVITY_TIMEOUT 30000                  // 30s timeout before considering device offline
-
-// Time synchronization (NTP)
-#define NTP_SERVER "pool.ntp.org"
-#define GMT_OFFSET_SEC 0                   // Adjust for your timezone (e.g., -28800 for PST)
-#define DAYLIGHT_OFFSET_SEC 0              // Adjust for daylight saving
-
-// Mode selection
-#define ENABLE_MQTT true                   // Set to true to enable MQTT mode (requires secrets.h)
-
-// ===== OFFLINE MODE CONFIGURATION =====
-#define MQTT_TIMEOUT_THRESHOLD 60000       // ms without valid MQTT message before switching to offline mode (60s)
-#define OFFLINE_EMOTION_INTERVAL 20000     // ms between emotion changes in offline autonomous mode (20s)
+// ===== PERSONALITY CONFIGURATION =====
+#define ATTENTION_STAGE1_MS 300000    // 5 min → BORED (base, ±20% jitter)
+#define ATTENTION_STAGE2_MS 600000    // 10 min → SAD
+#define ATTENTION_STAGE3_MS 750000    // 12.5 min → CONFUSED
+#define ATTENTION_STAGE4_MS 900000    // 15 min → ANGRY
+#define MOOD_DRIFT_INTERVAL_MS 120000 // 2 min between mood drift checks (base)
+#define MICRO_EXPRESSION_CHANCE 15    // % chance per drift check to do a micro-expression
+#define JITTER_PERCENT 20             // ±20% applied to all personality timings
 
 // ===== DEBUG MODE =====
-#define DEBUG_MODE_ENABLED false            // Set to true to enable debug mode (shows only DEBUG_MODE_EMOTION)
-#define DEBUG_MODE_EMOTION EMOTION_GITHUB_STATS  // Which emotion to show in debug mode
+#define DEBUG_MODE_ENABLED true            // Set to true to enable debug mode (shows only DEBUG_MODE_EMOTION)
+#define DEBUG_MODE_EMOTION EMOTION_HAPPY    // Which emotion to show in debug mode
 
 #endif // CONFIG_H

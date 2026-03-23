@@ -409,8 +409,11 @@ void DisplayManager::drawEmotionFace(EmotionState emotion) {
     case EMOTION_DEAD:
       drawFace_Dead();
       break;
-    case EMOTION_NOTIFICATION:
-      drawFace_Notification("", "");  // Default empty notification
+    case EMOTION_BORED:
+      drawFace_Normal();  // half-lid bored is handled by animation; Normal is fine for 200ms transition frame
+      break;
+    case EMOTION_BLINK:
+      drawFace_Blink();
       break;
     default:
       drawFace_Normal();
@@ -428,12 +431,8 @@ TransitionResult DisplayManager::performTransitionFrame(int frame,
     return sleepyTransitionFrame(frame, target);
   }
 
-  // Special handling ONLY when transitioning TO notification
-  if (target == EMOTION_NOTIFICATION && current != EMOTION_NOTIFICATION) {
-    return notificationTransitionFrame(frame, current);
-  }
-
-  // Standard 7-frame blink transition
+  // Standard 7-frame blink transition — new face grammar (eyes at 38/90, w=24, r=7)
+  // Close: 22→16→10→4 (fast, eased). Open: 4→10→18 (slightly slower). Total ~1040ms.
   switch (frame) {
     case 0:
       drawEmotionFace(current);
@@ -441,33 +440,33 @@ TransitionResult DisplayManager::performTransitionFrame(int frame,
       return TR_DREW_FRAME;
     case 1:
       display.clearDisplay();
-      drawEyes(40, 28, 88, 28, 12);
+      drawEyes(38, 28, 90, 28, 16);
       display.display();
-      delay(150);
+      delay(100);
       return TR_DREW_FRAME;
     case 2:
       display.clearDisplay();
-      drawEyes(40, 28, 88, 28, 6);
+      drawEyes(38, 29, 90, 29, 10);
       display.display();
-      delay(150);
+      delay(100);
       return TR_DREW_FRAME;
     case 3:
       display.clearDisplay();
-      drawEyes(40, 28, 88, 28, 3);
+      drawEyes(38, 30, 90, 30, 4);
       display.display();
       delay(200);
       return TR_DREW_FRAME;
     case 4:
       display.clearDisplay();
-      drawEyes(40, 28, 88, 28, 8);
+      drawEyes(38, 29, 90, 29, 10);
       display.display();
-      delay(150);
+      delay(120);
       return TR_DREW_FRAME;
     case 5:
       display.clearDisplay();
-      drawEyes(40, 28, 88, 28, 14);
+      drawEyes(38, 28, 90, 28, 18);
       display.display();
-      delay(150);
+      delay(120);
       return TR_DREW_FRAME;
     case 6:
       drawEmotionFace(target);
@@ -477,7 +476,7 @@ TransitionResult DisplayManager::performTransitionFrame(int frame,
   return TR_COMPLETE;
 }
 
-// Sleepy transition — uses round mouth throughout
+// Sleepy transition — same as standard but retains yawn mouth circle
 TransitionResult DisplayManager::sleepyTransitionFrame(int frame,
                                                         EmotionState target) {
   switch (frame) {
@@ -487,38 +486,38 @@ TransitionResult DisplayManager::sleepyTransitionFrame(int frame,
       return TR_DREW_FRAME;
     case 1:
       display.clearDisplay();
-      drawEyes(40, 28, 88, 28, 12);
-      display.drawCircle(64, 48, 5, SSD1306_WHITE);
+      drawEyes(38, 28, 90, 28, 16);
+      display.drawCircle(64, 50, 5, SSD1306_WHITE);
       display.display();
-      delay(150);
+      delay(100);
       return TR_DREW_FRAME;
     case 2:
       display.clearDisplay();
-      drawEyes(40, 29, 88, 29, 8);
-      display.drawCircle(64, 48, 6, SSD1306_WHITE);
+      drawEyes(38, 29, 90, 29, 10);
+      display.drawCircle(64, 51, 6, SSD1306_WHITE);
       display.display();
-      delay(150);
+      delay(100);
       return TR_DREW_FRAME;
     case 3:
       display.clearDisplay();
-      drawEyes(40, 30, 88, 30, 4);
-      display.drawCircle(64, 48, 6, SSD1306_WHITE);
+      drawEyes(38, 30, 90, 30, 4);
+      display.drawCircle(64, 52, 7, SSD1306_WHITE);
       display.display();
       delay(200);
       return TR_DREW_FRAME;
     case 4:
       display.clearDisplay();
-      drawEyes(40, 29, 88, 29, 8);
-      display.drawCircle(64, 48, 6, SSD1306_WHITE);
+      drawEyes(38, 29, 90, 29, 10);
+      display.drawCircle(64, 51, 6, SSD1306_WHITE);
       display.display();
-      delay(150);
+      delay(120);
       return TR_DREW_FRAME;
     case 5:
       display.clearDisplay();
-      drawEyes(40, 28, 88, 28, 12);
-      display.drawCircle(64, 48, 5, SSD1306_WHITE);
+      drawEyes(38, 28, 90, 28, 18);
+      display.drawCircle(64, 50, 5, SSD1306_WHITE);
       display.display();
-      delay(150);
+      delay(120);
       return TR_DREW_FRAME;
     case 6:
       drawEmotionFace(target);
@@ -528,56 +527,3 @@ TransitionResult DisplayManager::sleepyTransitionFrame(int frame,
   return TR_COMPLETE;
 }
 
-// Notification transition — surprise → run away → notification board appears
-TransitionResult DisplayManager::notificationTransitionFrame(int frame,
-                                                              EmotionState current) {
-  switch (frame) {
-    case 0:
-      drawEmotionFace(current);
-      delay(150);
-      return TR_DREW_FRAME;
-    case 1:
-      display.clearDisplay();
-      drawEyes(40, 27, 88, 27, 22);
-      display.fillCircle(40, 27, 2, SSD1306_BLACK);
-      display.fillCircle(88, 27, 2, SSD1306_BLACK);
-      display.drawCircle(64, 48, 6, SSD1306_WHITE);
-      display.display();
-      delay(100);
-      return TR_DREW_FRAME;
-    case 2:
-      display.clearDisplay();
-      drawEyes(40, 26, 88, 26, 26);
-      display.fillCircle(40, 26, 3, SSD1306_BLACK);
-      display.fillCircle(88, 26, 3, SSD1306_BLACK);
-      display.fillCircle(64, 50, 8, SSD1306_WHITE);
-      display.display();
-      delay(150);
-      return TR_DREW_FRAME;
-    case 3:
-      display.clearDisplay();
-      drawEyes(40, 28, 88, 28, 12);
-      display.drawLine(52, 50, 76, 50, SSD1306_WHITE);
-      display.display();
-      delay(100);
-      return TR_DREW_FRAME;
-    case 4:
-      display.clearDisplay();
-      drawEyes(60, 28, 108, 28, 14);
-      display.drawLine(72, 50, 96, 50, SSD1306_WHITE);
-      display.display();
-      delay(100);
-      return TR_DREW_FRAME;
-    case 5:
-      display.clearDisplay();
-      drawEyes(85, 28, 133, 28, 14);
-      display.display();
-      delay(100);
-      return TR_DREW_FRAME;
-    case 6:
-      drawEmotionFace(EMOTION_NOTIFICATION);
-      delay(200);
-      return TR_COMPLETE;
-  }
-  return TR_COMPLETE;
-}

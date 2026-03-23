@@ -35,7 +35,9 @@ inline void randomSeed(unsigned long) {}
 #define LOW 0
 #define HIGH 1
 inline void pinMode(uint8_t, uint8_t) {}
-inline int digitalRead(uint8_t) { return HIGH; }
+inline int& _stubDigitalReadRef() { static int val = HIGH; return val; }
+inline int digitalRead(uint8_t) { return _stubDigitalReadRef(); }
+inline void stubSetDigitalRead(int v) { _stubDigitalReadRef() = v; }
 inline int analogRead(uint8_t) { return 0; }
 
 // Serial stub

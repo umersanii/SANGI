@@ -92,8 +92,6 @@ private:
 
   // Internal transition helpers
   TransitionResult sleepyTransitionFrame(int frame, EmotionState target);
-  TransitionResult notificationTransitionFrame(int frame,
-                                               EmotionState current);
 };
 
 extern DisplayManager displayManager;

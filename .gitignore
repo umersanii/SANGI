@@ -136,3 +136,8 @@ PC-setup/bin/logs/message_history.json
 pi-setup/sangi_notify/__pycache__
 pi-setup/sangi_notify/monitors/__pycache__
 *.pyc
+*.crt
+REFACTORING_PLAN.md
+SANGI_V1_IMPLEMENTATION.md
+v1.md
+WIRELESS_LOGGING_SUMMARY.md
