@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
+**Rules:** See RULES.md for coding standards, prohibitions, and checklists.
 **Scope:** Developer-facing documentation for code architecture, testing, and development workflow.
 **See also:** `README.md` (user/feature documentation), `include/config.h` (hardware pins & timing constants)
 

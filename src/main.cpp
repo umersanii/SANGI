@@ -79,6 +79,35 @@ void checkSleepConditions() {
   // Disabled until touch sensor is connected
 }
 
+// ===== DEBUG CYCLE =====
+#if DEBUG_MODE_ENABLED && DEBUG_MODE_CYCLE
+static EmotionState debugCycleList[EmotionRegistry::MAX_EMOTIONS];
+static int debugCycleCount = 0;
+static int debugCycleIndex = 0;
+static unsigned long debugCycleLastChange = 0;
+
+void debugCycleInit() {
+  debugCycleCount = emotionRegistry.getCyclable(debugCycleList, EmotionRegistry::MAX_EMOTIONS);
+  debugCycleIndex = 0;
+  debugCycleLastChange = millis();
+  Serial.printf("[DEBUG] Cycle: %d emotions registered\n", debugCycleCount);
+}
+
+void debugCycleTick(unsigned long currentTime) {
+  if (debugCycleCount == 0) return;
+  if (emotionManager.isTransitionActive()) return;
+  if (currentTime - debugCycleLastChange >= DEBUG_CYCLE_INTERVAL_MS) {
+    debugCycleIndex = (debugCycleIndex + 1) % debugCycleCount;
+    EmotionState next = debugCycleList[debugCycleIndex];
+    Serial.printf("[DEBUG] → %s (%d/%d)\n",
+                  emotionRegistry.getName(next),
+                  debugCycleIndex + 1, debugCycleCount);
+    emotionManager.setTargetEmotion(next);
+    debugCycleLastChange = currentTime;
+  }
+}
+#endif
+
 // ===== SETUP =====
 void setup() {
   Serial.begin(115200);
@@ -119,9 +148,15 @@ void setup() {
 #endif
 
 #if DEBUG_MODE_ENABLED
+#if DEBUG_MODE_CYCLE
+  Serial.println("=== DEBUG MODE: cycling all emotions ===");
+  emotionManager.setTargetEmotion(EMOTION_IDLE);
+  debugCycleInit();
+#else
   Serial.printf("=== DEBUG MODE: showing %s ===\n",
                 emotionRegistry.getName(DEBUG_MODE_EMOTION));
   emotionManager.setTargetEmotion(DEBUG_MODE_EMOTION);
+#endif
 #else
   displayManager.drawEmotionFace(emotionManager.getCurrentEmotion());
   delay(1500);
@@ -138,7 +173,9 @@ void loop() {
   emotionManager.update(currentTime);
   bleControl.updateCurrentEmotion((uint8_t)emotionManager.getCurrentEmotion());
 
-#if !DEBUG_MODE_ENABLED
+#if DEBUG_MODE_ENABLED && DEBUG_MODE_CYCLE
+  debugCycleTick(currentTime);
+#elif !DEBUG_MODE_ENABLED
   Personality::Decision d = personality.update(currentTime, emotionManager.getCurrentEmotion());
   if (d.shouldChange) {
     emotionManager.setTargetEmotion(d.emotion);

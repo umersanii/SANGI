@@ -25,11 +25,11 @@
 // Speaker configuration
 // IMPORTANT: GPIO9 causes display issues on ESP32-C3 (conflicts with USB/boot)
 // Safe GPIO options: GPIO4, GPIO5, GPIO8, GPIO10
-#define SPEAKER_PIN 10         // GPIO10 for PWM audio output (SAFE PIN - no boot conflicts)
+#define SPEAKER_PIN 5         // GPIO10 for PWM audio output (SAFE PIN - no boot conflicts)
 #define SPEAKER_CHANNEL 0      // PWM channel (0-7 available)
 #define SPEAKER_RESOLUTION 8   // 8-bit resolution (0-255)
 #define SPEAKER_BASE_FREQ 2000 // Base frequency in Hz
-#define SPEAKER_VOLUME 255      // Volume level (0-255) - REDUCED to prevent power issues
+#define SPEAKER_VOLUME 255      // Volume level (0-255) - ~50% duty cycle, safer for 8ohm speaker with series resistor
 
 // Emotion change beep configuration
 #define ENABLE_EMOTION_BEEP true  // Set to false to disable beep on emotion change
@@ -77,7 +77,9 @@
 #define JITTER_PERCENT 20             // ±20% applied to all personality timings
 
 // ===== DEBUG MODE =====
-#define DEBUG_MODE_ENABLED true            // Set to true to enable debug mode (shows only DEBUG_MODE_EMOTION)
-#define DEBUG_MODE_EMOTION EMOTION_HAPPY    // Which emotion to show in debug mode
+#define DEBUG_MODE_ENABLED true            // Set to true to enable debug mode
+#define DEBUG_MODE_CYCLE true              // true = cycle all emotions; false = show only DEBUG_MODE_EMOTION
+#define DEBUG_MODE_EMOTION EMOTION_HAPPY    // Shown when DEBUG_MODE_CYCLE is false
+#define DEBUG_CYCLE_INTERVAL_MS 4000       // ms to show each emotion before advancing
 
 #endif // CONFIG_H

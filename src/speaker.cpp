@@ -98,12 +98,35 @@ BeepManager::BeepManager()
     isTonePlaying(false) {
 }
 
+static const BeepTone PATTERN_STARTUP[] = {
+  {523, 100}, {0, 40},   // C5
+  {659, 100}, {0, 40},   // E5
+  {784, 100}, {0, 40},   // G5
+  {1047, 200}            // C6
+};
+
 void BeepManager::init() {
-  // Configure PWM for speaker on GPIO 9
   ledcSetup(SPEAKER_CHANNEL, SPEAKER_BASE_FREQ, SPEAKER_RESOLUTION);
   ledcAttachPin(SPEAKER_PIN, SPEAKER_CHANNEL);
   ledcWrite(SPEAKER_CHANNEL, 0); // Start silent
-  Serial.println("🔊 BeepManager initialized on GPIO 9");
+
+  // Startup test tone — C major arpeggio
+  Serial.println("[SPEAKER] Playing startup tone...");
+  for (int i = 0; i < (int)(sizeof(PATTERN_STARTUP) / sizeof(BeepTone)); i++) {
+    int freq = PATTERN_STARTUP[i].frequency;
+    int dur  = PATTERN_STARTUP[i].duration;
+    if (freq > 0) {
+      Serial.printf("[SPEAKER] tone %dHz for %dms\n", freq, dur);
+      ledcWriteTone(SPEAKER_CHANNEL, freq);
+      ledcWrite(SPEAKER_CHANNEL, SPEAKER_VOLUME);
+    } else {
+      Serial.printf("[SPEAKER] silence %dms\n", dur);
+      ledcWrite(SPEAKER_CHANNEL, 0);
+    }
+    delay(dur);
+  }
+  ledcWrite(SPEAKER_CHANNEL, 0);
+  Serial.printf("[SPEAKER] init done — GPIO %d, volume %d/255\n", SPEAKER_PIN, SPEAKER_VOLUME);
 }
 
 void BeepManager::update() {
@@ -180,11 +203,13 @@ void BeepManager::queueEmotionBeep(EmotionState emotion) {
 
   for (int i = 0; i < NUM_PATTERNS; i++) {
     if (EMOTION_PATTERNS[i].emotion == emotion) {
+      Serial.printf("[SPEAKER] beep for emotion %d (%d tones)\n", emotion, EMOTION_PATTERNS[i].length);
       startBeep(EMOTION_PATTERNS[i].pattern, EMOTION_PATTERNS[i].length);
       return;
     }
   }
   // Fallback to idle pattern
+  Serial.printf("[SPEAKER] no pattern for emotion %d, using idle fallback\n", emotion);
   startBeep(PATTERN_IDLE, sizeof(PATTERN_IDLE) / sizeof(BeepTone));
 }
 
