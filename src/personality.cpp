@@ -5,22 +5,36 @@
 
 Personality personality;
 
-// Initializes all personality state fields to zero; timers are seeded in init().
 Personality::Personality()
   : lastTouchTime_(0),
     lastDriftTime_(0),
     nextDriftInterval_(runtimeConfig.moodDriftIntervalMs),
     nextStageThreshold_(runtimeConfig.attentionStage1Ms),
-    attentionStage_(0) {
+    attentionStage_(0),
+    timeProvider_(nullptr),
+    warmthWindowStart_(0),
+    touchCountRecent_(0),
+    warmthActive_(false),
+    warmthDriftCyclesLeft_(0),
+    glowCycles_(0),
+    lastDriftEmotion_(EMOTION_IDLE),
+    consecutiveSameDrifts_(0) {
 }
 
 // Seeds all timers with the given start time and applies initial jitter to intervals.
 void Personality::init(unsigned long currentTime) {
-  lastTouchTime_ = currentTime;
-  lastDriftTime_ = currentTime;
-  nextDriftInterval_ = jitter(runtimeConfig.moodDriftIntervalMs);
-  nextStageThreshold_ = jitter(runtimeConfig.attentionStage1Ms);
-  attentionStage_ = 0;
+  lastTouchTime_       = currentTime;
+  lastDriftTime_       = currentTime;
+  nextDriftInterval_   = jitter(runtimeConfig.moodDriftIntervalMs);
+  nextStageThreshold_  = jitter(runtimeConfig.attentionStage1Ms);
+  attentionStage_      = 0;
+  warmthWindowStart_   = currentTime;
+  touchCountRecent_    = 0;
+  warmthActive_        = false;
+  warmthDriftCyclesLeft_ = 0;
+  glowCycles_          = 0;
+  lastDriftEmotion_    = EMOTION_IDLE;
+  consecutiveSameDrifts_ = 0;
 }
 
 // Returns base ± JITTER_PERCENT%, clamped to [base/2, base*2].
@@ -44,9 +58,15 @@ unsigned long Personality::stageBaseThreshold(int stage) {
   }
 }
 
-// Hour-of-uptime weighted random emotion.
+// Returns wall-clock hour (0–23). Uses injected time provider if set; falls back to millis().
+int Personality::getTimeOfDayHour(unsigned long currentTime) const {
+  if (timeProvider_) return timeProvider_();
+  return (int)((currentTime / HOUR_IN_MILLIS) % 24);
+}
+
+// Hour-of-day weighted random emotion for normal (unbiased) drift.
 EmotionState Personality::moodDrift(unsigned long currentTime) {
-  unsigned long hour = (currentTime / HOUR_IN_MILLIS) % 24;
+  int hour = getTimeOfDayHour(currentTime);
   int r = (int)random(0, 100);
 
   if (hour < 6) {
@@ -77,8 +97,32 @@ EmotionState Personality::moodDrift(unsigned long currentTime) {
   }
 }
 
+// Positive drift pool for post-interaction glow (any touch).
+EmotionState Personality::moodDriftGlow() {
+  static const EmotionState pool[] = {EMOTION_HAPPY, EMOTION_EXCITED, EMOTION_LOVE, EMOTION_SURPRISED};
+  return pool[random(0, 4)];
+}
+
+// Positive drift pool for sustained warmth arc (frequent interaction).
+EmotionState Personality::moodDriftWarmed() {
+  static const EmotionState pool[] = {EMOTION_HAPPY, EMOTION_EXCITED, EMOTION_LOVE};
+  return pool[random(0, 3)];
+}
+
+// Picks a random driftable emotion from the variety pool, excluding one emotion.
+// Used by habituation to force variety after consecutive same-emotion drifts.
+EmotionState Personality::randomEmotionExcluding(EmotionState excluded) {
+  static const EmotionState pool[] = {
+    EMOTION_HAPPY, EMOTION_EXCITED, EMOTION_THINKING, EMOTION_IDLE,
+    EMOTION_SURPRISED, EMOTION_LOVE, EMOTION_SLEEPY, EMOTION_CONFUSED
+  };
+  static const int poolSize = 8;
+  int idx;
+  do { idx = (int)random(0, poolSize); } while (pool[idx] == excluded);
+  return pool[idx];
+}
+
 // Checks whether the neglect timer has crossed the next stage threshold and escalates the attention arc.
-// Returns a Decision with the target neglect emotion if a stage was crossed; otherwise no change.
 Personality::Decision Personality::attentionArc(unsigned long currentTime,
                                                    EmotionState current) {
   if (attentionStage_ >= 4) return {current, false};
@@ -86,10 +130,8 @@ Personality::Decision Personality::attentionArc(unsigned long currentTime,
   unsigned long timeSinceTouch = currentTime - lastTouchTime_;
   if (timeSinceTouch < nextStageThreshold_) return {current, false};
 
-  // Advance stage
   attentionStage_++;
 
-  // Set jittered threshold for next stage (if any)
   if (attentionStage_ < 4) {
     nextStageThreshold_ = jitter(stageBaseThreshold(attentionStage_ + 1));
   }
@@ -103,7 +145,7 @@ Personality::Decision Personality::attentionArc(unsigned long currentTime,
     default: return {current, false};
   }
 
-  if (current == target) return {current, false};  // already there
+  if (current == target) return {current, false};
 
   Serial.printf("[Personality] Attention stage %d → %s\n",
                 attentionStage_,
@@ -111,29 +153,60 @@ Personality::Decision Personality::attentionArc(unsigned long currentTime,
   return {target, true};
 }
 
-// Returns true MICRO_EXPRESSION_CHANCE% of the time, triggering a random BLINK micro-expression.
+// Returns true MICRO_EXPRESSION_CHANCE% of the time.
 bool Personality::shouldMicroExpress() {
   return (int)random(0, 100) < runtimeConfig.microExpressionChance;
 }
 
-// Evaluates the attention arc and mood drift; returns the next emotion Decision for the current tick.
+// Evaluates all personality subsystems and returns the next emotion Decision.
 Personality::Decision Personality::update(unsigned long currentTime,
                                            EmotionState currentEmotion) {
-  // 1. Attention arc escalation
+  // 1. Attention arc escalation (highest priority)
   Decision arc = attentionArc(currentTime, currentEmotion);
   if (arc.shouldChange) return arc;
 
-  // 3. Mood drift
+  // 2. Mood drift (glow → warmth → normal, checked on interval)
   if (currentTime - lastDriftTime_ >= nextDriftInterval_) {
-    lastDriftTime_ = currentTime;
+    lastDriftTime_     = currentTime;
     nextDriftInterval_ = jitter(runtimeConfig.moodDriftIntervalMs);
 
-    // 4. Micro-expression: occasional BLINK then return
+    // Micro-expression: occasional BLINK regardless of warmth state
     if (shouldMicroExpress()) {
       return {EMOTION_BLINK, true};
     }
 
-    EmotionState drifted = moodDrift(currentTime);
+    // Select drift emotion based on current bias
+    EmotionState drifted;
+    if (glowCycles_ > 0) {
+      glowCycles_--;
+      drifted = moodDriftGlow();
+    } else if (warmthActive_) {
+      drifted = moodDriftWarmed();
+      warmthDriftCyclesLeft_--;
+      if (warmthDriftCyclesLeft_ <= 0) {
+        warmthActive_ = false;
+        Serial.println("[Personality] Warmth arc ended");
+      }
+    } else {
+      drifted = moodDrift(currentTime);
+    }
+
+    // Habituation: track consecutive same-emotion drift selections
+    if (drifted == lastDriftEmotion_) {
+      consecutiveSameDrifts_++;
+    } else {
+      consecutiveSameDrifts_ = 0;
+    }
+
+    if (consecutiveSameDrifts_ >= HABITUATION_THRESHOLD) {
+      drifted = randomEmotionExcluding(lastDriftEmotion_);
+      consecutiveSameDrifts_ = 0;
+      Serial.printf("[Personality] Habituation: forced variety → %s\n",
+                    emotionRegistry.getName(drifted));
+    }
+
+    lastDriftEmotion_ = drifted;
+
     if (drifted != currentEmotion) {
       Serial.printf("[Personality] Mood drift → %s\n", emotionRegistry.getName(drifted));
       return {drifted, true};
@@ -143,14 +216,33 @@ Personality::Decision Personality::update(unsigned long currentTime,
   return {currentEmotion, false};
 }
 
-// Resets the attention arc on any touch. Returns true if the device was previously neglected (stage > 0).
+// Resets the attention arc on any touch.
+// Also tracks reciprocal warmth and sets immediate post-touch glow.
+// Returns true if the device was previously neglected (stage > 0).
 bool Personality::onTouch(unsigned long currentTime, EmotionState currentEmotion) {
   bool wasNeglected = (attentionStage_ > 0);
 
   // Reset attention arc
-  attentionStage_ = 0;
-  lastTouchTime_ = currentTime;
-  nextStageThreshold_ = jitter(runtimeConfig.attentionStage1Ms);
+  attentionStage_      = 0;
+  lastTouchTime_       = currentTime;
+  nextStageThreshold_  = jitter(runtimeConfig.attentionStage1Ms);
+
+  // Post-interaction glow: next GLOW_DRIFT_CYCLES drifts are positive
+  glowCycles_ = GLOW_DRIFT_CYCLES;
+
+  // Warmth arc: count touches in rolling window
+  if (currentTime - warmthWindowStart_ > WARMTH_WINDOW_MS) {
+    warmthWindowStart_ = currentTime;
+    touchCountRecent_  = 0;
+  }
+  touchCountRecent_++;
+  if (!warmthActive_ && touchCountRecent_ >= WARMTH_TOUCH_THRESHOLD) {
+    warmthActive_          = true;
+    warmthDriftCyclesLeft_ = WARMTH_DRIFT_CYCLES;
+    touchCountRecent_      = 0;
+    warmthWindowStart_     = currentTime;
+    Serial.println("[Personality] Warmth arc activated");
+  }
 
   return wasNeglected;
 }

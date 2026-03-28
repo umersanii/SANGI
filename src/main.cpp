@@ -27,11 +27,11 @@ void onTransitionComplete(EmotionState newEmotion) {
   animationManager.resetAnimation(newEmotion);
 }
 
-// Called when the active emotion changes; queues a beep if ENABLE_EMOTION_BEEP is set.
+// Called when the active emotion changes; queues a beep if enableEmotionBeep is set.
 void onEmotionChange(EmotionState from, EmotionState to) {
-#if ENABLE_EMOTION_BEEP
-  beepManager.queueEmotionBeep(to);
-#endif
+  if (runtimeConfig.enableEmotionBeep) {
+    beepManager.queueEmotionBeep(to);
+  }
 }
 
 // ===== BLE CALLBACK =====
@@ -81,7 +81,7 @@ void registerEmotions() {
   emotionRegistry.add({EMOTION_IDLE,      "IDLE",      60,  55, LOOP_PINGPONG, true,  drawIdle});      // ~6.4s  neutral breathing
   emotionRegistry.add({EMOTION_BLINK,     "BLINK",      1,   0, LOOP_RESTART,  false, drawBlink});
   emotionRegistry.add({EMOTION_HAPPY,     "HAPPY",     50,  55, LOOP_PINGPONG, true,  drawHappy});     // ~5.4s  warm, measured
-  emotionRegistry.add({EMOTION_SLEEPY,    "SLEEPY",    60,  80, LOOP_PINGPONG, false, drawSleepy});    // ~9.5s  drowsy drift
+  emotionRegistry.add({EMOTION_SLEEPY,    "SLEEPY",    59,  80, LOOP_RESTART,  false, drawSleepy});    // ~4.7s  doze + snap wake
   emotionRegistry.add({EMOTION_EXCITED,   "EXCITED",   40,  28, LOOP_PINGPONG, true,  drawExcited});   // ~2.2s  rapid bounce energy
   emotionRegistry.add({EMOTION_SAD,       "SAD",       56,  80, LOOP_RESTART,  true,  drawSad});       // ~4.5s  heavy, slow tears
   emotionRegistry.add({EMOTION_ANGRY,     "ANGRY",     56,  30, LOOP_PINGPONG, true,  drawAngry});     // ~3.3s  fast intense shake
@@ -179,6 +179,18 @@ void setup() {
     onGesture(g, millis());
   });
   webServerManager.init();
+
+#ifndef NATIVE_BUILD
+  // Wire real-time hour provider — falls back to millis() until NTP syncs.
+  // Set unconditionally so it works even when NTP connects later via the web UI.
+  personality.setTimeProvider([]() -> int {
+    if (webServerManager.isNtpSynced()) {
+      struct tm ti;
+      if (getLocalTime(&ti, 100)) return ti.tm_hour;
+    }
+    return (int)((millis() / HOUR_IN_MILLIS) % 24);
+  });
+#endif
 
   personality.init(bootTime);
 

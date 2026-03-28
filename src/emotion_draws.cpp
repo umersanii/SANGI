@@ -381,8 +381,8 @@ void drawExcited(ICanvas& canvas, int frame, const void* ctx) {
 }
 
 // ===== 2.10 SLEEPY — drifting off =====
-// 60 frames @ 50ms = 3.0s half-cycle, 6.0s full ping-pong cycle.
-// Phases: closing (F0-10), sleeping/z-cascade (F11-35), micro-stir (F36-42), reopen (F43-59)
+// 59 frames @ 80ms = 4.7s per cycle, LOOP_RESTART.
+// Phases: closing (F0-10), deep sleep/z-cascade (F11-50), fast wake flutter (F51-58)
 
 void drawSleepy(ICanvas& canvas, int frame, const void* ctx) {
   if (frame < 11) {
@@ -396,11 +396,11 @@ void drawSleepy(ICanvas& canvas, int frame, const void* ctx) {
     } else {
       canvas.fillCircle(64, 52, yawnR, COLOR_WHITE);
     }
-  } else if (frame < 36) {
-    // Sleeping: slit eyes, Z cascade builds up
+  } else if (frame < 51) {
+    // Deep sleep: slit eyes held, Z cascade builds then holds at full cascade
     canvas.drawEyes(38, 32, 90, 32, 2);
     canvas.fillCircle(64, 52, 7, COLOR_WHITE);
-    // Z letters float up-right, one new Z added every 5 frames
+    // Z letters float up-right, one new Z every 5 frames; hold at 4
     int zCount = (frame - 11) / 5 + 1;
     if (zCount > 4) zCount = 4;
     for (int i = 0; i < zCount; i++) {
@@ -408,26 +408,20 @@ void drawSleepy(ICanvas& canvas, int frame, const void* ctx) {
       canvas.setCursor(90 + i * 8, 28 - i * 6);
       canvas.print("z");
     }
-    // Capital Z at top when cascade is full
     if (zCount >= 4) {
       canvas.setTextSize(1);
       canvas.setCursor(116, 6);
       canvas.print("Z");
     }
-  } else if (frame < 43) {
-    // Micro-stir: eyes crack open then close again
-    int stirH = (frame < 39) ? ease(2, 5, frame - 36, 3) : ease(5, 2, frame - 39, 3);
-    canvas.drawEyes(38, 32, 90, 32, stirH);
-    canvas.fillCircle(64, 52, 6, COLOR_WHITE);
   } else {
-    // Reopen: eyes to H=22 (full neutral), yawn shrinks to 0 — clean ping-pong turnaround
-    int eyeH = ease(3, 22, frame - 43, 16);
-    int eyeY = ease(32, 28, frame - 43, 16);
-    int yawnR = ease(7, 0, frame - 43, 16);
+    // Fast wake flutter: rapid blink as SANGI startles awake (8 frames)
+    // Eyes alternate open/close with increasing height, Y springs back to neutral
+    static const int8_t wakeEyeH[8] = {2, 14, 4, 18, 4, 22, 20, 22};
+    int wakeFrame = frame - 51;
+    int eyeH = wakeEyeH[wakeFrame < 8 ? wakeFrame : 7];
+    int eyeY = ease(32, 28, wakeFrame, 7);
     canvas.drawEyes(38, eyeY, 90, eyeY, eyeH);
-    if (yawnR > 0) {
-      canvas.drawCircle(64, 50, yawnR, COLOR_WHITE);
-    }
+    // No yawn — snapped awake
   }
 }
 

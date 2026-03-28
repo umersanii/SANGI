@@ -76,8 +76,19 @@
 #define MICRO_EXPRESSION_CHANCE 15    // % chance per drift check to do a micro-expression
 #define JITTER_PERCENT 20             // ±20% applied to all personality timings
 
+// Warmth arc — rewarding frequent interaction with sustained positive bias
+#define WARMTH_TOUCH_THRESHOLD  5        // touches within WARMTH_WINDOW_MS to activate
+#define WARMTH_WINDOW_MS        600000   // 10 min rolling touch-count window
+#define WARMTH_DRIFT_CYCLES     4        // drift cycles the warmth bias lasts
+
+// Post-interaction glow — immediate positive burst after any touch
+#define GLOW_DRIFT_CYCLES       2        // positive drift cycles after a touch
+
+// Habituation — prevents getting stuck looping the same emotion
+#define HABITUATION_THRESHOLD   3        // consecutive same drifts before forcing variety
+
 // ===== DEBUG MODE =====
-#define DEBUG_MODE_ENABLED true            // Set to true to enable debug mode
+#define DEBUG_MODE_ENABLED false            // Set to true to enable debug mode
 #define DEBUG_MODE_CYCLE true              // true = cycle all emotions; false = show only DEBUG_MODE_EMOTION
 #define DEBUG_MODE_EMOTION EMOTION_THINKING   // Shown when DEBUG_MODE_CYCLE is false
 #define DEBUG_CYCLE_INTERVAL_MS 10000      // ms to show each emotion before advancing
@@ -87,5 +98,13 @@
 #define WIFI_AP_CHANNEL     1          // 2.4GHz ch1 — minimal BLE advertising overlap
 #define WIFI_SERVER_PORT    80
 #define WEB_MIN_FREE_HEAP   51200      // 50KB — warning threshold after WiFi init
+
+// Optional STA WiFi for NTP time sync — leave SSID empty "" to skip
+#define WIFI_STA_SSID        ""        // Home WiFi SSID (empty = AP-only mode)
+#define WIFI_STA_PASSWORD    ""        // Home WiFi password
+#define WIFI_STA_TIMEOUT_MS  10000     // Max ms to wait for STA connection
+#define NTP_SERVER           "pool.ntp.org"
+#define NTP_UTC_OFFSET_S     0         // UTC offset in seconds (e.g. 18000 for UTC+5)
+#define NTP_DST_OFFSET_S     0         // DST offset (0 or 3600)
 
 #endif // CONFIG_H

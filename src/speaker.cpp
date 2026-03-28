@@ -1,4 +1,5 @@
 #include "speaker.h"
+#include "runtime_config.h"
 #include <Arduino.h>
 
 BeepManager beepManager;
@@ -120,7 +121,7 @@ void BeepManager::init() {
     if (freq > 0) {
       Serial.printf("[SPEAKER] tone %dHz for %dms\n", freq, dur);
       ledcWriteTone(SPEAKER_CHANNEL, freq);
-      ledcWrite(SPEAKER_CHANNEL, SPEAKER_VOLUME);
+      ledcWrite(SPEAKER_CHANNEL, runtimeConfig.speakerVolume);
     } else {
       Serial.printf("[SPEAKER] silence %dms\n", dur);
       ledcWrite(SPEAKER_CHANNEL, 0);
@@ -128,7 +129,7 @@ void BeepManager::init() {
     delay(dur);
   }
   ledcWrite(SPEAKER_CHANNEL, 0);
-  Serial.printf("[SPEAKER] init done — GPIO %d, volume %d/255\n", SPEAKER_PIN, SPEAKER_VOLUME);
+  Serial.printf("[SPEAKER] init done — GPIO %d, volume %d/255\n", SPEAKER_PIN, runtimeConfig.speakerVolume);
 }
 
 // Advances the non-blocking beep state machine; moves to the next tone when the current duration elapses.
@@ -163,7 +164,7 @@ void BeepManager::update() {
     int frequency = currentPattern[currentToneIndex].frequency;
     if (frequency > 0) {
       ledcWriteTone(SPEAKER_CHANNEL, frequency);
-      ledcWrite(SPEAKER_CHANNEL, SPEAKER_VOLUME); // Configurable volume to prevent power issues
+      ledcWrite(SPEAKER_CHANNEL, runtimeConfig.speakerVolume); // Configurable volume to prevent power issues
       isTonePlaying = true;
     } else {
       // Silence (frequency = 0)
@@ -229,7 +230,7 @@ void BeepManager::startBeep(const BeepTone* pattern, int patternLength) {
   int frequency = currentPattern[0].frequency;
   if (frequency > 0) {
     ledcWriteTone(SPEAKER_CHANNEL, frequency);
-    ledcWrite(SPEAKER_CHANNEL, SPEAKER_VOLUME); // Configurable volume to prevent power issues
+    ledcWrite(SPEAKER_CHANNEL, runtimeConfig.speakerVolume); // Configurable volume to prevent power issues
     isTonePlaying = true;
   } else {
     ledcWrite(SPEAKER_CHANNEL, 0);

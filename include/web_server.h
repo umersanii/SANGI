@@ -41,6 +41,8 @@ public:
   void setRuntimeConfig(RuntimeConfig* cfg)  { cfg_ = cfg; }
   void setPersonality(Personality* p)        { p_   = p; }
 
+  bool isNtpSynced() const { return ntpSynced_; }
+
 private:
   WebServer server_;
 
@@ -61,10 +63,17 @@ private:
   void handleApiConfigGet();
   void handleApiConfigPost();
   void handleApiConfigReset();
+  void handleApiWifiGet();
+  void handleApiWifiPost();
   void handleNotFound();
+
+  // Attempt STA connection + NTP; blocks up to WIFI_STA_TIMEOUT_MS (call from init() only).
+  void connectStaBlocking(const char* ssid, const char* pass);
 
   // Log free heap to Serial with a context label.
   void logHeap(const char* ctx);
+
+  bool ntpSynced_;
 };
 
 extern WebServerManager webServerManager;

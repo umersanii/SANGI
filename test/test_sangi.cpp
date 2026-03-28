@@ -29,7 +29,7 @@ static void registerTestEmotions() {
   emotionRegistry.add({EMOTION_IDLE,      "IDLE",      60, 55, LOOP_PINGPONG, true,  drawIdle});
   emotionRegistry.add({EMOTION_BLINK,     "BLINK",      1,  0, LOOP_RESTART,  false, drawBlink});
   emotionRegistry.add({EMOTION_HAPPY,     "HAPPY",     50, 35, LOOP_RESTART,  true,  drawHappy});
-  emotionRegistry.add({EMOTION_SLEEPY,    "SLEEPY",    60, 50, LOOP_PINGPONG, false, drawSleepy});
+  emotionRegistry.add({EMOTION_SLEEPY,    "SLEEPY",    59, 50, LOOP_RESTART,  false, drawSleepy});
   emotionRegistry.add({EMOTION_EXCITED,   "EXCITED",   40, 25, LOOP_RESTART,  true,  drawExcited});
   emotionRegistry.add({EMOTION_SAD,       "SAD",       56, 48, LOOP_RESTART,  true,  drawSad});
   emotionRegistry.add({EMOTION_ANGRY,     "ANGRY",     56, 32, LOOP_RESTART,  true,  drawAngry});
@@ -359,6 +359,85 @@ void test_jitter_produces_variance() {
   TEST_ASSERT_FALSE(allSame);
 }
 
+void test_glow_activates_on_touch() {
+  Personality p;
+  p.init(0);
+  p.onTouch(1000, EMOTION_IDLE);
+  TEST_ASSERT_EQUAL(GLOW_DRIFT_CYCLES, p.getGlowCycles());
+}
+
+void test_glow_resets_on_repeated_touch() {
+  Personality p;
+  p.init(0);
+  p.onTouch(1000, EMOTION_IDLE);
+  p.onTouch(2000, EMOTION_IDLE);  // second touch resets to full glow again
+  TEST_ASSERT_EQUAL(GLOW_DRIFT_CYCLES, p.getGlowCycles());
+}
+
+void test_warmth_activates_after_threshold_touches() {
+  Personality p;
+  p.init(0);
+  // Touch WARMTH_TOUCH_THRESHOLD times within the window
+  for (int i = 0; i < WARMTH_TOUCH_THRESHOLD; i++) {
+    p.onTouch((unsigned long)(i * 1000), EMOTION_IDLE);
+  }
+  TEST_ASSERT_TRUE(p.isWarmed());
+}
+
+void test_warmth_does_not_activate_below_threshold() {
+  Personality p;
+  p.init(0);
+  for (int i = 0; i < WARMTH_TOUCH_THRESHOLD - 1; i++) {
+    p.onTouch((unsigned long)(i * 1000), EMOTION_IDLE);
+  }
+  TEST_ASSERT_FALSE(p.isWarmed());
+}
+
+void test_warmth_window_resets_after_expiry() {
+  Personality p;
+  p.init(0);
+  // Touch once early
+  p.onTouch(1000, EMOTION_IDLE);
+  // Then touch past the window — count should reset, no warmth yet
+  unsigned long past = WARMTH_WINDOW_MS + 2000;
+  p.onTouch(past, EMOTION_IDLE);
+  TEST_ASSERT_FALSE(p.isWarmed());
+}
+
+void test_habituation_resets_on_different_drift() {
+  Personality p;
+  p.init(0);
+  // Force mood drift multiple times with the same resulting emotion by fixing the time
+  // We can't directly control moodDrift's random output, so just verify the counter
+  // resets when an explicitly different emotion fires
+  // Drive a drift toward BORED (attention arc)
+  unsigned long t = ATTENTION_STAGE1_MS + ATTENTION_STAGE1_MS * JITTER_PERCENT / 100 + 1000;
+  stubSetMillis(t);
+  p.update(t, EMOTION_IDLE);    // → BORED (attention arc)
+  p.onTouch(t, EMOTION_BORED);  // reset arc, counter resets
+  TEST_ASSERT_EQUAL(0, p.getConsecutiveSameDrifts());
+}
+
+void test_ntp_time_provider_used_when_set() {
+  Personality p;
+  p.init(0);
+  // Set a time provider that always returns hour 3 (night)
+  p.setTimeProvider([]() -> int { return 3; });
+  // With hour=3 (night), moodDrift should heavily favor SLEEPY
+  // Run 100 drifts and verify SLEEPY appears (60% expected)
+  int sleepyCount = 0;
+  for (int i = 0; i < 100; i++) {
+    // Simulate drift firing by advancing time
+    unsigned long t = (unsigned long)(i + 1) * 200000UL;  // well past drift interval
+    Personality::Decision d = p.update(t, EMOTION_IDLE);
+    if (d.shouldChange && d.emotion == EMOTION_SLEEPY) sleepyCount++;
+    // Reset lastDriftTime by re-initing between runs
+    p.init(t);
+  }
+  // At 60% SLEEPY during night, should get at least 30 in 100 samples
+  TEST_ASSERT_TRUE(sleepyCount >= 30);
+}
+
 // ===== GESTURE DETECTION TESTS =====
 
 void test_classify_gesture_tap() {
@@ -390,7 +469,7 @@ void test_classify_gesture_boundary_double_tap() {
 void test_all_emotions_draw_without_crash() {
   // Each emotion tested up to its own frame count (not a uniform 51)
   struct { DrawFrameFn fn; int frames; } emotions[] = {
-    {drawIdle, 60}, {drawBlink, 1}, {drawHappy, 50}, {drawSleepy, 60},
+    {drawIdle, 60}, {drawBlink, 1}, {drawHappy, 50}, {drawSleepy, 59},
     {drawExcited, 40}, {drawSad, 56}, {drawAngry, 56}, {drawConfused, 44},
     {drawThinking, 44}, {drawLove, 44}, {drawSurprised, 44},
     {drawDead, 70}, {drawBored, 60}
@@ -716,6 +795,13 @@ int main(int argc, char** argv) {
   RUN_TEST(test_touch_during_neglect_triggers_recovery);
   RUN_TEST(test_touch_when_not_neglected_returns_false);
   RUN_TEST(test_jitter_produces_variance);
+  RUN_TEST(test_glow_activates_on_touch);
+  RUN_TEST(test_glow_resets_on_repeated_touch);
+  RUN_TEST(test_warmth_activates_after_threshold_touches);
+  RUN_TEST(test_warmth_does_not_activate_below_threshold);
+  RUN_TEST(test_warmth_window_resets_after_expiry);
+  RUN_TEST(test_habituation_resets_on_different_drift);
+  RUN_TEST(test_ntp_time_provider_used_when_set);
 
   // Gesture detection
   RUN_TEST(test_classify_gesture_tap);
