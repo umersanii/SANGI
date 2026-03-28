@@ -238,34 +238,37 @@ void drawConfused(ICanvas& canvas, int frame, const void* ctx) {
 // Phases: furrow (F0-6), hold glare (F7-14), shake (F15-34), intensify (F35-44), settle (F45-55)
 
 void drawAngry(ICanvas& canvas, int frame, const void* ctx) {
+  // Brow geometry: outer(x=18/110) is higher, inner(x=50/78) is lower — angry V shape.
+  // All brow Y coords keep brow bottom pixel ≥ 2px above eye top (eyeY - eyeH/2).
+  // Eye top in hold = 33-6 = 27; brow bottom (inner=20, thick=5) = 24 → 3px gap.
   if (frame < 7) {
-    // Furrow: brows descend, eyes narrow and drop
+    // Furrow: brows descend with eyes, gap maintained throughout
     int eyeH = ease(18, 12, frame, 6);
     int eyeY = ease(30, 33, frame, 6);
     int browThick = ease(2, 5, frame, 6);
     canvas.drawEyes(38, eyeY, 90, eyeY, eyeH);
-    canvas.drawBrow(18, ease(22, 16, frame, 6), 50, ease(28, 24, frame, 6), browThick);
-    canvas.drawBrow(78, ease(28, 24, frame, 6), 110, ease(22, 16, frame, 6), browThick);
+    canvas.drawBrow(18, ease(9, 12, frame, 6), 50, ease(17, 20, frame, 6), browThick);
+    canvas.drawBrow(78, ease(17, 20, frame, 6), 110, ease(9, 12, frame, 6), browThick);
     canvas.fillRoundRect(54, 55, 20, 4, 2, COLOR_WHITE);
   } else if (frame < 15) {
     // Hold glare: max furrow — extended pause builds menace before the explosion
     canvas.drawEyes(38, 33, 90, 33, 12);
-    canvas.drawBrow(18, 16, 50, 24, 5);
-    canvas.drawBrow(78, 24, 110, 16, 5);
+    canvas.drawBrow(18, 12, 50, 20, 5);
+    canvas.drawBrow(78, 20, 110, 12, 5);
     canvas.fillRoundRect(54, 55, 20, 4, 2, COLOR_WHITE);
   } else if (frame < 35) {
     // Shake: ±3px horizontal alternation
     int xOff = ((frame % 2) == 0) ? -3 : 3;
     canvas.drawEyes(38 + xOff, 33, 90 + xOff, 33, 12);
-    canvas.drawBrow(18 + xOff, 16, 50 + xOff, 24, 5);
-    canvas.drawBrow(78 + xOff, 24, 110 + xOff, 16, 5);
+    canvas.drawBrow(18 + xOff, 12, 50 + xOff, 20, 5);
+    canvas.drawBrow(78 + xOff, 20, 110 + xOff, 12, 5);
     canvas.fillRoundRect(54 + xOff, 55, 20, 4, 2, COLOR_WHITE);
   } else if (frame < 45) {
     // Intensify: ±4px shake, brows thicker
     int xOff = ((frame % 2) == 0) ? -4 : 4;
     canvas.drawEyes(38 + xOff, 33, 90 + xOff, 33, 11);
-    canvas.drawBrow(18 + xOff, 15, 50 + xOff, 25, 6);
-    canvas.drawBrow(78 + xOff, 25, 110 + xOff, 15, 6);
+    canvas.drawBrow(18 + xOff, 11, 50 + xOff, 19, 6);
+    canvas.drawBrow(78 + xOff, 19, 110 + xOff, 11, 6);
     canvas.fillRoundRect(54 + xOff, 55, 20, 4, 2, COLOR_WHITE);
   } else {
     // Settle: brows lift, eyes widen back to furrow-start — invisible seam with F0
@@ -273,8 +276,8 @@ void drawAngry(ICanvas& canvas, int frame, const void* ctx) {
     int eyeY = ease(33, 30, frame - 45, 10);
     int browThick = ease(5, 2, frame - 45, 10);
     canvas.drawEyes(38, eyeY, 90, eyeY, eyeH);
-    canvas.drawBrow(18, ease(16, 22, frame - 45, 10), 50, ease(24, 28, frame - 45, 10), browThick);
-    canvas.drawBrow(78, ease(24, 28, frame - 45, 10), 110, ease(16, 22, frame - 45, 10), browThick);
+    canvas.drawBrow(18, ease(12, 9, frame - 45, 10), 50, ease(20, 17, frame - 45, 10), browThick);
+    canvas.drawBrow(78, ease(20, 17, frame - 45, 10), 110, ease(12, 9, frame - 45, 10), browThick);
     canvas.fillRoundRect(54, 54, 20, 4, 2, COLOR_WHITE);
   }
 }
@@ -434,45 +437,30 @@ void drawSleepy(ICanvas& canvas, int frame, const void* ctx) {
 
 void drawThinking(ICanvas& canvas, int frame, const void* ctx) {
   if (frame < 7) {
-    // Look up-left: eyes shift -4px X, -4px Y
-    int eyeLX = ease(38, 34, frame, 6);
-    int eyeRX = ease(90, 86, frame, 6);
-    int eyeY = ease(28, 24, frame, 6);
-    canvas.drawEyes(eyeLX, eyeY, eyeRX, eyeY, 20);
+    // Squint: eyes shrink in place
+    int eyeH = ease(20, 14, frame, 6);
+    canvas.drawEyes(38, 28, 90, 28, eyeH);
     canvas.fillRoundRect(58, 53, 12, 4, 2, COLOR_WHITE);
-  } else if (frame < 21) {
-    // Hold: eyes looking up-left, dots appear sequentially
-    canvas.drawEyes(34, 24, 86, 24, 20);
-    canvas.fillRoundRect(56, 53, 12, 4, 2, COLOR_WHITE);
-    // One dot appears every 4 frames
-    int dots = (frame - 7) / 4 + 1;
+  } else if (frame < 35) {
+    // Slow formulation: small eyes, one dot every 9 frames (dots at F7, F16, F25)
+    canvas.drawEyes(38, 28, 90, 28, 14);
+    canvas.fillRoundRect(58, 53, 12, 4, 2, COLOR_WHITE);
+    int dots = (frame - 7) / 9 + 1;
     if (dots > 3) dots = 3;
     for (int i = 0; i < dots; i++) {
       canvas.fillRect(110 + i * 6, 10, 3, 3, COLOR_WHITE);
     }
-  } else if (frame < 29) {
-    // Look up-right: eyes shift +4px X
-    int eyeLX = ease(34, 42, frame - 21, 7);
-    int eyeRX = ease(86, 94, frame - 21, 7);
-    canvas.drawEyes(eyeLX, 24, eyeRX, 24, 20);
+  } else if (frame < 40) {
+    // Aha! Eyes snap open quickly, "!" replaces dots, mouth unchanged
+    int eyeH = ease(14, 26, frame - 35, 4);
+    canvas.drawEyes(38, 28, 90, 28, eyeH);
     canvas.fillRoundRect(58, 53, 12, 4, 2, COLOR_WHITE);
-    canvas.fillRect(110, 10, 3, 3, COLOR_WHITE);
-    canvas.fillRect(116, 10, 3, 3, COLOR_WHITE);
-    canvas.fillRect(122, 10, 3, 3, COLOR_WHITE);
-  } else if (frame < 37) {
-    // Aha! Eyes widen +2, "!" replaces dots
-    int eyeH = ease(20, 22, frame - 29, 4);
-    canvas.drawEyes(42, 24, 94, 24, eyeH);
-    canvas.fillRoundRect(60, 53, 12, 4, 2, COLOR_WHITE);
-    // Exclamation mark
     canvas.fillRect(114, 6, 3, 14, COLOR_WHITE);
     canvas.fillRect(114, 22, 3, 3, COLOR_WHITE);
   } else {
-    // Return to center
-    int eyeLX = ease(42, 38, frame - 37, 6);
-    int eyeRX = ease(94, 90, frame - 37, 6);
-    int eyeY = ease(24, 28, frame - 37, 6);
-    canvas.drawEyes(eyeLX, eyeY, eyeRX, eyeY, 20);
+    // Quick settle: eyes drop back to normal size
+    int eyeH = ease(26, 20, frame - 40, 3);
+    canvas.drawEyes(38, 28, 90, 28, eyeH);
     canvas.fillRoundRect(58, 53, 12, 4, 2, COLOR_WHITE);
   }
 }

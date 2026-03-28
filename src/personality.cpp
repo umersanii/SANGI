@@ -1,5 +1,6 @@
 #include "personality.h"
 #include "config.h"
+#include "runtime_config.h"
 #include "emotion_registry.h"
 
 Personality personality;
@@ -8,8 +9,8 @@ Personality personality;
 Personality::Personality()
   : lastTouchTime_(0),
     lastDriftTime_(0),
-    nextDriftInterval_(MOOD_DRIFT_INTERVAL_MS),
-    nextStageThreshold_(ATTENTION_STAGE1_MS),
+    nextDriftInterval_(runtimeConfig.moodDriftIntervalMs),
+    nextStageThreshold_(runtimeConfig.attentionStage1Ms),
     attentionStage_(0) {
 }
 
@@ -17,14 +18,14 @@ Personality::Personality()
 void Personality::init(unsigned long currentTime) {
   lastTouchTime_ = currentTime;
   lastDriftTime_ = currentTime;
-  nextDriftInterval_ = jitter(MOOD_DRIFT_INTERVAL_MS);
-  nextStageThreshold_ = jitter(ATTENTION_STAGE1_MS);
+  nextDriftInterval_ = jitter(runtimeConfig.moodDriftIntervalMs);
+  nextStageThreshold_ = jitter(runtimeConfig.attentionStage1Ms);
   attentionStage_ = 0;
 }
 
 // Returns base ± JITTER_PERCENT%, clamped to [base/2, base*2].
 unsigned long Personality::jitter(unsigned long base) {
-  unsigned long jitterAmt = base * JITTER_PERCENT / 100;
+  unsigned long jitterAmt = base * runtimeConfig.jitterPercent / 100;
   if (jitterAmt == 0) return base;
   long delta = (long)random(0, (long)(jitterAmt * 2 + 1)) - (long)jitterAmt;
   long result = (long)base + delta;
@@ -35,11 +36,11 @@ unsigned long Personality::jitter(unsigned long base) {
 // Returns the base attention threshold in milliseconds for the given neglect stage (1–4).
 unsigned long Personality::stageBaseThreshold(int stage) {
   switch (stage) {
-    case 1: return ATTENTION_STAGE1_MS;
-    case 2: return ATTENTION_STAGE2_MS;
-    case 3: return ATTENTION_STAGE3_MS;
-    case 4: return ATTENTION_STAGE4_MS;
-    default: return ATTENTION_STAGE1_MS;
+    case 1: return runtimeConfig.attentionStage1Ms;
+    case 2: return runtimeConfig.attentionStage2Ms;
+    case 3: return runtimeConfig.attentionStage3Ms;
+    case 4: return runtimeConfig.attentionStage4Ms;
+    default: return runtimeConfig.attentionStage1Ms;
   }
 }
 
@@ -112,7 +113,7 @@ Personality::Decision Personality::attentionArc(unsigned long currentTime,
 
 // Returns true MICRO_EXPRESSION_CHANCE% of the time, triggering a random BLINK micro-expression.
 bool Personality::shouldMicroExpress() {
-  return (int)random(0, 100) < MICRO_EXPRESSION_CHANCE;
+  return (int)random(0, 100) < runtimeConfig.microExpressionChance;
 }
 
 // Evaluates the attention arc and mood drift; returns the next emotion Decision for the current tick.
@@ -125,7 +126,7 @@ Personality::Decision Personality::update(unsigned long currentTime,
   // 3. Mood drift
   if (currentTime - lastDriftTime_ >= nextDriftInterval_) {
     lastDriftTime_ = currentTime;
-    nextDriftInterval_ = jitter(MOOD_DRIFT_INTERVAL_MS);
+    nextDriftInterval_ = jitter(runtimeConfig.moodDriftIntervalMs);
 
     // 4. Micro-expression: occasional BLINK then return
     if (shouldMicroExpress()) {
@@ -149,7 +150,7 @@ bool Personality::onTouch(unsigned long currentTime, EmotionState currentEmotion
   // Reset attention arc
   attentionStage_ = 0;
   lastTouchTime_ = currentTime;
-  nextStageThreshold_ = jitter(ATTENTION_STAGE1_MS);
+  nextStageThreshold_ = jitter(runtimeConfig.attentionStage1Ms);
 
   return wasNeglected;
 }

@@ -13,6 +13,7 @@
 #include "speaker.h"
 #include "ble_control.h"
 #include "personality.h"
+#include "runtime_config.h"
 
 // ===== GLOBAL STATE =====
 unsigned long bootTime = 0;
@@ -144,6 +145,7 @@ void setup() {
   bootTime = millis();
   randomSeed(analogRead(0) + millis());
 
+  runtimeConfigLoad();
   registerEmotions();
 
   if (!displayManager.init()) {
