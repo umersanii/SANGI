@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/badge/license-MIT-blue)](#license)
 [![Platform](https://img.shields.io/badge/platform-ESP32--C3-orange)](#hardware)
 
-**A cute, standalone robot with animated expressions, personality-driven behavior, BLE control, and touch gestures—no WiFi required.**
+**A cute, standalone robot with animated expressions, personality-driven behavior, BLE control, and WiFi web UI—no internet required.**
 
 ---
 
@@ -30,10 +30,10 @@
 SANGI is a **fully autonomous ESP32-C3 robot** with an animated OLED face that:
 
 - Expresses 14 different emotions with smooth animations
-- Responds to touch with smart gesture recognition (tap, long-press, double-tap)
 - Has personality that evolves over time based on neglect and time of day
-- Works offline with optional BLE remote control
+- Works offline with optional BLE remote control and WiFi web UI
 - Runs forever on battery with zero external dependencies
+- Touch gestures and mic reaction — *planned, not yet wired*
 
 Perfect for a desk companion, IoT learning project, or just fun robot hacking.
 
@@ -79,7 +79,7 @@ Perfect for a desk companion, IoT learning project, or just fun robot hacking.
 | Touch Recovery | Touch during neglect → bashful SHY → happy recovery |
 | Jittered Timing | All intervals ±20% variance for realistic behavior |
 
-### Gesture Recognition
+### Gesture Recognition *(planned — touch sensor not yet wired)*
 
 - TAP (< 600ms) → Shows HAPPY
 - LONG PRESS (≥ 600ms) → Shows LOVE
@@ -97,9 +97,11 @@ Perfect for a desk companion, IoT learning project, or just fun robot hacking.
 - No network, no cloud, no internet required
 - Autonomous personality cycling
 - Local BLE for control
-- Touch interaction
+- WiFi AP web UI at 192.168.4.1
 - Battery voltage monitoring
 - Audio feedback via speaker
+- Touch interaction — *planned*
+- Microphone input — *planned*
 
 ---
 
@@ -142,9 +144,9 @@ Battery: 4.15V | Emotion: IDLE | Uptime: 0s
 
 ### Verify It Works
 
-- Touch the sensor → Robot shows HAPPY
-- Hold for 600ms → Robot shows LOVE
-- Double tap → Robot shows EXCITED
+- OLED should display the IDLE face
+- Use BLE (nRF Connect) or WiFi web UI at `http://192.168.4.1` to change emotions
+- Touch gestures require the sensor to be wired first *(planned)*
 
 ---
 
@@ -159,9 +161,10 @@ Battery: 4.15V | Emotion: IDLE | Uptime: 0s
 |-----------|------|----------------|
 | Microcontroller | ESP32-C3 | — |
 | Display | SSD1306 OLED 128×64 (I2C) | GPIO 6 (SDA), GPIO 7 (SCL) |
-| Touch Sensor | Capacitive button | GPIO 3 |
 | Battery ADC | Voltage monitoring | GPIO 2 |
 | Speaker | PWM beeper | GPIO 10 |
+| Touch Sensor *(planned)* | Capacitive button | GPIO 3 |
+| Microphone *(planned)* | SparkFun Electret Breakout | TBD |
 
 ### Wiring
 
@@ -172,10 +175,6 @@ GPIO 7 (SCL) → SCL
 GND → GND
 3V3 → VCC
 
-ESP32-C3 → Touch Sensor
-GPIO 3 → Touch input
-GND → GND
-
 ESP32-C3 → Speaker
 GPIO 10 → Positive lead
 GND → Negative lead
@@ -183,15 +182,26 @@ GND → Negative lead
 ESP32-C3 → Battery
 GPIO 2 (ADC) → Positive terminal (voltage divider recommended)
 GND → Negative terminal
+
+--- Planned (not yet wired) ---
+
+ESP32-C3 → Touch Sensor
+GPIO 3 → Touch input
+GND → GND
+
+ESP32-C3 → Microphone (SparkFun Electret Breakout)
+TBD (ADC pin) → AUD
+GND → GND
+3V3 → VCC
 ```
 
 ---
 
 ## Usage
 
-### Via Touch Gestures (Default)
+### Via Touch Gestures *(planned — hardware not yet wired)*
 
-Simply interact with the capacitive touch sensor:
+Firmware is ready; connect a capacitive touch sensor to GPIO 3 to enable:
 
 ```
 Quick tap (< 600ms)          → HAPPY 😄

@@ -82,4 +82,10 @@
 #define DEBUG_MODE_EMOTION EMOTION_THINKING   // Shown when DEBUG_MODE_CYCLE is false
 #define DEBUG_CYCLE_INTERVAL_MS 10000      // ms to show each emotion before advancing
 
+// ===== WIFI / WEB SERVER =====
+#define WIFI_AP_SSID        "SANGI"   // AP network name (open, no password)
+#define WIFI_AP_CHANNEL     1          // 2.4GHz ch1 — minimal BLE advertising overlap
+#define WIFI_SERVER_PORT    80
+#define WEB_MIN_FREE_HEAP   51200      // 50KB — warning threshold after WiFi init
+
 #endif // CONFIG_H

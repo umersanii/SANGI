@@ -14,6 +14,8 @@
 #include "ble_control.h"
 #include "personality.h"
 #include "runtime_config.h"
+#include "web_server.h"
+#include <WiFi.h>
 
 // ===== GLOBAL STATE =====
 unsigned long bootTime = 0;
@@ -163,6 +165,21 @@ void setup() {
   batteryManager.init();
   beepManager.init();
   bleControl.init(onBleEmotion);
+
+  webServerManager.setEmotionManager(&emotionManager);
+  webServerManager.setBatteryManager(&batteryManager);
+  webServerManager.setInputManager(&inputManager);
+  webServerManager.setRuntimeConfig(&runtimeConfig);
+  webServerManager.setPersonality(&personality);
+  webServerManager.setOnEmotionSet([](EmotionState e) {
+    emotionManager.setTargetEmotion(e);
+    Serial.printf("[WEB] emotion → %s\n", emotionRegistry.getName(e));
+  });
+  webServerManager.setOnGesture([](TouchGesture g) {
+    onGesture(g, millis());
+  });
+  webServerManager.init();
+
   personality.init(bootTime);
 
 #if !DEBUG_MODE_ENABLED
@@ -192,9 +209,17 @@ void setup() {
 
 // ===== MAIN LOOP =====
 
-// Ticks beep, emotion, personality, input, and display state machines at ~50ms intervals.
+// Web server is polled on every loop() iteration (no delay) for fast HTTP responses.
+// All other modules are throttled to a ~50ms tick via millis() comparison.
 void loop() {
+  // Poll web server at full speed — HTTP state machine requires rapid handleClient() calls.
+  webServerManager.update();
+
   unsigned long currentTime = millis();
+  static unsigned long lastTick = 0;
+  if (currentTime - lastTick < 50) return;
+  lastTick = currentTime;
+
   beepManager.update();
   emotionManager.update(currentTime);
   bleControl.updateCurrentEmotion((uint8_t)emotionManager.getCurrentEmotion());
@@ -230,8 +255,9 @@ void loop() {
                   voltage,
                   emotionRegistry.getName(emotionManager.getCurrentEmotion()),
                   (currentTime - bootTime) / 1000);
+    Serial.printf("[WEB] heap: %u | clients: %d\n",
+                  ESP.getFreeHeap(),
+                  WiFi.softAPgetStationNum());
     lastDebug = currentTime;
   }
-
-  delay(50);
 }
