@@ -19,10 +19,12 @@ unsigned long bootTime = 0;
 
 // ===== CALLBACKS (wiring between decoupled modules) =====
 
+// Called when a blink transition completes; resets the animation state for the new emotion.
 void onTransitionComplete(EmotionState newEmotion) {
   animationManager.resetAnimation(newEmotion);
 }
 
+// Called when the active emotion changes; queues a beep if ENABLE_EMOTION_BEEP is set.
 void onEmotionChange(EmotionState from, EmotionState to) {
 #if ENABLE_EMOTION_BEEP
   beepManager.queueEmotionBeep(to);
@@ -30,12 +32,16 @@ void onEmotionChange(EmotionState from, EmotionState to) {
 }
 
 // ===== BLE CALLBACK =====
+
+// BLE write callback: sets the target emotion when a valid emotion ID is received over BLE.
 void onBleEmotion(EmotionState e) {
   emotionManager.setTargetEmotion(e);
   Serial.printf("BLE: emotion set to %s\n", emotionRegistry.getName(e));
 }
 
 // ===== GESTURE CALLBACK =====
+
+// Touch gesture callback: resets neglect arc on any touch, then maps gesture type to emotion.
 void onGesture(TouchGesture gesture, unsigned long currentTime) {
   bool wasNeglected = personality.onTouch(currentTime, emotionManager.getCurrentEmotion());
   if (wasNeglected) {
@@ -57,24 +63,36 @@ void onGesture(TouchGesture gesture, unsigned long currentTime) {
 }
 
 // ===== EMOTION REGISTRY SETUP =====
+
+// Registers all emotion definitions with per-emotion frame counts, delays, loop modes, and draw functions.
 void registerEmotions() {
   // Frame counts and delays now vary per emotion — each has its own temporal character.
-  emotionRegistry.add({EMOTION_IDLE,      "IDLE",      60, 55, LOOP_PINGPONG, true,  drawIdle});
-  emotionRegistry.add({EMOTION_BLINK,     "BLINK",      1,  0, LOOP_RESTART,  false, drawBlink});
-  emotionRegistry.add({EMOTION_HAPPY,     "HAPPY",     50, 35, LOOP_RESTART,  true,  drawHappy});
-  emotionRegistry.add({EMOTION_SLEEPY,    "SLEEPY",    60, 50, LOOP_PINGPONG, false, drawSleepy});
-  emotionRegistry.add({EMOTION_EXCITED,   "EXCITED",   40, 25, LOOP_RESTART,  true,  drawExcited});
-  emotionRegistry.add({EMOTION_SAD,       "SAD",       56, 48, LOOP_RESTART,  true,  drawSad});
-  emotionRegistry.add({EMOTION_ANGRY,     "ANGRY",     56, 32, LOOP_RESTART,  true,  drawAngry});
-  emotionRegistry.add({EMOTION_CONFUSED,  "CONFUSED",  44, 45, LOOP_PINGPONG, true,  drawConfused});
-  emotionRegistry.add({EMOTION_THINKING,  "THINKING",  44, 45, LOOP_PINGPONG, true,  drawThinking});
-  emotionRegistry.add({EMOTION_LOVE,      "LOVE",      44, 48, LOOP_PINGPONG, true,  drawLove});
-  emotionRegistry.add({EMOTION_SURPRISED, "SURPRISED", 44, 30, LOOP_RESTART,  true,  drawSurprised});
-  emotionRegistry.add({EMOTION_DEAD,      "DEAD",      70, 55, LOOP_RESTART,  false, drawDead});
-  emotionRegistry.add({EMOTION_BORED,     "BORED",     60, 65, LOOP_PINGPONG, true,  drawBored});
+  // Loop durations (approximate):
+  //   PINGPONG full cycle = (frameCount * 2 - 2) * frameDelay
+  //   RESTART full cycle  = frameCount * frameDelay
+  //
+  // frameDelay tiers match emotional energy:
+  //   High energy  (EXCITED, ANGRY, SURPRISED): 25-35ms — snappy, intense
+  //   Neutral      (HAPPY, LOVE, CONFUSED, THINKING, IDLE): 50-60ms — expressive, measured
+  //   Low energy   (SAD, SLEEPY, BORED): 75-85ms — heavy, lingering
+  emotionRegistry.add({EMOTION_IDLE,      "IDLE",      60,  55, LOOP_PINGPONG, true,  drawIdle});      // ~6.4s  neutral breathing
+  emotionRegistry.add({EMOTION_BLINK,     "BLINK",      1,   0, LOOP_RESTART,  false, drawBlink});
+  emotionRegistry.add({EMOTION_HAPPY,     "HAPPY",     50,  55, LOOP_PINGPONG, true,  drawHappy});     // ~5.4s  warm, measured
+  emotionRegistry.add({EMOTION_SLEEPY,    "SLEEPY",    60,  80, LOOP_PINGPONG, false, drawSleepy});    // ~9.5s  drowsy drift
+  emotionRegistry.add({EMOTION_EXCITED,   "EXCITED",   40,  28, LOOP_PINGPONG, true,  drawExcited});   // ~2.2s  rapid bounce energy
+  emotionRegistry.add({EMOTION_SAD,       "SAD",       56,  80, LOOP_RESTART,  true,  drawSad});       // ~4.5s  heavy, slow tears
+  emotionRegistry.add({EMOTION_ANGRY,     "ANGRY",     56,  30, LOOP_PINGPONG, true,  drawAngry});     // ~3.3s  fast intense shake
+  emotionRegistry.add({EMOTION_CONFUSED,  "CONFUSED",  44,  55, LOOP_PINGPONG, true,  drawConfused});  // ~4.7s  measured puzzlement
+  emotionRegistry.add({EMOTION_THINKING,  "THINKING",  44,  55, LOOP_PINGPONG, true,  drawThinking});  // ~4.7s  contemplative pace
+  emotionRegistry.add({EMOTION_LOVE,      "LOVE",      44,  55, LOOP_PINGPONG, true,  drawLove});      // ~4.7s  gentle pulse
+  emotionRegistry.add({EMOTION_SURPRISED, "SURPRISED", 44,  30, LOOP_RESTART,  true,  drawSurprised}); // ~1.3s  quick shock snap
+  emotionRegistry.add({EMOTION_DEAD,      "DEAD",      70,  65, LOOP_RESTART,  false, drawDead});      // ~4.6s  keep RESTART — no zombie bounce
+  emotionRegistry.add({EMOTION_BORED,     "BORED",     60,  80, LOOP_PINGPONG, true,  drawBored});     // ~9.5s  painfully slow
 }
 
 // ===== POWER MANAGEMENT =====
+
+// Placeholder for power management logic; no-op until touch sensor wiring is finalized.
 void checkSleepConditions() {
   // Disabled until touch sensor is connected
 }
@@ -86,6 +104,7 @@ static int debugCycleCount = 0;
 static int debugCycleIndex = 0;
 static unsigned long debugCycleLastChange = 0;
 
+// Builds the debug cycle list from all cyclable registered emotions.
 void debugCycleInit() {
   debugCycleCount = emotionRegistry.getCyclable(debugCycleList, EmotionRegistry::MAX_EMOTIONS);
   debugCycleIndex = 0;
@@ -93,6 +112,7 @@ void debugCycleInit() {
   Serial.printf("[DEBUG] Cycle: %d emotions registered\n", debugCycleCount);
 }
 
+// Steps through all registered emotions at DEBUG_CYCLE_INTERVAL_MS intervals.
 void debugCycleTick(unsigned long currentTime) {
   if (debugCycleCount == 0) return;
   if (emotionManager.isTransitionActive()) return;
@@ -109,6 +129,8 @@ void debugCycleTick(unsigned long currentTime) {
 #endif
 
 // ===== SETUP =====
+
+// Initializes all hardware and software modules in dependency order; runs once at boot.
 void setup() {
   Serial.begin(115200);
   delay(2000);
@@ -167,6 +189,8 @@ void setup() {
 }
 
 // ===== MAIN LOOP =====
+
+// Ticks beep, emotion, personality, input, and display state machines at ~50ms intervals.
 void loop() {
   unsigned long currentTime = millis();
   beepManager.update();

@@ -29,6 +29,7 @@ General rules for Claude Code when working in this repository. These apply to ev
   - File names: `snake_case.cpp` / `snake_case.h`
 - **`const` everywhere possible** — prefer `const` for variables that don't change
 - **No magic numbers in logic** — all timing and threshold values must come from `include/config.h`
+- **Function comments required** — every function must have a single-line `//` comment immediately before its definition describing what it does; section headers (`// ===== X =====`) count only when placed directly above the function with no intervening blank lines
 
 ---
 

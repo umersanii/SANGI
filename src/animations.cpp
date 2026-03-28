@@ -3,6 +3,7 @@
 
 AnimationManager animationManager;
 
+// Initializes all animation slots to frame 0 with forward playback direction.
 AnimationManager::AnimationManager() {
   for (int i = 0; i < EmotionRegistry::MAX_EMOTIONS; i++) {
     states_[i].frame = 0;
@@ -11,6 +12,7 @@ AnimationManager::AnimationManager() {
   }
 }
 
+// Resets frame, tick timer, and playback direction for the given emotion's animation slot.
 void AnimationManager::resetAnimation(EmotionState emotion) {
   if ((int)emotion >= 0 && (int)emotion < EmotionRegistry::MAX_EMOTIONS) {
     states_[emotion].frame = 0;
@@ -19,6 +21,8 @@ void AnimationManager::resetAnimation(EmotionState emotion) {
   }
 }
 
+// Advances the animation for the given emotion by one frame if the frame delay has elapsed.
+// Clears, draws via the registered draw function, and flushes the canvas. Returns true if a frame was rendered.
 bool AnimationManager::tick(EmotionState emotion, ICanvas& canvas,
                             const void* context) {
   const EmotionDef* def = emotionRegistry.get(emotion);

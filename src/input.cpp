@@ -2,6 +2,7 @@
 
 InputManager inputManager;
 
+// Initializes gesture state machine fields to their idle/default values.
 InputManager::InputManager()
   : lastInteraction(0),
     onGesture_(nullptr),
@@ -13,11 +14,13 @@ InputManager::InputManager()
     pendingTap_(false) {
 }
 
+// Configures the touch pin with pull-up and logs the GPIO assignment.
 void InputManager::init() {
   pinMode(TOUCH_PIN, INPUT_PULLUP);
   Serial.printf("Touch sensor configured on GPIO%d\n", TOUCH_PIN);
 }
 
+// Returns true if the touch pin is currently asserted (active low).
 bool InputManager::isTouched() {
   return digitalRead(TOUCH_PIN) == LOW;
 }
@@ -30,6 +33,7 @@ TouchGesture classifyGesture(unsigned long pressDuration, unsigned long sincePre
   return GESTURE_TAP;
 }
 
+// Polls the touch pin and fires the gesture callback (TAP, LONG_PRESS, or DOUBLE_TAP) on state changes.
 void InputManager::handleTouchInteraction() {
   bool currentlyTouched = isTouched();
   unsigned long now = millis();

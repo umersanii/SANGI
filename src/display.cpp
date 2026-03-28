@@ -2,26 +2,29 @@
 
 DisplayManager displayManager;
 
-DisplayManager::DisplayManager() 
+// Constructs the Adafruit_SSD1306 instance with configured screen dimensions and I2C reset pin.
+DisplayManager::DisplayManager()
   : display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET) {
 }
 
+// Initializes I2C bus, scans for devices, and starts the SSD1306 OLED. Returns false if init fails.
 bool DisplayManager::init() {
   Wire.begin(I2C_SDA, I2C_SCL);
   Serial.printf("I2C initialized on SDA=%d, SCL=%d\n", I2C_SDA, I2C_SCL);
-  
+
   scanI2C();
-  
+
   Serial.println("Initializing OLED...");
   if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
     Serial.println("SSD1306 allocation failed!");
     return false;
   }
-  
+
   Serial.println("OLED initialized successfully!");
   return true;
 }
 
+// Scans all I2C addresses and logs any detected devices to Serial.
 void DisplayManager::scanI2C() {
   Serial.println("\nScanning I2C bus...");
   byte error, address;
@@ -46,83 +49,85 @@ void DisplayManager::scanI2C() {
   }
 }
 
+// Draws the Batman logo using filled triangles, circles, and rectangles centered on the display.
 void DisplayManager::drawBatSignal() {
   display.clearDisplay();
-  
+
   // Batman signal - centered with sharp, angular wings
   // Center point for the bat (x=64, y=32)
   int cx = 64;
   int cy = 32;
-  
+
   // Top bat ears (sharp pointed)
   display.fillTriangle(cx - 5, cy - 14, cx - 1, cy - 6, cx - 9, cy - 6, SSD1306_WHITE);
   display.fillTriangle(cx + 5, cy - 14, cx + 1, cy - 6, cx + 9, cy - 6, SSD1306_WHITE);
-  
+
   // Bat head/body center
   display.fillCircle(cx, cy - 4, 6, SSD1306_WHITE);
   display.fillRect(cx - 6, cy - 4, 12, 14, SSD1306_WHITE);
-  
+
   // LEFT WING - sharp angular design
   // Upper wing sweep with sharp tip
   display.fillTriangle(cx - 6, cy - 2, cx - 54, cy - 16, cx - 50, cy + 2, SSD1306_WHITE);
   display.fillTriangle(cx - 6, cy - 2, cx - 50, cy + 2, cx - 44, cy - 4, SSD1306_WHITE);
-  
+
   // Middle wing section with sharp scallop
   display.fillTriangle(cx - 6, cy + 2, cx - 50, cy + 2, cx - 46, cy + 12, SSD1306_WHITE);
   display.fillTriangle(cx - 6, cy + 2, cx - 46, cy + 12, cx - 38, cy + 8, SSD1306_WHITE);
-  
+
   // Lower wing with sharp point
   display.fillTriangle(cx - 6, cy + 8, cx - 38, cy + 8, cx - 32, cy + 18, SSD1306_WHITE);
   display.fillTriangle(cx - 6, cy + 8, cx - 32, cy + 18, cx - 24, cy + 14, SSD1306_WHITE);
-  
+
   // RIGHT WING - sharp angular design (mirrored)
   // Upper wing sweep with sharp tip
   display.fillTriangle(cx + 6, cy - 2, cx + 54, cy - 16, cx + 50, cy + 2, SSD1306_WHITE);
   display.fillTriangle(cx + 6, cy - 2, cx + 50, cy + 2, cx + 44, cy - 4, SSD1306_WHITE);
-  
+
   // Middle wing section with sharp scallop
   display.fillTriangle(cx + 6, cy + 2, cx + 50, cy + 2, cx + 46, cy + 12, SSD1306_WHITE);
   display.fillTriangle(cx + 6, cy + 2, cx + 46, cy + 12, cx + 38, cy + 8, SSD1306_WHITE);
-  
+
   // Lower wing with sharp point
   display.fillTriangle(cx + 6, cy + 8, cx + 38, cy + 8, cx + 32, cy + 18, SSD1306_WHITE);
   display.fillTriangle(cx + 6, cy + 8, cx + 32, cy + 18, cx + 24, cy + 14, SSD1306_WHITE);
-  
+
   // Bottom center points (3 sharp points)
   display.fillTriangle(cx - 16, cy + 10, cx - 12, cy + 22, cx - 6, cy + 10, SSD1306_WHITE);
   display.fillTriangle(cx - 3, cy + 10, cx, cy + 24, cx + 3, cy + 10, SSD1306_WHITE);
   display.fillTriangle(cx + 6, cy + 10, cx + 12, cy + 22, cx + 16, cy + 10, SSD1306_WHITE);
-  
+
   display.display();
 }
 
+// Plays the flicker-and-hold boot animation: two quick bat signal flashes then a 3-second hold.
 void DisplayManager::showBootScreen() {
   // Flicker effect - black screen first, then bat signal twice
-  
+
   // First flicker: black -> bat -> black
   display.clearDisplay();
   display.display();
   delay(80);
-  
+
   drawBatSignal();
   delay(120);
-  
+
   display.clearDisplay();
   display.display();
   delay(500);
-  
+
   // Second flicker: black -> bat -> black
   display.clearDisplay();
   display.display();
   delay(80);
-  
+
   drawBatSignal();
   delay(120);
-  
+
   display.clearDisplay();
   display.display();
   delay(80);
-  
+
   // Show steady bat signal for 3 seconds
   drawBatSignal();
   delay(3000);
@@ -130,60 +135,90 @@ void DisplayManager::showBootScreen() {
 
 // --- ICanvas implementation (delegates to Adafruit_SSD1306) ---
 
+// Clears the display buffer.
 void DisplayManager::clear() { display.clearDisplay(); }
+
+// Flushes the display buffer to the OLED hardware.
 void DisplayManager::flush() { display.display(); }
 
+// Draws a filled rounded rectangle.
 void DisplayManager::fillRoundRect(int16_t x, int16_t y, int16_t w, int16_t h,
                                    int16_t r, uint16_t color) {
   display.fillRoundRect(x, y, w, h, r, color);
 }
+
+// Draws an outlined rounded rectangle.
 void DisplayManager::drawRoundRect(int16_t x, int16_t y, int16_t w, int16_t h,
                                    int16_t r, uint16_t color) {
   display.drawRoundRect(x, y, w, h, r, color);
 }
+
+// Draws a filled rectangle.
 void DisplayManager::fillRect(int16_t x, int16_t y, int16_t w, int16_t h,
                                uint16_t color) {
   display.fillRect(x, y, w, h, color);
 }
+
+// Draws an outlined rectangle.
 void DisplayManager::drawRect(int16_t x, int16_t y, int16_t w, int16_t h,
                                uint16_t color) {
   display.drawRect(x, y, w, h, color);
 }
+
+// Draws a filled circle.
 void DisplayManager::fillCircle(int16_t x, int16_t y, int16_t r,
                                  uint16_t color) {
   display.fillCircle(x, y, r, color);
 }
+
+// Draws an outlined circle.
 void DisplayManager::drawCircle(int16_t x, int16_t y, int16_t r,
                                  uint16_t color) {
   display.drawCircle(x, y, r, color);
 }
+
+// Draws a line between two points.
 void DisplayManager::drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1,
                                uint16_t color) {
   display.drawLine(x0, y0, x1, y1, color);
 }
+
+// Draws a filled triangle.
 void DisplayManager::fillTriangle(int16_t x0, int16_t y0, int16_t x1,
                                    int16_t y1, int16_t x2, int16_t y2,
                                    uint16_t color) {
   display.fillTriangle(x0, y0, x1, y1, x2, y2, color);
 }
+
+// Sets the text render size multiplier.
 void DisplayManager::setTextSize(uint8_t size) { display.setTextSize(size); }
+
+// Sets the text cursor position.
 void DisplayManager::setCursor(int16_t x, int16_t y) {
   display.setCursor(x, y);
 }
+
+// Sets the text foreground color.
 void DisplayManager::setTextColor(uint16_t color) {
   display.setTextColor(color);
 }
+
+// Prints a null-terminated string at the current cursor position.
 void DisplayManager::print(const char* text) { display.print(text); }
+
+// Prints a null-terminated string followed by a newline.
 void DisplayManager::println(const char* text) { display.println(text); }
 
 // drawEyes is now inherited from ICanvas (concrete helper calling fillRoundRect)
 
+// Draws the neutral idle face: two standard-size eyes, no mouth decoration.
 void DisplayManager::drawFace_Normal() {
   display.clearDisplay();
   drawEyes(40, 28, 88, 28, 20);
   display.display();
 }
 
+// Draws the happy face: slightly squinted eyes and a wide smile bar.
 void DisplayManager::drawFace_Happy() {
   display.clearDisplay();
   drawEyes(40, 28, 88, 28, 16);
@@ -191,12 +226,14 @@ void DisplayManager::drawFace_Happy() {
   display.display();
 }
 
+// Draws the blink face: eyes nearly shut (height=4), used during transition animations.
 void DisplayManager::drawFace_Blink() {
   display.clearDisplay();
   drawEyes(40, 28, 88, 28, 4);
   display.display();
 }
 
+// Draws the sad face: normal eyes with a narrow frown bar.
 void DisplayManager::drawFace_Sad() {
   display.clearDisplay();
   drawEyes(40, 28, 88, 28, 20);
@@ -204,28 +241,30 @@ void DisplayManager::drawFace_Sad() {
   display.display();
 }
 
+// Draws the angry face: narrowed eyes, thick angled brows, and a flat frown.
 void DisplayManager::drawFace_Angry() {
   display.clearDisplay();
-  
+
   // Angry narrowed eyes (smaller, more intense)
   drawEyes(40, 32, 88, 32, 12);
-  
+
   // Left eyebrow - thick angled line slanting down toward center
   for(int i = 0; i < 5; i++) {
     display.drawLine(22, 16 + i, 52, 22 + i, SSD1306_WHITE);
   }
-  
-  // Right eyebrow - thick angled line slanting down toward center  
+
+  // Right eyebrow - thick angled line slanting down toward center
   for(int i = 0; i < 5; i++) {
     display.drawLine(76, 22 + i, 106, 16 + i, SSD1306_WHITE);
   }
-  
+
   // Simple frown mouth (small horizontal line low on face)
   display.fillRoundRect(52, 50, 24, 5, 2, SSD1306_WHITE);
-  
+
   display.display();
 }
 
+// Draws the love face: heart-shaped eyes and a wide smile bar.
 void DisplayManager::drawFace_Love() {
   display.clearDisplay();
   // Left heart eye
@@ -233,17 +272,18 @@ void DisplayManager::drawFace_Love() {
   display.fillCircle(44, 26, 7, SSD1306_WHITE);      // Right circle
   display.fillRect(27, 26, 24, 6, SSD1306_WHITE);    // Connect circles
   display.fillTriangle(27, 32, 39, 40, 51, 32, SSD1306_WHITE);  // Bottom point
-  
+
   // Right heart eye
   display.fillCircle(82, 26, 7, SSD1306_WHITE);      // Left circle
   display.fillCircle(92, 26, 7, SSD1306_WHITE);      // Right circle
   display.fillRect(75, 26, 24, 6, SSD1306_WHITE);    // Connect circles
   display.fillTriangle(75, 32, 87, 40, 99, 32, SSD1306_WHITE);  // Bottom point
-  
+
   display.fillRoundRect(48, 50, 32, 8, 4, SSD1306_WHITE);
   display.display();
 }
 
+// Draws the sleepy face: half-closed eyes, a yawn circle, and floating Z letters.
 void DisplayManager::drawFace_Sleepy() {
   display.clearDisplay();
   drawEyes(40, 30, 88, 30, 8);
@@ -260,6 +300,7 @@ void DisplayManager::drawFace_Sleepy() {
   display.display();
 }
 
+// Draws the excited face: wide eyes with pupils and a large open mouth.
 void DisplayManager::drawFace_Excited() {
   display.clearDisplay();
   drawEyes(40, 28, 88, 28, 24);
@@ -269,6 +310,7 @@ void DisplayManager::drawFace_Excited() {
   display.display();
 }
 
+// Draws the confused face: asymmetric eyes (one tall, one short) and a question mark.
 void DisplayManager::drawFace_Confused() {
   display.clearDisplay();
   display.fillRoundRect(30, 24, 20, 20, 5, SSD1306_WHITE);
@@ -282,6 +324,7 @@ void DisplayManager::drawFace_Confused() {
   display.display();
 }
 
+// Draws the thinking face: normal eyes with a small mouth and an exclamation mark.
 void DisplayManager::drawFace_Thinking() {
   display.clearDisplay();
   // Normal eyes (original size)
@@ -295,6 +338,7 @@ void DisplayManager::drawFace_Thinking() {
   display.display();
 }
 
+// Draws the dead face: X-shaped eyes and a small rectangular tongue.
 void DisplayManager::drawFace_Dead() {
   display.clearDisplay();
   display.drawLine(32, 22, 48, 34, SSD1306_WHITE);
@@ -305,6 +349,7 @@ void DisplayManager::drawFace_Dead() {
   display.display();
 }
 
+// Draws the surprised face: wide eyes with centered pupils and a circular open mouth.
 void DisplayManager::drawFace_Surprised() {
   display.clearDisplay();
   // Wide eyes with centered pupils (eyes: y=18, height=28, center y = 32)
@@ -316,13 +361,14 @@ void DisplayManager::drawFace_Surprised() {
   display.display();
 }
 
+// Draws a static notification box with title and message text; no animated eyes in this frame.
 void DisplayManager::drawFace_Notification(const char* title, const char* message) {
   display.clearDisplay();
 
   // ===== NOTIFICATION BOX ONLY (No peeking eyes) =====
   // The peeking eyes only appear during the animateNotification() animation
   // This static face just shows the notification content box
-  
+
   int boxX = 6;
   int boxY = 10;  // Centered vertically on 64px screen
   int boxWidth = 116;  // Fits in 128px screen with margin
@@ -352,7 +398,7 @@ void DisplayManager::drawFace_Notification(const char* title, const char* messag
     int copyLen = (strlen(title) < maxChars) ? strlen(title) : maxChars;
     strncpy(truncTitle, title, copyLen);
     truncTitle[copyLen] = '\0';
-    
+
     display.setCursor(textX, textY_title);
     display.print(truncTitle);
     display.setCursor(textX + 1, textY_title);  // Bold effect
@@ -366,7 +412,7 @@ void DisplayManager::drawFace_Notification(const char* title, const char* messag
     int copyLen = (strlen(message) < maxChars) ? strlen(message) : maxChars;
     strncpy(truncMessage, message, copyLen);
     truncMessage[copyLen] = '\0';
-    
+
     display.setCursor(textX, textY_message);
     display.print(truncMessage);
   }
@@ -374,6 +420,7 @@ void DisplayManager::drawFace_Notification(const char* title, const char* messag
   display.display();
 }
 
+// Dispatches to the appropriate static drawFace_* function based on the given emotion state.
 void DisplayManager::drawEmotionFace(EmotionState emotion) {
   switch(emotion) {
     case EMOTION_IDLE:
@@ -526,4 +573,3 @@ TransitionResult DisplayManager::sleepyTransitionFrame(int frame,
   }
   return TR_COMPLETE;
 }
-

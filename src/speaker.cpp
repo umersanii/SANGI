@@ -89,6 +89,7 @@ static const BeepTone PATTERN_BORED[] = {
 
 // ===== BEEP MANAGER IMPLEMENTATION =====
 
+// Initializes beep state machine fields to idle; hardware setup is deferred to init().
 BeepManager::BeepManager()
   : currentPattern(nullptr),
     patternLength(0),
@@ -105,6 +106,7 @@ static const BeepTone PATTERN_STARTUP[] = {
   {1047, 200}            // C6
 };
 
+// Configures the LEDC PWM channel and plays the startup C major arpeggio tone sequence.
 void BeepManager::init() {
   ledcSetup(SPEAKER_CHANNEL, SPEAKER_BASE_FREQ, SPEAKER_RESOLUTION);
   ledcAttachPin(SPEAKER_PIN, SPEAKER_CHANNEL);
@@ -129,33 +131,34 @@ void BeepManager::init() {
   Serial.printf("[SPEAKER] init done — GPIO %d, volume %d/255\n", SPEAKER_PIN, SPEAKER_VOLUME);
 }
 
+// Advances the non-blocking beep state machine; moves to the next tone when the current duration elapses.
 void BeepManager::update() {
   if (!isActive || currentPattern == nullptr) {
     return;
   }
-  
+
   unsigned long currentTime = millis();
-  
+
   // Handle millis() overflow (49 days)
   if (currentTime < toneStartTime) {
     toneStartTime = currentTime;
     return;
   }
-  
+
   // Check if current tone duration has elapsed
   if (currentTime - toneStartTime >= (unsigned long)currentPattern[currentToneIndex].duration) {
     // Stop current tone
     ledcWrite(SPEAKER_CHANNEL, 0);
-    
+
     // Move to next tone
     currentToneIndex++;
-    
+
     // Check if pattern is complete
     if (currentToneIndex >= patternLength) {
       stopCurrentBeep();
       return;
     }
-    
+
     // Start next tone
     int frequency = currentPattern[currentToneIndex].frequency;
     if (frequency > 0) {
@@ -167,7 +170,7 @@ void BeepManager::update() {
       ledcWrite(SPEAKER_CHANNEL, 0);
       isTonePlaying = false;
     }
-    
+
     toneStartTime = currentTime;
   }
 }
@@ -197,6 +200,7 @@ static const EmotionPattern EMOTION_PATTERNS[] = {
 };
 static const int NUM_PATTERNS = sizeof(EMOTION_PATTERNS) / sizeof(EmotionPattern);
 
+// Looks up the beep pattern for the given emotion and starts playback. No-ops if already active or BLINK.
 void BeepManager::queueEmotionBeep(EmotionState emotion) {
   if (isActive) return;
   if (emotion == EMOTION_BLINK) return;  // No sound for blink
@@ -213,13 +217,14 @@ void BeepManager::queueEmotionBeep(EmotionState emotion) {
   startBeep(PATTERN_IDLE, sizeof(PATTERN_IDLE) / sizeof(BeepTone));
 }
 
+// Begins playback of the given tone pattern; starts the first tone immediately.
 void BeepManager::startBeep(const BeepTone* pattern, int patternLength) {
   currentPattern = pattern;
   this->patternLength = patternLength;
   currentToneIndex = 0;
   toneStartTime = millis();
   isActive = true;
-  
+
   // Start first tone
   int frequency = currentPattern[0].frequency;
   if (frequency > 0) {
@@ -232,6 +237,7 @@ void BeepManager::startBeep(const BeepTone* pattern, int patternLength) {
   }
 }
 
+// Stops all PWM output and resets the beep state machine to idle.
 void BeepManager::stopCurrentBeep() {
   ledcWrite(SPEAKER_CHANNEL, 0);
   currentPattern = nullptr;

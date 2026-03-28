@@ -8,6 +8,7 @@
 
 EmotionManager emotionManager;
 
+// Initializes all emotion state fields to IDLE with null callbacks and zero timestamps.
 EmotionManager::EmotionManager()
     : currentEmotion(EMOTION_IDLE),
       previousEmotion(EMOTION_IDLE),
@@ -19,6 +20,7 @@ EmotionManager::EmotionManager()
       onTransitionComplete(nullptr),
       onEmotionChange(nullptr) {}
 
+// Seeds boot and last-change timestamps; resets emotion state to IDLE.
 void EmotionManager::init(unsigned long currentTime) {
   bootTime = currentTime;
   lastEmotionChange = currentTime;
@@ -26,6 +28,7 @@ void EmotionManager::init(unsigned long currentTime) {
   targetEmotion = EMOTION_IDLE;
 }
 
+// Requests a transition to newEmotion. Fires the onEmotionChange callback if the target differs from current.
 void EmotionManager::setTargetEmotion(EmotionState newEmotion) {
   if (emotionRegistry.get(newEmotion) == nullptr) {
     Serial.printf("ERROR: Invalid emotion state %d\n", newEmotion);
@@ -48,10 +51,12 @@ void EmotionManager::setTargetEmotion(EmotionState newEmotion) {
   }
 }
 
+// Reserved for future autonomous emotion logic; currently a no-op.
 void EmotionManager::update(unsigned long currentTime) {
   // Reserved for future autonomous emotion logic
 }
 
+// Returns a time-of-day–weighted emotion based on uptime hours since boot.
 EmotionState
 EmotionManager::getTimeBasedEmotion(unsigned long currentTime) const {
   unsigned long currentUptime = currentTime - bootTime;
@@ -63,17 +68,20 @@ EmotionManager::getTimeBasedEmotion(unsigned long currentTime) const {
   return EMOTION_SLEEPY;
 }
 
+// Marks a transition as active and resets the frame counter to 0.
 void EmotionManager::startTransition() {
   isTransitioning = true;
   transitionFrame = 0;
 }
 
+// Increments the transition frame counter while a transition is in progress.
 void EmotionManager::advanceTransition() {
   if (isTransitioning) {
     transitionFrame++;
   }
 }
 
+// Finalizes the transition: sets currentEmotion to targetEmotion and fires onTransitionComplete.
 void EmotionManager::completeTransition() {
   currentEmotion = targetEmotion;
   isTransitioning = false;

@@ -4,6 +4,7 @@
 
 Personality personality;
 
+// Initializes all personality state fields to zero; timers are seeded in init().
 Personality::Personality()
   : lastTouchTime_(0),
     lastDriftTime_(0),
@@ -12,6 +13,7 @@ Personality::Personality()
     attentionStage_(0) {
 }
 
+// Seeds all timers with the given start time and applies initial jitter to intervals.
 void Personality::init(unsigned long currentTime) {
   lastTouchTime_ = currentTime;
   lastDriftTime_ = currentTime;
@@ -30,6 +32,7 @@ unsigned long Personality::jitter(unsigned long base) {
   return (unsigned long)result;
 }
 
+// Returns the base attention threshold in milliseconds for the given neglect stage (1–4).
 unsigned long Personality::stageBaseThreshold(int stage) {
   switch (stage) {
     case 1: return ATTENTION_STAGE1_MS;
@@ -73,6 +76,8 @@ EmotionState Personality::moodDrift(unsigned long currentTime) {
   }
 }
 
+// Checks whether the neglect timer has crossed the next stage threshold and escalates the attention arc.
+// Returns a Decision with the target neglect emotion if a stage was crossed; otherwise no change.
 Personality::Decision Personality::attentionArc(unsigned long currentTime,
                                                    EmotionState current) {
   if (attentionStage_ >= 4) return {current, false};
@@ -105,10 +110,12 @@ Personality::Decision Personality::attentionArc(unsigned long currentTime,
   return {target, true};
 }
 
+// Returns true MICRO_EXPRESSION_CHANCE% of the time, triggering a random BLINK micro-expression.
 bool Personality::shouldMicroExpress() {
   return (int)random(0, 100) < MICRO_EXPRESSION_CHANCE;
 }
 
+// Evaluates the attention arc and mood drift; returns the next emotion Decision for the current tick.
 Personality::Decision Personality::update(unsigned long currentTime,
                                            EmotionState currentEmotion) {
   // 1. Attention arc escalation
@@ -135,6 +142,7 @@ Personality::Decision Personality::update(unsigned long currentTime,
   return {currentEmotion, false};
 }
 
+// Resets the attention arc on any touch. Returns true if the device was previously neglected (stage > 0).
 bool Personality::onTouch(unsigned long currentTime, EmotionState currentEmotion) {
   bool wasNeglected = (attentionStage_ > 0);
 
