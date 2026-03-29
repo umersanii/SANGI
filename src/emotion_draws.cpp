@@ -659,3 +659,76 @@ void drawShy(ICanvas& canvas, int frame, const void* ctx) {
     canvas.fillRoundRect(60, 53, 14, 5, 3, COLOR_WHITE);
   }
 }
+
+// ===== 2.16 NEEDY — pleading solicitation =====
+// 54 frames @ 65ms = 3.5s loop.
+// Phases: swell (F0-14), plead (F15-35), quiver (F36-45), settle (F46-53)
+// Visually distinct: oversized eyes (H=28 at peak, vs 22 normal), pupils looking
+// upward, small open mouth that trembles. No blush — NEEDY is direct, not bashful.
+// Eyes at standard X positions (38, 90). Y shifts up slightly to create "looking up at you."
+
+void drawNeedy(ICanvas& canvas, int frame, const void* ctx) {
+  if (frame < 15) {
+    // Swell: eyes grow from neutral H=22 to oversized H=28, shift up Y=28→25
+    int eyeH = ease(22, 28, frame, 14);
+    int eyeY = ease(28, 25, frame, 14);
+    canvas.drawEyes(38, eyeY, 90, eyeY, eyeH);
+    // Sad mouth fades in — thick downturned arc
+    int mouthW = ease(0, 14, frame, 14);
+    if (mouthW > 4) {
+      int mx = 64 - mouthW / 2;
+      for (int i = 0; i < 3; i++) {
+        canvas.drawLine(mx, 53 + i, 64, 56 + i, COLOR_WHITE);
+        canvas.drawLine(64, 56 + i, mx + mouthW, 53 + i, COLOR_WHITE);
+      }
+    }
+  } else if (frame < 36) {
+    // Plead: eyes pulse H=28→25→28 in slow rhythm
+    int pulseFrame = (frame - 15) % 10;
+    int eyeH;
+    if (pulseFrame < 5) {
+      eyeH = ease(28, 25, pulseFrame, 4);
+    } else {
+      eyeH = ease(25, 28, pulseFrame - 5, 4);
+    }
+    canvas.drawEyes(38, 25, 90, 25, eyeH);
+    // Small highlight dots near top of each eye — catch-light for pleading look
+    canvas.fillCircle(42, 20, 2, COLOR_BLACK);
+    canvas.fillCircle(94, 20, 2, COLOR_BLACK);
+    // Sad mouth — thick downturned arc, quivers slightly
+    int mouthW = ((frame % 6) < 3) ? 14 : 12;
+    int mx = 64 - mouthW / 2;
+    int dip = ((frame % 6) < 3) ? 56 : 55;
+    for (int i = 0; i < 3; i++) {
+      canvas.drawLine(mx, 53 + i, 64, dip + i, COLOR_WHITE);
+      canvas.drawLine(64, dip + i, mx + mouthW, 53 + i, COLOR_WHITE);
+    }
+  } else if (frame < 46) {
+    // Quiver: eyes tremble — height jitters between 27 and 28
+    int eyeH = ((frame % 2) == 0) ? 28 : 27;
+    canvas.drawEyes(38, 25, 90, 25, eyeH);
+    canvas.fillCircle(42, 20, 2, COLOR_BLACK);
+    canvas.fillCircle(94, 20, 2, COLOR_BLACK);
+    // Mouth quivers — thick
+    int dip = ((frame % 2) == 0) ? 56 : 55;
+    for (int i = 0; i < 3; i++) {
+      canvas.drawLine(57, 53 + i, 64, dip + i, COLOR_WHITE);
+      canvas.drawLine(64, dip + i, 71, 53 + i, COLOR_WHITE);
+    }
+  } else {
+    // Settle: eyes ease back toward neutral H=28→22, Y=25→28
+    int f = frame - 46;
+    int eyeH = ease(28, 22, f, 7);
+    int eyeY = ease(25, 28, f, 7);
+    canvas.drawEyes(38, eyeY, 90, eyeY, eyeH);
+    // Mouth fades out — thick
+    int mouthW = ease(14, 0, f, 7);
+    if (mouthW > 4) {
+      int mx = 64 - mouthW / 2;
+      for (int i = 0; i < 3; i++) {
+        canvas.drawLine(mx, 53 + i, 64, 56 + i, COLOR_WHITE);
+        canvas.drawLine(64, 56 + i, mx + mouthW, 53 + i, COLOR_WHITE);
+      }
+    }
+  }
+}

@@ -88,6 +88,13 @@ static const BeepTone PATTERN_BORED[] = {
   {400, 300}, {0, 200}, {300, 400}
 };
 
+static const BeepTone PATTERN_NEEDY[] = {
+  {700, 150}, {0, 80},   // rising whimper
+  {900, 180}, {0, 100},
+  {700, 150}, {0, 80},
+  {900, 220}             // held plea
+};
+
 // ===== BEEP MANAGER IMPLEMENTATION =====
 
 // Initializes beep state machine fields to idle; hardware setup is deferred to init().
@@ -198,6 +205,7 @@ static const EmotionPattern EMOTION_PATTERNS[] = {
   PATTERN_ENTRY(EMOTION_SURPRISED, PATTERN_SURPRISED),
   PATTERN_ENTRY(EMOTION_DEAD, PATTERN_DEAD),
   PATTERN_ENTRY(EMOTION_BORED, PATTERN_BORED),
+  PATTERN_ENTRY(EMOTION_NEEDY, PATTERN_NEEDY),
 };
 static const int NUM_PATTERNS = sizeof(EMOTION_PATTERNS) / sizeof(EmotionPattern);
 

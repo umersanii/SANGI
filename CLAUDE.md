@@ -279,6 +279,7 @@ emotionManager.tick(canvas);  // Pass mock, not DisplayManager
 - Draw functions use `static` local variables to persist state across `tick()` calls
 - Example: `drawHappy()` uses `static int frame = 0;` to track animation progress
 - Each call to `tick()` advances the frame; loop behavior controlled by registry
+- **No coordinate translation in animations** — Eyes and mouth must stay at fixed base positions across frames. Animate shape, size, or curvature only. Shifting x/y coordinates between frames causes visible jitter that looks like a deformity on the small OLED display.
 
 ### Compile Flags
 - `DEBUG_MODE_ENABLED` — If 1, displays fixed `DEBUG_MODE_EMOTION` and skips personality engine

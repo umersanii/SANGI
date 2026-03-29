@@ -92,6 +92,7 @@ void registerEmotions() {
   emotionRegistry.add({EMOTION_DEAD,      "DEAD",      70,  65, LOOP_RESTART,  false, drawDead});      // ~4.6s  keep RESTART — no zombie bounce
   emotionRegistry.add({EMOTION_BORED,     "BORED",     60,  80, LOOP_PINGPONG, true,  drawBored});     // ~9.5s  painfully slow
   emotionRegistry.add({EMOTION_SHY,       "SHY",       50,  60, LOOP_RESTART,  true,  drawShy});       // ~3.0s  bashful recovery arc
+  emotionRegistry.add({EMOTION_NEEDY,     "NEEDY",     54,  65, LOOP_PINGPONG, true,  drawNeedy});     // ~3.5s  pleading solicitation
 }
 
 // ===== POWER MANAGEMENT =====

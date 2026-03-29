@@ -758,6 +758,42 @@ void test_shy_eyes_converge_in_height() {
   TEST_ASSERT_TRUE(canvas2.call(warmLeft).h > canvas1.call(avertLeft).h);
 }
 
+// ===== NEEDY emotion tests =====
+
+void test_needy_has_oversized_eyes_at_plead() {
+  MockCanvas canvas;
+  drawNeedy(canvas, 20, nullptr);  // plead phase (F15-35)
+  // Eyes should be larger than neutral H=22
+  int idx = canvas.findCall(DrawCall::FILL_RRECT, 0);
+  TEST_ASSERT_TRUE(idx >= 0);
+  TEST_ASSERT_TRUE(canvas.call(idx).h >= 25);  // oversized eyes
+}
+
+void test_needy_has_sad_mouth() {
+  MockCanvas canvas;
+  drawNeedy(canvas, 20, nullptr);  // plead phase
+  // Should have drawLine calls for the downturned mouth arc
+  bool hasMouthLine = false;
+  for (int i = 0; i < canvas.callCount(); i++) {
+    if (canvas.call(i).type == DrawCall::DRAW_LINE &&
+        canvas.call(i).y > 50) {  // mouth region
+      hasMouthLine = true; break;
+    }
+  }
+  TEST_ASSERT_TRUE(hasMouthLine);
+}
+
+void test_needy_eyes_pulse_during_plead() {
+  MockCanvas canvas1, canvas2;
+  drawNeedy(canvas1, 17, nullptr);  // early plead — eyes shrinking
+  drawNeedy(canvas2, 22, nullptr);  // mid plead — eyes growing back
+  int idx1 = canvas1.findCall(DrawCall::FILL_RRECT, 0);
+  int idx2 = canvas2.findCall(DrawCall::FILL_RRECT, 0);
+  TEST_ASSERT_TRUE(idx1 >= 0 && idx2 >= 0);
+  // Heights should differ due to pulsing
+  TEST_ASSERT_TRUE(canvas1.call(idx1).h != canvas2.call(idx2).h);
+}
+
 // ===== RUNNER =====
 int main(int argc, char** argv) {
   UNITY_BEGIN();
@@ -825,6 +861,9 @@ int main(int argc, char** argv) {
   RUN_TEST(test_shy_has_asymmetric_eyes_during_avert);
   RUN_TEST(test_shy_has_blush);
   RUN_TEST(test_shy_eyes_converge_in_height);
+  RUN_TEST(test_needy_has_oversized_eyes_at_plead);
+  RUN_TEST(test_needy_has_sad_mouth);
+  RUN_TEST(test_needy_eyes_pulse_during_plead);
 
   // Personality engine
   RUN_TEST(test_attention_arc_escalates);

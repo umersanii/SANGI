@@ -24,6 +24,7 @@ enum EmotionState {
   EMOTION_DEAD,
   EMOTION_BORED,
   EMOTION_SHY,
+  EMOTION_NEEDY,
   EMOTION_BLINK
 };
 
