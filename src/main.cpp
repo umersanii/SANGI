@@ -48,7 +48,7 @@ void onBleEmotion(EmotionState e) {
 void onGesture(TouchGesture gesture, unsigned long currentTime) {
   bool wasNeglected = personality.onTouch(currentTime, emotionManager.getCurrentEmotion());
   if (wasNeglected) {
-    emotionManager.setTargetEmotion(EMOTION_HAPPY);
+    emotionManager.setTargetEmotion(EMOTION_SHY);
     return;
   }
   switch (gesture) {
@@ -91,6 +91,7 @@ void registerEmotions() {
   emotionRegistry.add({EMOTION_SURPRISED, "SURPRISED", 44,  30, LOOP_RESTART,  true,  drawSurprised}); // ~1.3s  quick shock snap
   emotionRegistry.add({EMOTION_DEAD,      "DEAD",      70,  65, LOOP_RESTART,  false, drawDead});      // ~4.6s  keep RESTART — no zombie bounce
   emotionRegistry.add({EMOTION_BORED,     "BORED",     60,  80, LOOP_PINGPONG, true,  drawBored});     // ~9.5s  painfully slow
+  emotionRegistry.add({EMOTION_SHY,       "SHY",       50,  60, LOOP_RESTART,  true,  drawShy});       // ~3.0s  bashful recovery arc
 }
 
 // ===== POWER MANAGEMENT =====

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Rules:** See RULES.md for coding standards, prohibitions, and checklists.
 **Scope:** Developer-facing documentation for code architecture, testing, and development workflow.
 **See also:** `README.md` (user/feature documentation), `include/config.h` (hardware pins & timing constants)
-
+**if asked to add new emtion** refer to NEW_EMOTION_HOWTO.md
 ## v1 Status
 
 ✅ **Modules 1–7 complete.** Standalone ESP32-C3 robot with personality engine, gesture detection, BLE control, and WiFi AP web UI. All 64 tests passing.

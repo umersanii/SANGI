@@ -588,3 +588,74 @@ void drawBored(ICanvas& canvas, int frame, const void* ctx) {
     canvas.fillRoundRect(57, 53, 14, 4, 2, COLOR_WHITE);
   }
 }
+
+// ===== 2.15 SHY — bashful recovery after neglect =====
+// 50 frames @ 60ms = 3.0s loop.
+// Phases: startle (F0-7), avert (F8-18), peek (F19-30), warm up (F31-41), linger (F42-49)
+// Visually distinct: asymmetric eye heights (one squinting, one peeking), prominent blush.
+// Eyes fixed at standard positions (38, 90), Y=28. Expression through scale only.
+
+void drawShy(ICanvas& canvas, int frame, const void* ctx) {
+  if (frame < 8) {
+    // Startle: both eyes squeeze shut asymmetrically — left hides more than right
+    int leftH  = ease(22, 4, frame, 7);   // left squints nearly shut
+    int rightH = ease(22, 10, frame, 7);   // right stays half-open (peeking)
+    canvas.fillRoundRect(26, 28 - leftH / 2, 24, leftH, 7, COLOR_WHITE);
+    canvas.fillRoundRect(78, 28 - rightH / 2, 24, rightH, 7, COLOR_WHITE);
+    // Blush starts appearing
+    if (frame >= 4) {
+      int blushR = ease(1, 3, frame - 4, 3);
+      canvas.drawBlush(16, 42, 108, 42, blushR);
+    }
+  } else if (frame < 19) {
+    // Avert: left eye a narrow slit, right eye half-open — bashful squint
+    int leftH  = ease(4, 3, frame - 8, 10);   // left barely open
+    int rightH = ease(10, 12, frame - 8, 10);  // right peeks open a touch more
+    canvas.fillRoundRect(26, 28 - leftH / 2, 24, leftH, 7, COLOR_WHITE);
+    canvas.fillRoundRect(78, 28 - rightH / 2, 24, rightH, 7, COLOR_WHITE);
+    // Full blush, pulses gently
+    int blushR = ((frame % 4) < 2) ? 4 : 5;
+    canvas.drawBlush(16, 42, 108, 42, blushR);
+    // Tiny closed mouth — pressed together nervously
+    canvas.fillRoundRect(60, 53, 8, 3, 2, COLOR_WHITE);
+  } else if (frame < 31) {
+    // Peek: both eyes open further, left catches up — timid glance
+    int f = frame - 19;
+    int leftH  = ease(3, 12, f, 11);    // left cracks open
+    int rightH = ease(12, 18, f, 11);   // right opens wider
+    canvas.fillRoundRect(26, 28 - leftH / 2, 24, leftH, 7, COLOR_WHITE);
+    canvas.fillRoundRect(78, 28 - rightH / 2, 24, rightH, 7, COLOR_WHITE);
+    // Blush steady
+    canvas.drawBlush(16, 42, 108, 42, 5);
+    // Small tentative smile starts forming
+    int mouthW = ease(8, 14, f, 11);
+    int mouthH = ease(3, 4, f, 11);
+    canvas.fillRoundRect(60, 53, mouthW, mouthH, 2, COLOR_WHITE);
+  } else if (frame < 42) {
+    // Warm up: eyes become more symmetric, approaching neutral
+    int f = frame - 31;
+    int leftH  = ease(12, 20, f, 10);   // left nearly matches right
+    int rightH = ease(18, 22, f, 10);   // right reaches full open
+    canvas.fillRoundRect(26, 28 - leftH / 2, 24, leftH, 7, COLOR_WHITE);
+    canvas.fillRoundRect(78, 28 - rightH / 2, 24, rightH, 7, COLOR_WHITE);
+    // Blush fading
+    int blushR = ease(5, 3, f, 10);
+    canvas.drawBlush(16, 42, 108, 42, blushR);
+    // Smile grows warmer
+    int mouthW = ease(14, 18, f, 10);
+    int mouthH = ease(4, 5, f, 10);
+    canvas.fillRoundRect(60, 53, mouthW, mouthH, 3, COLOR_WHITE);
+  } else {
+    // Linger: near-neutral with residual blush — left eye still slightly smaller
+    int f = frame - 42;
+    int leftH  = ease(20, 22, f, 7);
+    int rightH = 22;
+    canvas.fillRoundRect(26, 28 - leftH / 2, 24, leftH, 7, COLOR_WHITE);
+    canvas.fillRoundRect(78, 28 - rightH / 2, 24, rightH, 7, COLOR_WHITE);
+    // Blush lingers softly
+    int blushR = ease(3, 1, f, 7);
+    if (blushR > 0) canvas.drawBlush(16, 42, 108, 42, blushR);
+    // Gentle smile
+    canvas.fillRoundRect(60, 53, 14, 5, 3, COLOR_WHITE);
+  }
+}

@@ -472,10 +472,10 @@ void test_all_emotions_draw_without_crash() {
     {drawIdle, 60}, {drawBlink, 1}, {drawHappy, 50}, {drawSleepy, 59},
     {drawExcited, 40}, {drawSad, 56}, {drawAngry, 56}, {drawConfused, 44},
     {drawThinking, 44}, {drawLove, 44}, {drawSurprised, 44},
-    {drawDead, 70}, {drawBored, 60}
+    {drawDead, 70}, {drawBored, 60}, {drawShy, 50}
   };
   MockCanvas canvas;
-  for (int i = 0; i < 13; i++) {
+  for (int i = 0; i < 14; i++) {
     for (int frame = 0; frame < emotions[i].frames; frame++) {
       canvas.reset();
       emotions[i].fn(canvas, frame, nullptr);
@@ -725,6 +725,39 @@ void test_bored_has_sigh_mouth() {
   TEST_ASSERT_TRUE(idx >= 0);
 }
 
+void test_shy_has_asymmetric_eyes_during_avert() {
+  MockCanvas canvas;
+  drawShy(canvas, 12, nullptr);  // avert phase (F8-18)
+  // Left eye (hiding) and right eye (peeking) should have different heights
+  int idx1 = canvas.findCall(DrawCall::FILL_RRECT, 0);
+  int idx2 = canvas.findCall(DrawCall::FILL_RRECT, idx1 + 1);
+  TEST_ASSERT_TRUE(idx1 >= 0 && idx2 >= 0);
+  TEST_ASSERT_TRUE(canvas.call(idx1).h != canvas.call(idx2).h);
+}
+
+void test_shy_has_blush() {
+  MockCanvas canvas;
+  drawShy(canvas, 15, nullptr);  // avert phase — blush should be present
+  bool hasBlush = false;
+  for (int i = 0; i < canvas.callCount(); i++) {
+    if (canvas.call(i).type == DrawCall::FILL_CIRCLE) {
+      hasBlush = true; break;
+    }
+  }
+  TEST_ASSERT_TRUE(hasBlush);
+}
+
+void test_shy_eyes_converge_in_height() {
+  MockCanvas canvas1, canvas2;
+  drawShy(canvas1, 12, nullptr);  // avert phase — left eye much smaller than right
+  drawShy(canvas2, 35, nullptr);  // warm up phase — heights converging
+  // Left eye (first RRECT) should be taller in warm-up than avert
+  int avertLeft = canvas1.findCall(DrawCall::FILL_RRECT, 0);
+  int warmLeft  = canvas2.findCall(DrawCall::FILL_RRECT, 0);
+  TEST_ASSERT_TRUE(avertLeft >= 0 && warmLeft >= 0);
+  TEST_ASSERT_TRUE(canvas2.call(warmLeft).h > canvas1.call(avertLeft).h);
+}
+
 // ===== RUNNER =====
 int main(int argc, char** argv) {
   UNITY_BEGIN();
@@ -789,6 +822,9 @@ int main(int argc, char** argv) {
   RUN_TEST(test_dead_has_dizzy_circles);
   RUN_TEST(test_bored_has_head_tilt);
   RUN_TEST(test_bored_has_sigh_mouth);
+  RUN_TEST(test_shy_has_asymmetric_eyes_during_avert);
+  RUN_TEST(test_shy_has_blush);
+  RUN_TEST(test_shy_eyes_converge_in_height);
 
   // Personality engine
   RUN_TEST(test_attention_arc_escalates);

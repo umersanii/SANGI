@@ -23,5 +23,6 @@ void drawLove(ICanvas& canvas, int frame, const void* ctx);
 void drawSurprised(ICanvas& canvas, int frame, const void* ctx);
 void drawDead(ICanvas& canvas, int frame, const void* ctx);
 void drawBored(ICanvas& canvas, int frame, const void* ctx);
+void drawShy(ICanvas& canvas, int frame, const void* ctx);
 
 #endif // EMOTION_DRAWS_H
