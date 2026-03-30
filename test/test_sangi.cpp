@@ -39,6 +39,7 @@ static void registerTestEmotions() {
   emotionRegistry.add({EMOTION_SURPRISED, "SURPRISED", 44, 30, LOOP_RESTART,  true,  drawSurprised});
   emotionRegistry.add({EMOTION_DEAD,      "DEAD",      70, 55, LOOP_RESTART,  false, drawDead});
   emotionRegistry.add({EMOTION_BORED,     "BORED",     60, 65, LOOP_PINGPONG, true,  drawBored});
+  emotionRegistry.add({EMOTION_PLAYFUL,   "PLAYFUL",   48, 40, LOOP_RESTART,  true,  drawPlayful});
 }
 
 void setUp() {
@@ -178,8 +179,8 @@ void test_registry_cyclable_excludes_blink() {
 }
 
 void test_registry_count() {
-  // Global registry populated by setUp — 13 emotions
-  TEST_ASSERT_EQUAL(13, emotionRegistry.count());
+  // Global registry populated by setUp — 14 emotions
+  TEST_ASSERT_EQUAL(14, emotionRegistry.count());
 }
 
 // ===== ANIMATION TICK ENGINE TESTS =====
@@ -472,10 +473,10 @@ void test_all_emotions_draw_without_crash() {
     {drawIdle, 60}, {drawBlink, 1}, {drawHappy, 50}, {drawSleepy, 59},
     {drawExcited, 40}, {drawSad, 56}, {drawAngry, 56}, {drawConfused, 44},
     {drawThinking, 44}, {drawLove, 44}, {drawSurprised, 44},
-    {drawDead, 70}, {drawBored, 60}, {drawShy, 50}
+    {drawDead, 70}, {drawBored, 60}, {drawShy, 50}, {drawPlayful, 48}
   };
   MockCanvas canvas;
-  for (int i = 0; i < 14; i++) {
+  for (int i = 0; i < 15; i++) {
     for (int frame = 0; frame < emotions[i].frames; frame++) {
       canvas.reset();
       emotions[i].fn(canvas, frame, nullptr);
@@ -794,6 +795,97 @@ void test_needy_eyes_pulse_during_plead() {
   TEST_ASSERT_TRUE(canvas1.call(idx1).h != canvas2.call(idx2).h);
 }
 
+// ===== CONTENT emotion tests =====
+
+void test_content_has_half_closed_eyes() {
+  MockCanvas canvas;
+  drawContent(canvas, 25, nullptr);  // deep content phase (F15-40)
+  // Eyes relaxed (H=14) — more open than BORED (H=8), less than neutral (H=22)
+  int idx = canvas.findCall(DrawCall::FILL_RRECT, 0);
+  TEST_ASSERT_TRUE(idx >= 0);
+  TEST_ASSERT_TRUE(canvas.call(idx).h > 8 && canvas.call(idx).h <= 16);
+}
+
+void test_content_has_wide_smile() {
+  MockCanvas canvas;
+  drawContent(canvas, 25, nullptr);  // deep content phase
+  // Should have a wide smile (fillRoundRect in mouth region, W >= 24)
+  bool hasWideSmile = false;
+  for (int i = 0; i < canvas.callCount(); i++) {
+    if (canvas.call(i).type == DrawCall::FILL_RRECT &&
+        canvas.call(i).y >= 50 && canvas.call(i).w >= 24) {
+      hasWideSmile = true; break;
+    }
+  }
+  TEST_ASSERT_TRUE(hasWideSmile);
+}
+
+void test_content_has_blush() {
+  MockCanvas canvas;
+  drawContent(canvas, 25, nullptr);  // deep content phase — blush should pulse
+  bool hasBlush = false;
+  for (int i = 0; i < canvas.callCount(); i++) {
+    if (canvas.call(i).type == DrawCall::FILL_CIRCLE) {
+      hasBlush = true; break;
+    }
+  }
+  TEST_ASSERT_TRUE(hasBlush);
+}
+
+void test_content_slow_blink() {
+  MockCanvas canvas1, canvas2;
+  drawContent(canvas1, 43, nullptr);  // blink near-shut (closing done)
+  drawContent(canvas2, 47, nullptr);  // blink reopening (well underway)
+  int idx1 = canvas1.findCall(DrawCall::FILL_RRECT, 0);
+  int idx2 = canvas2.findCall(DrawCall::FILL_RRECT, 0);
+  TEST_ASSERT_TRUE(idx1 >= 0 && idx2 >= 0);
+  // Eyes should be smaller during close than during reopen
+  TEST_ASSERT_TRUE(canvas1.call(idx1).h < canvas2.call(idx2).h);
+}
+
+// ===== PLAYFUL emotion tests =====
+
+void test_playful_has_asymmetric_eyes_during_wink() {
+  MockCanvas canvas;
+  drawPlayful(canvas, 20, nullptr);  // wink reopening (F16-23) — left still squinted, right open
+  int idx1 = canvas.findCall(DrawCall::FILL_RRECT, 0);
+  int idx2 = canvas.findCall(DrawCall::FILL_RRECT, idx1 + 1);
+  TEST_ASSERT_TRUE(idx1 >= 0 && idx2 >= 0);
+  TEST_ASSERT_TRUE(canvas.call(idx1).h != canvas.call(idx2).h);
+}
+
+void test_playful_wink_closes_left_eye() {
+  MockCanvas canvas;
+  drawPlayful(canvas, 14, nullptr);  // wink held shut (F14-15) — left eye near-closed
+  int idx = canvas.findCall(DrawCall::FILL_RRECT, 0);
+  TEST_ASSERT_TRUE(idx >= 0);
+  TEST_ASSERT_TRUE(canvas.call(idx).h <= 2);
+}
+
+void test_playful_has_asymmetric_grin() {
+  MockCanvas canvas;
+  drawPlayful(canvas, 14, nullptr);  // wink hold — asymmetric grin present
+  // Grin drawn with DRAW_LINE calls in the mouth region (y > 50)
+  bool hasMouthLine = false;
+  for (int i = 0; i < canvas.callCount(); i++) {
+    if (canvas.call(i).type == DrawCall::DRAW_LINE &&
+        canvas.call(i).y > 50) {
+      hasMouthLine = true; break;
+    }
+  }
+  TEST_ASSERT_TRUE(hasMouthLine);
+}
+
+void test_playful_bounce_moves_face() {
+  MockCanvas canvasUp, canvasDown;
+  drawPlayful(canvasUp,   24, nullptr);  // bounce up (yOff=-2)
+  drawPlayful(canvasDown, 27, nullptr);  // bounce baseline (yOff=0)
+  int iUp   = canvasUp.findCall(DrawCall::FILL_RRECT, 0);
+  int iDown = canvasDown.findCall(DrawCall::FILL_RRECT, 0);
+  TEST_ASSERT_TRUE(iUp >= 0 && iDown >= 0);
+  TEST_ASSERT_TRUE(canvasUp.call(iUp).y < canvasDown.call(iDown).y);
+}
+
 // ===== RUNNER =====
 int main(int argc, char** argv) {
   UNITY_BEGIN();
@@ -864,6 +956,14 @@ int main(int argc, char** argv) {
   RUN_TEST(test_needy_has_oversized_eyes_at_plead);
   RUN_TEST(test_needy_has_sad_mouth);
   RUN_TEST(test_needy_eyes_pulse_during_plead);
+  RUN_TEST(test_content_has_half_closed_eyes);
+  RUN_TEST(test_content_has_wide_smile);
+  RUN_TEST(test_content_has_blush);
+  RUN_TEST(test_content_slow_blink);
+  RUN_TEST(test_playful_has_asymmetric_eyes_during_wink);
+  RUN_TEST(test_playful_wink_closes_left_eye);
+  RUN_TEST(test_playful_has_asymmetric_grin);
+  RUN_TEST(test_playful_bounce_moves_face);
 
   // Personality engine
   RUN_TEST(test_attention_arc_escalates);

@@ -93,6 +93,8 @@ void registerEmotions() {
   emotionRegistry.add({EMOTION_BORED,     "BORED",     60,  80, LOOP_PINGPONG, true,  drawBored});     // ~9.5s  painfully slow
   emotionRegistry.add({EMOTION_SHY,       "SHY",       50,  60, LOOP_RESTART,  true,  drawShy});       // ~3.0s  bashful recovery arc
   emotionRegistry.add({EMOTION_NEEDY,     "NEEDY",     54,  65, LOOP_PINGPONG, true,  drawNeedy});     // ~3.5s  pleading solicitation
+  emotionRegistry.add({EMOTION_CONTENT,   "CONTENT",   60,  90, LOOP_PINGPONG, true,  drawContent});   // ~10.8s quiet purring satisfaction
+  emotionRegistry.add({EMOTION_PLAYFUL,   "PLAYFUL",   48,  40, LOOP_RESTART,  true,  drawPlayful});   // ~1.9s  mischievous wink-face
 }
 
 // ===== POWER MANAGEMENT =====
