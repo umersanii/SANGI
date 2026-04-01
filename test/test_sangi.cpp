@@ -40,6 +40,7 @@ static void registerTestEmotions() {
   emotionRegistry.add({EMOTION_DEAD,      "DEAD",      70, 55, LOOP_RESTART,  false, drawDead});
   emotionRegistry.add({EMOTION_BORED,     "BORED",     60, 65, LOOP_PINGPONG, true,  drawBored});
   emotionRegistry.add({EMOTION_PLAYFUL,   "PLAYFUL",   48, 40, LOOP_RESTART,  true,  drawPlayful});
+  emotionRegistry.add({EMOTION_GRUMPY,    "GRUMPY",    56, 45, LOOP_PINGPONG, true,  drawGrumpy});
 }
 
 void setUp() {
@@ -179,8 +180,8 @@ void test_registry_cyclable_excludes_blink() {
 }
 
 void test_registry_count() {
-  // Global registry populated by setUp — 14 emotions
-  TEST_ASSERT_EQUAL(14, emotionRegistry.count());
+  // Global registry populated by setUp — 15 emotions
+  TEST_ASSERT_EQUAL(15, emotionRegistry.count());
 }
 
 // ===== ANIMATION TICK ENGINE TESTS =====
@@ -473,10 +474,11 @@ void test_all_emotions_draw_without_crash() {
     {drawIdle, 60}, {drawBlink, 1}, {drawHappy, 50}, {drawSleepy, 59},
     {drawExcited, 40}, {drawSad, 56}, {drawAngry, 56}, {drawConfused, 44},
     {drawThinking, 44}, {drawLove, 44}, {drawSurprised, 44},
-    {drawDead, 70}, {drawBored, 60}, {drawShy, 50}, {drawPlayful, 48}
+    {drawDead, 70}, {drawBored, 60}, {drawShy, 50}, {drawPlayful, 48},
+    {drawGrumpy, 56}
   };
   MockCanvas canvas;
-  for (int i = 0; i < 15; i++) {
+  for (int i = 0; i < 16; i++) {
     for (int frame = 0; frame < emotions[i].frames; frame++) {
       canvas.reset();
       emotions[i].fn(canvas, frame, nullptr);
@@ -886,6 +888,59 @@ void test_playful_bounce_moves_face() {
   TEST_ASSERT_TRUE(canvasUp.call(iUp).y < canvasDown.call(iDown).y);
 }
 
+// ===== GRUMPY emotion tests =====
+
+void test_grumpy_brows_are_flat() {
+  MockCanvas canvas;
+  drawGrumpy(canvas, 12, nullptr);  // hold stare (F8-20) — flat brows locked
+  // drawBrow calls drawLine with y0==y1 for flat (stored as .y and .h in MockCanvas)
+  bool foundFlatBrow = false;
+  for (int i = 0; i < canvas.callCount(); i++) {
+    if (canvas.call(i).type == DrawCall::DRAW_LINE && canvas.call(i).y < 30) {
+      // Flat brow: both endpoints at same Y (y0 == y1, stored as .y and .h)
+      if (canvas.call(i).y == canvas.call(i).h) {
+        foundFlatBrow = true; break;
+      }
+    }
+  }
+  TEST_ASSERT_TRUE(foundFlatBrow);
+}
+
+void test_grumpy_brows_are_not_v_shaped() {
+  MockCanvas canvas;
+  drawGrumpy(canvas, 12, nullptr);  // hold stare — brows flat, not V-angled like ANGRY
+  // All brow lines (y < 30) must have y0 == y1 — no angled lines allowed
+  for (int i = 0; i < canvas.callCount(); i++) {
+    if (canvas.call(i).type == DrawCall::DRAW_LINE && canvas.call(i).y < 30) {
+      TEST_ASSERT_EQUAL(canvas.call(i).y, canvas.call(i).h);
+    }
+  }
+}
+
+void test_grumpy_has_downturned_frown() {
+  MockCanvas canvas;
+  drawGrumpy(canvas, 14, nullptr);  // hold stare (F8-22) — frown fully present
+  // Frown: left half goes from low corner (y=58) UP to center (y=53) — y1 < y0
+  bool hasFrownLine = false;
+  for (int i = 0; i < canvas.callCount(); i++) {
+    if (canvas.call(i).type == DrawCall::DRAW_LINE &&
+        canvas.call(i).y >= 50 && canvas.call(i).h < canvas.call(i).y) {
+      hasFrownLine = true; break;
+    }
+  }
+  TEST_ASSERT_TRUE(hasFrownLine);
+}
+
+void test_grumpy_squint_narrows_eyes() {
+  MockCanvas stare, squinting;
+  drawGrumpy(stare,     12, nullptr);  // stare (F9-16) — eyes at H=10
+  drawGrumpy(squinting, 32, nullptr);  // squint hold (sqF=15) — eyes at H=4
+  int i1 = stare.findCall(DrawCall::FILL_RRECT, 0);
+  int i2 = squinting.findCall(DrawCall::FILL_RRECT, 0);
+  TEST_ASSERT_TRUE(i1 >= 0 && i2 >= 0);
+  TEST_ASSERT_TRUE(stare.call(i1).h > squinting.call(i2).h);
+}
+
 // ===== RUNNER =====
 int main(int argc, char** argv) {
   UNITY_BEGIN();
@@ -964,6 +1019,10 @@ int main(int argc, char** argv) {
   RUN_TEST(test_playful_wink_closes_left_eye);
   RUN_TEST(test_playful_has_asymmetric_grin);
   RUN_TEST(test_playful_bounce_moves_face);
+  RUN_TEST(test_grumpy_brows_are_flat);
+  RUN_TEST(test_grumpy_brows_are_not_v_shaped);
+  RUN_TEST(test_grumpy_has_downturned_frown);
+  RUN_TEST(test_grumpy_squint_narrows_eyes);
 
   // Personality engine
   RUN_TEST(test_attention_arc_escalates);

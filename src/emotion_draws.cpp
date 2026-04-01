@@ -795,6 +795,67 @@ void drawPlayful(ICanvas& canvas, int frame, const void* ctx) {
   }
 }
 
+// ===== 2.19 GRUMPY — low-level flat disapproval =====
+// 56 frames @ 45ms = ~2.5s loop, LOOP_PINGPONG.
+// Phases: furrow (F0-8), stare (F9-16), slow bilateral squint (F17-48), settle (F49-55)
+// Mouth: flattened downturned frown — 3px drop, not a sharp V.
+// Signature beat: both eyes slowly squint H=10→4 and reopen over 32 frames (~675ms each way).
+// No pupils. No asymmetry. Just slow, heavy, unimpressed judgment.
+
+static void drawGrumpyFrown(ICanvas& c) {
+  // Flattened downturned frown: 3px drop (corners y=57, center y=54)
+  for (int i = 0; i < 3; i++) {
+    c.drawLine(54, 57 + i, 64, 54 + i, COLOR_WHITE);  // left corner → center
+    c.drawLine(64, 54 + i, 74, 57 + i, COLOR_WHITE);  // center → right corner
+  }
+}
+
+void drawGrumpy(ICanvas& canvas, int frame, const void* ctx) {
+  if (frame < 9) {
+    // Furrow: flat brows lower Y=9→15, eyes narrow H=22→10, frown fades in
+    int eyeH  = ease(22, 10, frame, 8);
+    int eyeY  = ease(28, 30, frame, 8);
+    int browY = ease(9, 15, frame, 8);
+    int browT = ease(2, 3, frame, 8);
+    canvas.drawEyes(38, eyeY, 90, eyeY, eyeH);
+    canvas.drawBrow(18, browY, 50, browY, browT);   // flat — both endpoints same Y
+    canvas.drawBrow(78, browY, 110, browY, browT);
+    if (frame >= 5) drawGrumpyFrown(canvas);
+
+  } else if (frame < 17) {
+    // Hold stare: heavy brows just above half-lidded H=10 eyes — unmoving disapproval
+    canvas.drawEyes(38, 30, 90, 30, 10);
+    canvas.drawBrow(18, 15, 50, 15, 3);
+    canvas.drawBrow(78, 15, 110, 15, 3);
+    drawGrumpyFrown(canvas);
+
+  } else if (frame < 49) {
+    // Slow bilateral squint: 15 frames closing + 2 hold + 15 reopening = 32 frames
+    // At 45ms/frame: ~675ms to close, ~675ms to reopen
+    int sqF  = frame - 17;
+    int eyeH;
+    if (sqF < 15)      eyeH = ease(10, 7, sqF, 14);
+    else if (sqF < 17) eyeH = 7;
+    else               eyeH = ease(7, 10, sqF - 17, 14);
+    canvas.drawEyes(38, 30, 90, 30, eyeH);
+    canvas.drawBrow(18, 15, 50, 15, 3);
+    canvas.drawBrow(78, 15, 110, 15, 3);
+    drawGrumpyFrown(canvas);
+
+  } else {
+    // Settle: brows ease back Y=15→9, eyes widen H=10→22 — clean pingpong seam with F0
+    int sF    = frame - 49;
+    int eyeH  = ease(10, 22, sF, 6);
+    int eyeY  = ease(30, 28, sF, 6);
+    int browY = ease(15, 9, sF, 6);
+    int browT = ease(3, 2, sF, 6);
+    canvas.drawEyes(38, eyeY, 90, eyeY, eyeH);
+    canvas.drawBrow(18, browY, 50, browY, browT);
+    canvas.drawBrow(78, browY, 110, browY, browT);
+    drawGrumpyFrown(canvas);
+  }
+}
+
 // ===== 2.17 CONTENT — quiet satisfaction =====
 // 60 frames @ 90ms = 5.4s loop, LOOP_PINGPONG.
 // The purring state. Distinct from HAPPY (no bounce, no sparkles) and BORED (not disengaged).

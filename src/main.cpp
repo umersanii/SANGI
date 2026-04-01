@@ -95,6 +95,7 @@ void registerEmotions() {
   emotionRegistry.add({EMOTION_NEEDY,     "NEEDY",     54,  65, LOOP_PINGPONG, true,  drawNeedy});     // ~3.5s  pleading solicitation
   emotionRegistry.add({EMOTION_CONTENT,   "CONTENT",   60,  90, LOOP_PINGPONG, true,  drawContent});   // ~10.8s quiet purring satisfaction
   emotionRegistry.add({EMOTION_PLAYFUL,   "PLAYFUL",   48,  40, LOOP_RESTART,  true,  drawPlayful});   // ~1.9s  mischievous wink-face
+  emotionRegistry.add({EMOTION_GRUMPY,    "GRUMPY",    56,  45, LOOP_PINGPONG, true,  drawGrumpy});    // ~5.0s  low flat disapproval
 }
 
 // ===== POWER MANAGEMENT =====

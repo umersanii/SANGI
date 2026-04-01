@@ -27,5 +27,6 @@ void drawShy(ICanvas& canvas, int frame, const void* ctx);
 void drawNeedy(ICanvas& canvas, int frame, const void* ctx);
 void drawContent(ICanvas& canvas, int frame, const void* ctx);
 void drawPlayful(ICanvas& canvas, int frame, const void* ctx);
+void drawGrumpy(ICanvas& canvas, int frame, const void* ctx);
 
 #endif // EMOTION_DRAWS_H

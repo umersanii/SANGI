@@ -107,6 +107,11 @@ static const BeepTone PATTERN_PLAYFUL[] = {
   {1200, 120}             // inviting held note
 };
 
+static const BeepTone PATTERN_GRUMPY[] = {
+  {320, 200}, {0, 60},    // low flat grumble
+  {260, 280}              // lower held note — dismissive exhale
+};
+
 // ===== BEEP MANAGER IMPLEMENTATION =====
 
 // Initializes beep state machine fields to idle; hardware setup is deferred to init().
@@ -220,6 +225,7 @@ static const EmotionPattern EMOTION_PATTERNS[] = {
   PATTERN_ENTRY(EMOTION_NEEDY, PATTERN_NEEDY),
   PATTERN_ENTRY(EMOTION_CONTENT, PATTERN_CONTENT),
   PATTERN_ENTRY(EMOTION_PLAYFUL, PATTERN_PLAYFUL),
+  PATTERN_ENTRY(EMOTION_GRUMPY, PATTERN_GRUMPY),
 };
 static const int NUM_PATTERNS = sizeof(EMOTION_PATTERNS) / sizeof(EmotionPattern);
 
