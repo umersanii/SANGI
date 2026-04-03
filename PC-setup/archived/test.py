@@ -1,1 +1,0 @@
-bin/test_connection.py
