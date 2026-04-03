@@ -92,9 +92,9 @@
 #define FORGIVENESS_TOUCHES     3        // touches needed to forgive GRUMPY/ANGRY
 
 // ===== DEBUG MODE =====
-#define DEBUG_MODE_ENABLED false            // Set to true to enable debug mode
+#define DEBUG_MODE_ENABLED true            // Set to true to enable debug mode
 #define DEBUG_MODE_CYCLE off              // true = cycle all emotions; false = show only DEBUG_MODE_EMOTION
-#define DEBUG_MODE_EMOTION EMOTION_GRUMPY  // Shown when DEBUG_MODE_CYCLE is false
+#define DEBUG_MODE_EMOTION EMOTION_SLEEPY  // Shown when DEBUG_MODE_CYCLE is false
 #define DEBUG_CYCLE_INTERVAL_MS 10000      // ms to show each emotion before advancing
 
 // ===== WIFI / WEB SERVER =====

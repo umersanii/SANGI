@@ -397,21 +397,21 @@ void drawSleepy(ICanvas& canvas, int frame, const void* ctx) {
       canvas.fillCircle(64, 52, yawnR, COLOR_WHITE);
     }
   } else if (frame < 51) {
-    // Deep sleep: slit eyes held, Z cascade builds then holds at full cascade
+    // Deep sleep: slit eyes held, z's float one-by-one from right eye up-right
     canvas.drawEyes(38, 32, 90, 32, 2);
     canvas.fillCircle(64, 52, 7, COLOR_WHITE);
-    // Z letters float up-right, one new Z every 5 frames; hold at 4
-    int zCount = (frame - 11) / 5 + 1;
-    if (zCount > 4) zCount = 4;
-    for (int i = 0; i < zCount; i++) {
+    // Each z spawns every 10 frames, travels for 26 frames from above right eye
+    // Start: (96, 20) — clear of eye top at y≈31; End: (114, 4)
+    canvas.setTextColor(COLOR_WHITE);
+    int lf = frame - 11;  // local frame 0-39
+    for (int i = 0; i < 4; i++) {
+      int age = lf - i * 10;
+      if (age < 0 || age >= 26) continue;
+      int x = 96 + (114 - 96) * age / 25;
+      int y = 20 + (4 - 20) * age / 25;
       canvas.setTextSize(1);
-      canvas.setCursor(90 + i * 8, 28 - i * 6);
+      canvas.setCursor(x, y);
       canvas.print("z");
-    }
-    if (zCount >= 4) {
-      canvas.setTextSize(1);
-      canvas.setCursor(116, 6);
-      canvas.print("Z");
     }
   } else {
     // Fast wake flutter: rapid blink as SANGI startles awake (8 frames)
