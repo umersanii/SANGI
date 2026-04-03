@@ -2,6 +2,7 @@
 
 // Initialized with compile-time defaults so personality works even before runtimeConfigLoad() is called.
 RuntimeConfig runtimeConfig = {
+  ATTENTION_STAGE0_MS,
   ATTENTION_STAGE1_MS,
   ATTENTION_STAGE2_MS,
   ATTENTION_STAGE3_MS,
@@ -32,6 +33,7 @@ static const char* NVS_NS = "sangi_cfg";
 
 void runtimeConfigLoad() {
   prefs.begin(NVS_NS, true);
+  runtimeConfig.attentionStage0Ms     = prefs.getULong("attn0",     ATTENTION_STAGE0_MS);
   runtimeConfig.attentionStage1Ms     = prefs.getULong("attn1",     ATTENTION_STAGE1_MS);
   runtimeConfig.attentionStage2Ms     = prefs.getULong("attn2",     ATTENTION_STAGE2_MS);
   runtimeConfig.attentionStage3Ms     = prefs.getULong("attn3",     ATTENTION_STAGE3_MS);
@@ -52,6 +54,7 @@ void runtimeConfigLoad() {
 
 void runtimeConfigSave() {
   prefs.begin(NVS_NS, false);
+  prefs.putULong("attn0",     runtimeConfig.attentionStage0Ms);
   prefs.putULong("attn1",     runtimeConfig.attentionStage1Ms);
   prefs.putULong("attn2",     runtimeConfig.attentionStage2Ms);
   prefs.putULong("attn3",     runtimeConfig.attentionStage3Ms);
@@ -69,6 +72,7 @@ void runtimeConfigSave() {
 }
 
 void runtimeConfigReset() {
+  runtimeConfig.attentionStage0Ms    = ATTENTION_STAGE0_MS;
   runtimeConfig.attentionStage1Ms    = ATTENTION_STAGE1_MS;
   runtimeConfig.attentionStage2Ms    = ATTENTION_STAGE2_MS;
   runtimeConfig.attentionStage3Ms    = ATTENTION_STAGE3_MS;

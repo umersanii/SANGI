@@ -8,9 +8,10 @@
 // Defaults mirror the compile-time constants in config.h.
 struct RuntimeConfig {
   // Personality
+  unsigned long attentionStage0Ms;    // ms untouched → NEEDY
   unsigned long attentionStage1Ms;    // ms untouched → BORED
   unsigned long attentionStage2Ms;    // ms untouched → SAD
-  unsigned long attentionStage3Ms;    // ms untouched → CONFUSED
+  unsigned long attentionStage3Ms;    // ms untouched → GRUMPY
   unsigned long attentionStage4Ms;    // ms untouched → ANGRY
   unsigned long moodDriftIntervalMs;  // base interval between mood drift checks
   uint8_t microExpressionChance;      // % chance of BLINK per drift check

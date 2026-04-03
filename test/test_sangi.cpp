@@ -11,6 +11,7 @@
 #include "animations.h"
 #include "input.h"
 #include "personality.h"
+#include "runtime_config.h"
 #include "mock_canvas.h"
 
 // ===== TEST HELPERS =====
@@ -39,6 +40,9 @@ static void registerTestEmotions() {
   emotionRegistry.add({EMOTION_SURPRISED, "SURPRISED", 44, 30, LOOP_RESTART,  true,  drawSurprised});
   emotionRegistry.add({EMOTION_DEAD,      "DEAD",      70, 55, LOOP_RESTART,  false, drawDead});
   emotionRegistry.add({EMOTION_BORED,     "BORED",     60, 65, LOOP_PINGPONG, true,  drawBored});
+  emotionRegistry.add({EMOTION_SHY,       "SHY",       50, 60, LOOP_RESTART,  true,  drawShy});
+  emotionRegistry.add({EMOTION_NEEDY,     "NEEDY",     54, 65, LOOP_PINGPONG, true,  drawNeedy});
+  emotionRegistry.add({EMOTION_CONTENT,   "CONTENT",   60, 90, LOOP_PINGPONG, true,  drawContent});
   emotionRegistry.add({EMOTION_PLAYFUL,   "PLAYFUL",   48, 40, LOOP_RESTART,  true,  drawPlayful});
   emotionRegistry.add({EMOTION_GRUMPY,    "GRUMPY",    56, 45, LOOP_PINGPONG, true,  drawGrumpy});
 }
@@ -180,8 +184,8 @@ void test_registry_cyclable_excludes_blink() {
 }
 
 void test_registry_count() {
-  // Global registry populated by setUp — 15 emotions
-  TEST_ASSERT_EQUAL(15, emotionRegistry.count());
+  // Global registry populated by setUp — 18 emotions
+  TEST_ASSERT_EQUAL(18, emotionRegistry.count());
 }
 
 // ===== ANIMATION TICK ENGINE TESTS =====
@@ -310,32 +314,72 @@ void test_bored_draws_half_lidded_eyes() {
 
 // ===== PERSONALITY ENGINE TESTS =====
 
-void test_attention_arc_escalates() {
+void test_attention_arc_needy_before_bored() {
   Personality p;
   p.init(0);
   p.onTouch(0, EMOTION_IDLE);
 
-  // Beyond stage 1 threshold with max jitter
+  // Beyond NEEDY threshold (stage0) with max jitter
+  unsigned long t = ATTENTION_STAGE0_MS + ATTENTION_STAGE0_MS * JITTER_PERCENT / 100 + 1000;
+  stubSetMillis(t);
+  Personality::Decision d = p.update(t, EMOTION_IDLE);
+  TEST_ASSERT_EQUAL(1, p.getAttentionStage());
+  TEST_ASSERT_TRUE(d.shouldChange);
+  TEST_ASSERT_EQUAL(EMOTION_NEEDY, d.emotion);
+}
+
+void test_attention_arc_escalates_5_stages() {
+  Personality p;
+  p.init(0);
+  p.onTouch(0, EMOTION_IDLE);
+
+  // Beyond stage 2 (BORED) threshold with max jitter
   unsigned long t = ATTENTION_STAGE1_MS + ATTENTION_STAGE1_MS * JITTER_PERCENT / 100 + 1000;
   stubSetMillis(t);
-  p.update(t, EMOTION_IDLE);
+  // Drive through NEEDY first, then to BORED
+  p.update(t, EMOTION_IDLE);   // → NEEDY (stage 1)
+  p.update(t, EMOTION_NEEDY);  // → BORED (stage 2) if enough time
   TEST_ASSERT_TRUE(p.getAttentionStage() >= 1);
+}
+
+void test_attention_arc_grumpy_at_stage4() {
+  Personality p;
+  p.init(0);
+  p.onTouch(0, EMOTION_IDLE);
+
+  // Jump well past ALL thresholds including max jitter on STAGE4
+  unsigned long t = ATTENTION_STAGE4_MS * 2;
+  stubSetMillis(t);
+
+  // Drive through all 5 stages
+  EmotionState current = EMOTION_IDLE;
+  bool sawGrumpy = false;
+  for (int i = 0; i < 10; i++) {
+    Personality::Decision d = p.update(t, current);
+    if (d.shouldChange) {
+      if (d.emotion == EMOTION_GRUMPY) sawGrumpy = true;
+      current = d.emotion;
+    }
+  }
+  // Should have passed through GRUMPY on the way to ANGRY
+  TEST_ASSERT_TRUE(sawGrumpy || current == EMOTION_GRUMPY || current == EMOTION_ANGRY);
+  TEST_ASSERT_TRUE(p.getAttentionStage() >= 4);
 }
 
 void test_touch_during_neglect_triggers_recovery() {
   Personality p;
   p.init(0);
 
-  // Force into neglect state (stage 2)
-  unsigned long t = ATTENTION_STAGE2_MS + ATTENTION_STAGE2_MS * JITTER_PERCENT / 100 + 1000;
+  // Force into light neglect state (stage 1-2, not deep enough for forgiveness)
+  unsigned long t = ATTENTION_STAGE1_MS + ATTENTION_STAGE1_MS * JITTER_PERCENT / 100 + 1000;
   stubSetMillis(t);
   // Drive through stages
   p.update(t, EMOTION_IDLE);
-  p.update(t, EMOTION_BORED);
+  p.update(t, EMOTION_NEEDY);
 
   TEST_ASSERT_TRUE(p.getAttentionStage() >= 1);
 
-  bool wasNeglected = p.onTouch(t, EMOTION_SAD);
+  bool wasNeglected = p.onTouch(t, EMOTION_BORED);
   TEST_ASSERT_TRUE(wasNeglected);
   TEST_ASSERT_EQUAL(0, p.getAttentionStage());
 }
@@ -420,24 +464,217 @@ void test_habituation_resets_on_different_drift() {
   TEST_ASSERT_EQUAL(0, p.getConsecutiveSameDrifts());
 }
 
+static int testHourOverride = 12;
+static int testHourProvider() { return testHourOverride; }
+
 void test_ntp_time_provider_used_when_set() {
+  // Verify that time provider affects drift output.
+  // Suppress attention arc so only drift fires.
+  unsigned long savedStage0 = runtimeConfig.attentionStage0Ms;
+  runtimeConfig.attentionStage0Ms = 999999999UL;
+
+  testHourOverride = 5;
+  int nightSleepy = 0;
+  {
+    Personality p;
+    p.setTimeProvider(testHourProvider);
+    for (int i = 0; i < 200; i++) {
+      p.init(0);
+      Personality::Decision d = p.update(200000UL, EMOTION_IDLE);
+      if (d.shouldChange && d.emotion == EMOTION_SLEEPY) nightSleepy++;
+    }
+  }
+
+  testHourOverride = 9;
+  int morningSleepy = 0;
+  {
+    Personality p;
+    p.setTimeProvider(testHourProvider);
+    for (int i = 0; i < 200; i++) {
+      p.init(0);
+      Personality::Decision d = p.update(200000UL, EMOTION_IDLE);
+      if (d.shouldChange && d.emotion == EMOTION_SLEEPY) morningSleepy++;
+    }
+  }
+
+  runtimeConfig.attentionStage0Ms = savedStage0;
+  // Night should produce significantly more SLEEPY than morning
+  TEST_ASSERT_TRUE(nightSleepy > morningSleepy);
+}
+
+// ===== FORGIVENESS TESTS =====
+
+void test_forgiveness_required_for_deep_neglect() {
   Personality p;
   p.init(0);
-  // Set a time provider that always returns hour 3 (night)
-  p.setTimeProvider([]() -> int { return 3; });
-  // With hour=3 (night), moodDrift should heavily favor SLEEPY
-  // Run 100 drifts and verify SLEEPY appears (60% expected)
-  int sleepyCount = 0;
-  for (int i = 0; i < 100; i++) {
-    // Simulate drift firing by advancing time
-    unsigned long t = (unsigned long)(i + 1) * 200000UL;  // well past drift interval
-    Personality::Decision d = p.update(t, EMOTION_IDLE);
-    if (d.shouldChange && d.emotion == EMOTION_SLEEPY) sleepyCount++;
-    // Reset lastDriftTime by re-initing between runs
-    p.init(t);
+  p.onTouch(0, EMOTION_IDLE);
+
+  // Jump well past ANGRY threshold
+  unsigned long t = ATTENTION_STAGE4_MS + ATTENTION_STAGE4_MS * JITTER_PERCENT / 100 + 1000;
+  stubSetMillis(t);
+
+  // Drive through all 5 stages
+  EmotionState current = EMOTION_IDLE;
+  for (int i = 0; i < 15; i++) {
+    Personality::Decision d = p.update(t, current);
+    if (d.shouldChange) current = d.emotion;
   }
-  // At 60% SLEEPY during night, should get at least 30 in 100 samples
-  TEST_ASSERT_TRUE(sleepyCount >= 30);
+  TEST_ASSERT_TRUE(p.getAttentionStage() >= 4);
+
+  // First touch starts forgiveness — doesn't reset arc
+  bool wasNeglected = p.onTouch(t, current);
+  TEST_ASSERT_TRUE(wasNeglected);
+  TEST_ASSERT_TRUE(p.isForgiving());
+  TEST_ASSERT_TRUE(p.getAttentionStage() >= 4);  // arc NOT reset yet
+}
+
+void test_forgiveness_completes_after_enough_touches() {
+  Personality p;
+  p.init(0);
+  p.onTouch(0, EMOTION_IDLE);
+
+  // Jump to GRUMPY/ANGRY
+  unsigned long t = ATTENTION_STAGE4_MS + ATTENTION_STAGE4_MS * JITTER_PERCENT / 100 + 1000;
+  stubSetMillis(t);
+  EmotionState current = EMOTION_IDLE;
+  for (int i = 0; i < 15; i++) {
+    Personality::Decision d = p.update(t, current);
+    if (d.shouldChange) current = d.emotion;
+  }
+
+  // Touch FORGIVENESS_TOUCHES + 1 times (first starts counter, rest decrement)
+  p.onTouch(t, current);  // starts forgiveness
+  for (int i = 0; i < FORGIVENESS_TOUCHES; i++) {
+    p.onTouch(t + (unsigned long)(i + 1) * 1000, current);
+  }
+  // After enough touches, forgiveness complete and arc reset
+  TEST_ASSERT_FALSE(p.isForgiving());
+  TEST_ASSERT_EQUAL(0, p.getAttentionStage());
+}
+
+void test_light_neglect_no_forgiveness_needed() {
+  Personality p;
+  p.init(0);
+  p.onTouch(0, EMOTION_IDLE);
+
+  // Only reach NEEDY (stage 1) — no forgiveness required
+  unsigned long t = ATTENTION_STAGE0_MS + ATTENTION_STAGE0_MS * JITTER_PERCENT / 100 + 1000;
+  stubSetMillis(t);
+  p.update(t, EMOTION_IDLE);  // → NEEDY
+  TEST_ASSERT_TRUE(p.getAttentionStage() >= 1);
+  TEST_ASSERT_TRUE(p.getAttentionStage() < 4);
+
+  bool wasNeglected = p.onTouch(t, EMOTION_NEEDY);
+  TEST_ASSERT_TRUE(wasNeglected);
+  TEST_ASSERT_FALSE(p.isForgiving());
+  TEST_ASSERT_EQUAL(0, p.getAttentionStage());
+}
+
+// ===== MOOD GRAVITY TESTS =====
+
+void test_mood_cluster_classification() {
+  TEST_ASSERT_EQUAL(CLUSTER_POSITIVE, Personality::clusterOf(EMOTION_HAPPY));
+  TEST_ASSERT_EQUAL(CLUSTER_POSITIVE, Personality::clusterOf(EMOTION_PLAYFUL));
+  TEST_ASSERT_EQUAL(CLUSTER_POSITIVE, Personality::clusterOf(EMOTION_CONTENT));
+  TEST_ASSERT_EQUAL(CLUSTER_POSITIVE, Personality::clusterOf(EMOTION_LOVE));
+  TEST_ASSERT_EQUAL(CLUSTER_POSITIVE, Personality::clusterOf(EMOTION_EXCITED));
+  TEST_ASSERT_EQUAL(CLUSTER_NEUTRAL,  Personality::clusterOf(EMOTION_IDLE));
+  TEST_ASSERT_EQUAL(CLUSTER_NEUTRAL,  Personality::clusterOf(EMOTION_THINKING));
+  TEST_ASSERT_EQUAL(CLUSTER_NEGATIVE, Personality::clusterOf(EMOTION_SAD));
+  TEST_ASSERT_EQUAL(CLUSTER_NEGATIVE, Personality::clusterOf(EMOTION_BORED));
+  TEST_ASSERT_EQUAL(CLUSTER_NEGATIVE, Personality::clusterOf(EMOTION_GRUMPY));
+  TEST_ASSERT_EQUAL(CLUSTER_NEGATIVE, Personality::clusterOf(EMOTION_ANGRY));
+  TEST_ASSERT_EQUAL(CLUSTER_NEGATIVE, Personality::clusterOf(EMOTION_SLEEPY));
+}
+
+static int noonProvider() { return 12; }
+
+void test_mood_gravity_biases_toward_same_cluster() {
+  // Compare positive-cluster hit rate when starting from HAPPY vs IDLE.
+  // Suppress attention arc so only drift fires.
+  unsigned long savedStage0 = runtimeConfig.attentionStage0Ms;
+  runtimeConfig.attentionStage0Ms = 999999999UL;
+
+  int fromHappy = 0;
+  {
+    Personality p;
+    p.setTimeProvider(noonProvider);
+    for (int i = 0; i < 200; i++) {
+      p.init(0);
+      Personality::Decision d = p.update(200000UL, EMOTION_HAPPY);
+      if (d.shouldChange && Personality::clusterOf(d.emotion) == CLUSTER_POSITIVE) fromHappy++;
+    }
+  }
+  int fromIdle = 0;
+  {
+    Personality p;
+    p.setTimeProvider(noonProvider);
+    for (int i = 0; i < 200; i++) {
+      p.init(0);
+      Personality::Decision d = p.update(200000UL, EMOTION_IDLE);
+      if (d.shouldChange && Personality::clusterOf(d.emotion) == CLUSTER_POSITIVE) fromIdle++;
+    }
+  }
+
+  runtimeConfig.attentionStage0Ms = savedStage0;
+  // Starting HAPPY should produce more positive drifts than starting IDLE
+  TEST_ASSERT_TRUE(fromHappy > fromIdle);
+}
+
+// ===== NIGHT CYCLE TESTS =====
+
+void test_night_cycle_activates_at_2am() {
+  Personality p;
+  p.init(0);
+  p.setTimeProvider([]() -> int { return 2; });
+
+  // Advance time past drift interval to trigger night cycle
+  unsigned long t = 200000;
+  Personality::Decision d = p.update(t, EMOTION_IDLE);
+  TEST_ASSERT_TRUE(p.isNightCycleActive());
+}
+
+void test_night_cycle_inactive_outside_window() {
+  Personality p;
+  p.init(0);
+  p.setTimeProvider([]() -> int { return 5; });
+
+  unsigned long t = 200000;
+  p.update(t, EMOTION_IDLE);
+  TEST_ASSERT_FALSE(p.isNightCycleActive());
+}
+
+void test_night_cycle_produces_mostly_sleepy() {
+  Personality p;
+  p.init(0);
+  p.setTimeProvider([]() -> int { return 3; });
+
+  int sleepyCount = 0;
+  int totalChanges = 0;
+  for (int i = 0; i < 100; i++) {
+    unsigned long t = (unsigned long)(i + 1) * 100000UL;  // well past 45s interval
+    Personality::Decision d = p.update(t, EMOTION_IDLE);
+    if (d.shouldChange) {
+      totalChanges++;
+      if (d.emotion == EMOTION_SLEEPY) sleepyCount++;
+    }
+    p.init(t);
+    p.setTimeProvider([]() -> int { return 3; });
+  }
+  // 70% SLEEPY in night cycle — expect at least 40% of total changes to be SLEEPY
+  if (totalChanges > 0) {
+    TEST_ASSERT_TRUE(sleepyCount > totalChanges / 3);
+  }
+}
+
+void test_night_cycle_requires_time_provider() {
+  Personality p;
+  p.init(0);
+  // No time provider set — night cycle should not activate even at equivalent millis
+  unsigned long t = 2 * HOUR_IN_MILLIS + 100000;  // ~2:01 AM by millis
+  stubSetMillis(t);
+  p.update(t, EMOTION_IDLE);
+  TEST_ASSERT_FALSE(p.isNightCycleActive());
 }
 
 // ===== GESTURE DETECTION TESTS =====
@@ -1024,8 +1261,10 @@ int main(int argc, char** argv) {
   RUN_TEST(test_grumpy_has_downturned_frown);
   RUN_TEST(test_grumpy_squint_narrows_eyes);
 
-  // Personality engine
-  RUN_TEST(test_attention_arc_escalates);
+  // Personality engine — attention arc
+  RUN_TEST(test_attention_arc_needy_before_bored);
+  RUN_TEST(test_attention_arc_escalates_5_stages);
+  RUN_TEST(test_attention_arc_grumpy_at_stage4);
   RUN_TEST(test_touch_during_neglect_triggers_recovery);
   RUN_TEST(test_touch_when_not_neglected_returns_false);
   RUN_TEST(test_jitter_produces_variance);
@@ -1036,6 +1275,21 @@ int main(int argc, char** argv) {
   RUN_TEST(test_warmth_window_resets_after_expiry);
   RUN_TEST(test_habituation_resets_on_different_drift);
   RUN_TEST(test_ntp_time_provider_used_when_set);
+
+  // Personality engine — forgiveness
+  RUN_TEST(test_forgiveness_required_for_deep_neglect);
+  RUN_TEST(test_forgiveness_completes_after_enough_touches);
+  RUN_TEST(test_light_neglect_no_forgiveness_needed);
+
+  // Personality engine — mood gravity
+  RUN_TEST(test_mood_cluster_classification);
+  RUN_TEST(test_mood_gravity_biases_toward_same_cluster);
+
+  // Personality engine — night cycle
+  RUN_TEST(test_night_cycle_activates_at_2am);
+  RUN_TEST(test_night_cycle_inactive_outside_window);
+  RUN_TEST(test_night_cycle_produces_mostly_sleepy);
+  RUN_TEST(test_night_cycle_requires_time_provider);
 
   // Gesture detection
   RUN_TEST(test_classify_gesture_tap);

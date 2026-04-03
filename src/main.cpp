@@ -45,12 +45,23 @@ void onBleEmotion(EmotionState e) {
 // ===== GESTURE CALLBACK =====
 
 // Touch gesture callback: resets neglect arc on any touch, then maps gesture type to emotion.
+// Multi-touch forgiveness: deep neglect (GRUMPY/ANGRY) requires multiple touches before recovery.
+// During forgiveness, SANGI stays in its current sulk emotion — no SHY yet.
 void onGesture(TouchGesture gesture, unsigned long currentTime) {
   bool wasNeglected = personality.onTouch(currentTime, emotionManager.getCurrentEmotion());
+
+  // Still forgiving — SANGI hasn't warmed up yet, stay in sulk
+  if (personality.isForgiving()) {
+    return;
+  }
+
+  // Neglect recovery complete — enter SHY before warmth arc
   if (wasNeglected) {
     emotionManager.setTargetEmotion(EMOTION_SHY);
     return;
   }
+
+  // Normal touch responses
   switch (gesture) {
     case GESTURE_TAP:
       emotionManager.setTargetEmotion(EMOTION_HAPPY);

@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **if asked to add new emtion** refer to NEW_EMOTION_HOWTO.md
 ## v1 Status
 
-✅ **Modules 1–7 complete.** Standalone ESP32-C3 robot with personality engine, gesture detection, BLE control, and WiFi AP web UI. All 64 tests passing.
+✅ **Modules 1–7 complete.** Standalone ESP32-C3 robot with personality engine, gesture detection, BLE control, and WiFi AP web UI. All 97 tests passing.
 
 ---
 
@@ -125,14 +125,20 @@ All core modules tested; hardware-specific I/O (GPIO, I2C, BLE stack, WiFi) stub
 
 ### Personality Engine
 `include/personality.h` — Three independent subsystems:
-1. **Attention Arc** — Time-based emotional degradation (5–15 min neglect)
-   - Stages: BORED (5 min) → SAD (10 min) → CONFUSED (12.5 min) → ANGRY (15 min)
-   - Resets on touch interaction (enters SHY recovery state)
+1. **Attention Arc** — Time-based emotional degradation (2.5–15 min neglect)
+   - Stages: NEEDY (2.5 min) → BORED (5 min) → SAD (10 min) → GRUMPY (12.5 min) → ANGRY (15 min)
+   - Deep neglect (GRUMPY/ANGRY) requires multiple touches to forgive before SHY recovery
+   - Light neglect resets immediately on touch (enters SHY recovery state)
 2. **Mood Drift** — Hour-of-day weighted random emotions every ~2 min
    - Emits random emotion with weights biased by time-of-day (no external time, uses `millis()` to estimate)
    - Each drift is independent; doesn't interrupt attention arc
 3. **Micro-expressions** — 15% chance of random BLINK per drift
    - Adds subtle personality: random blink on ~every 7th mood drift event
+4. **Mood Gravity** — Current emotion biases next drift toward same cluster
+   - 3 clusters: positive (HAPPY, EXCITED, LOVE, PLAYFUL, CONTENT), neutral (IDLE, THINKING, etc.), negative (SAD, BORED, NEEDY, etc.)
+   - 65% chance to stay in current cluster, 35% normal time-of-day drift
+5. **Night Cycle** (2-4 AM, NTP required) — Restless light sleep
+   - 70% SLEEPY, 20% BLINK, 10% brief IDLE wake; ~45s drift interval
 
 **Jitter System:** All timing intervals ±20% variance applied independently:
 ```cpp
@@ -165,9 +171,10 @@ All pin assignments and timing constants live in `include/config.h`.
 ```cpp
 #define LONG_PRESS_MS 600                 // Threshold for LONG_PRESS gesture
 #define DOUBLE_TAP_WINDOW_MS 300          // Window for DOUBLE_TAP detection
+#define ATTENTION_STAGE0_MS 150000        // 2.5 min → NEEDY
 #define ATTENTION_STAGE1_MS 300000        // 5 min → BORED
 #define ATTENTION_STAGE2_MS 600000        // 10 min → SAD
-#define ATTENTION_STAGE3_MS 750000        // 12.5 min → CONFUSED
+#define ATTENTION_STAGE3_MS 750000        // 12.5 min → GRUMPY
 #define ATTENTION_STAGE4_MS 900000        // 15 min → ANGRY
 #define MOOD_DRIFT_INTERVAL_MS 120000     // ~2 min between mood changes
 #define MICRO_EXPRESSION_CHANCE 15        // % chance for random BLINK
@@ -220,7 +227,7 @@ This keeps native tests fast and hardware-agnostic.
 - BLE emotion validation (call stubs, not real BLE)
 - Battery monitoring
 
-**64/64 tests passing, zero warnings.**
+**95/97 tests passing (2 pre-existing thinking draw failures).**
 
 ---
 

@@ -68,9 +68,10 @@
 #define NEUTRAL_MOUTH_HEIGHT FACE_MOUTH_H
 
 // ===== PERSONALITY CONFIGURATION =====
+#define ATTENTION_STAGE0_MS 150000    // 2.5 min → NEEDY (soft nudge before sulk)
 #define ATTENTION_STAGE1_MS 300000    // 5 min → BORED (base, ±20% jitter)
 #define ATTENTION_STAGE2_MS 600000    // 10 min → SAD
-#define ATTENTION_STAGE3_MS 750000    // 12.5 min → CONFUSED
+#define ATTENTION_STAGE3_MS 750000    // 12.5 min → GRUMPY
 #define ATTENTION_STAGE4_MS 900000    // 15 min → ANGRY
 #define MOOD_DRIFT_INTERVAL_MS 120000 // 2 min between mood drift checks (base)
 #define MICRO_EXPRESSION_CHANCE 15    // % chance per drift check to do a micro-expression
@@ -87,8 +88,11 @@
 // Habituation — prevents getting stuck looping the same emotion
 #define HABITUATION_THRESHOLD   3        // consecutive same drifts before forcing variety
 
+// Multi-touch forgiveness — deep neglect requires effort to recover
+#define FORGIVENESS_TOUCHES     3        // touches needed to forgive GRUMPY/ANGRY
+
 // ===== DEBUG MODE =====
-#define DEBUG_MODE_ENABLED true            // Set to true to enable debug mode
+#define DEBUG_MODE_ENABLED false            // Set to true to enable debug mode
 #define DEBUG_MODE_CYCLE off              // true = cycle all emotions; false = show only DEBUG_MODE_EMOTION
 #define DEBUG_MODE_EMOTION EMOTION_GRUMPY  // Shown when DEBUG_MODE_CYCLE is false
 #define DEBUG_CYCLE_INTERVAL_MS 10000      // ms to show each emotion before advancing

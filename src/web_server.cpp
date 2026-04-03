@@ -161,14 +161,15 @@ void WebServerManager::handleApiConfigGet() {
     server_.send(503, "application/json", "{\"error\":\"config unavailable\"}");
     return;
   }
-  char buf[480];
+  char buf[512];
   snprintf(buf, sizeof(buf),
-    "{\"attentionStage1Ms\":%lu,\"attentionStage2Ms\":%lu,"
+    "{\"attentionStage0Ms\":%lu,\"attentionStage1Ms\":%lu,\"attentionStage2Ms\":%lu,"
     "\"attentionStage3Ms\":%lu,\"attentionStage4Ms\":%lu,"
     "\"moodDriftIntervalMs\":%lu,\"microExpressionChance\":%u,"
     "\"jitterPercent\":%u,"
     "\"longPressMs\":%lu,\"doubleTapWindowMs\":%lu,"
     "\"enableEmotionBeep\":%s,\"speakerVolume\":%u}",
+    cfg_->attentionStage0Ms,
     cfg_->attentionStage1Ms, cfg_->attentionStage2Ms,
     cfg_->attentionStage3Ms, cfg_->attentionStage4Ms,
     cfg_->moodDriftIntervalMs,
@@ -188,6 +189,8 @@ void WebServerManager::handleApiConfigPost() {
     server_.send(503, "application/json", "{\"error\":\"config unavailable\"}");
     return;
   }
+  if (server_.hasArg("attentionStage0Ms"))
+    cfg_->attentionStage0Ms   = (unsigned long)server_.arg("attentionStage0Ms").toInt();
   if (server_.hasArg("attentionStage1Ms"))
     cfg_->attentionStage1Ms   = (unsigned long)server_.arg("attentionStage1Ms").toInt();
   if (server_.hasArg("attentionStage2Ms"))
