@@ -499,6 +499,60 @@ animateGitHubStats() displays dynamic data
 
 > See `pi-setup/README.md` for detailed setup and troubleshooting
 
+## Planned: AI Personality Engine (v2 consideration)
+
+**Goal:** Replace rule-based `PersonalityEngine` with a small trained model for emergent, context-aware behavior.
+
+### Why
+
+Current engine is mechanical — hardcoded thresholds, dice-roll mood drift. Predictable once you know the timers. A model would give SANGI emotional inertia, context sensitivity, and individuality (diverges per usage history).
+
+### Memory Budget
+
+With WiFi AP + BLE active: **~80–130 KB free heap**. Model + inference must fit inside this.
+
+### Chosen Approach: micromlgen Random Forest
+
+- Export trained sklearn model as a single `.h` C array
+- **Flash:** ~6 KB | **RAM:** ~300 bytes at runtime
+- Zero new PlatformIO dependencies
+- Drop-in replacement for `PersonalityEngine::tick()` decision logic
+
+```python
+from sklearn.ensemble import RandomForestClassifier
+from micromlgen import port
+
+clf = RandomForestClassifier(n_estimators=10, max_depth=6).fit(X, y)
+with open('include/emotion_model.h', 'w') as f:
+    f.write(port(clf))
+```
+
+### Input Features
+
+| Feature | Range | Drives |
+|---------|-------|--------|
+| `time_idle_ms` | 0–1 normalized | Attention arc |
+| `current_emotion` | 0–13 | State continuity |
+| `interaction_count` | 0–1 normalized | Engagement history |
+| `time_of_day_bucket` | 0–3 | Morning/afternoon/evening/night weights |
+| `battery_level` | 0–1 | Lethargy at low battery |
+
+Output: probability distribution over 14 `EmotionState` values.
+
+### Training Data
+
+Bootstrap by simulating existing `PersonalityEngine` rule logic in Python (~10k samples). Later replace with real interaction logs via BLE/serial logging.
+
+### Key Constraint
+
+The attention arc narrative (BORED → SAD → CONFUSED → ANGRY) must be deliberately encoded in training data. A naive model won't preserve it without explicit examples.
+
+### Alternative: Q-table RL
+
+For an RL flavor without a framework — train offline, store as `const` C array in flash (16–32 KB flash, ~50 bytes RAM at runtime). Lookup via state index. Can be made adaptive by storing Q-value updates in NVS between sessions.
+
+---
+
 ## Critical Rules
 
 1. **Never instantiate managers locally** - Use global instances only

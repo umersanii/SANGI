@@ -11,6 +11,7 @@ static uint8_t s_currentEmotion = 0;
 #define CHAR_UUID    "face0002-0000-1000-8000-00805f9b34fb"
 
 class EmotionCallbacks : public NimBLECharacteristicCallbacks {
+  // Validates the written emotion ID and fires the registered emotion callback if valid.
   void onWrite(NimBLECharacteristic* pChar) override {
     std::string val = pChar->getValue();
     if (val.length() >= 1) {
@@ -20,6 +21,7 @@ class EmotionCallbacks : public NimBLECharacteristicCallbacks {
       }
     }
   }
+  // Responds to a BLE read request with the current emotion ID byte.
   void onRead(NimBLECharacteristic* pChar) override {
     pChar->setValue(&s_currentEmotion, 1);
   }
@@ -27,6 +29,7 @@ class EmotionCallbacks : public NimBLECharacteristicCallbacks {
 
 static EmotionCallbacks s_charCallbacks;
 
+// Initializes NimBLE, creates the emotion service and characteristic, and starts advertising as "SANGI".
 void BleControl::init(BleEmotionFn onEmotion) {
   onEmotion_ = onEmotion;
   s_callback = onEmotion;
@@ -50,6 +53,7 @@ void BleControl::init(BleEmotionFn onEmotion) {
   Serial.println("BLE: advertising as 'SANGI'");
 }
 
+// Updates the cached current emotion ID so subsequent BLE reads reflect the latest state.
 void BleControl::updateCurrentEmotion(uint8_t emotionId) {
   s_currentEmotion = emotionId;
 }

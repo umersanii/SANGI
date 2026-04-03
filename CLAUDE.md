@@ -1,15 +1,13 @@
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
+**Rules:** See RULES.md for coding standards, prohibitions, and checklists.
 **Scope:** Developer-facing documentation for code architecture, testing, and development workflow.
 **See also:** `README.md` (user/feature documentation), `include/config.h` (hardware pins & timing constants)
-
+**if asked to add new emtion** refer to NEW_EMOTION_HOWTO.md
 ## v1 Status
 
-✅ **Modules 1–6 complete.** Standalone ESP32-C3 robot with personality engine, gesture detection, and BLE control. All 64 tests passing.
-
-**Next:** Module 7 (Captive Portal WiFi) not yet started.
+✅ **Modules 1–7 complete.** Standalone ESP32-C3 robot with personality engine, gesture detection, BLE control, and WiFi AP web UI. All 97 tests passing.
 
 ---
 
@@ -47,22 +45,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture
 
-**Single-device standalone design.** No WiFi, no cloud, no external dependencies.
+**Single-device standalone design.** No cloud, no external dependencies. WiFi AP is self-hosted.
 
 ### Layers
 
 1. **ESP32-C3 firmware** (`src/`, `include/`)
    - SSD1306 OLED display driver (I2C)
    - 14 animated emotions with personality engine
-   - Touch gesture recognition (TAP, LONG_PRESS, DOUBLE_TAP)
+   - Touch gesture recognition (TAP, LONG_PRESS, DOUBLE_TAP) — *firmware ready, touch sensor not yet wired*
    - BLE server for remote emotion control
+   - WiFi AP web UI at `http://192.168.4.1` (no router needed)
    - Autonomous mood cycling with time-of-day weighting
    - Battery monitoring via ADC
 
 2. **Hardware only**
    - No Raspberry Pi service
    - No cloud or MQTT
-   - No web dashboard
    - Fully offline, fully autonomous
 
 ### Core Modules
@@ -73,8 +71,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | **2. Remove Cut Emotions** | ✅ | Eliminated MUSIC, NOTIFICATION, CODING, GITHUB_STATS; kept 14 core emotions |
 | **3. Add Personality** | ✅ | Added BORED + SHY emotions; personality engine with attention arc |
 | **4. BLE Control** | ✅ | NimBLE-Arduino server with emotion write/read characteristic |
-| **5. Gesture Detection** | ✅ | State machine: TAP (<600ms), LONG_PRESS (≥600ms), DOUBLE_TAP (within 300ms) |
+| **5. Gesture Detection** | ✅ firmware / ⏳ hardware | State machine: TAP (<600ms), LONG_PRESS (≥600ms), DOUBLE_TAP (within 300ms) — touch sensor not yet wired |
 | **6. Personality Engine** | ✅ | Attention arc (5/10/12.5/15 min stages), mood drift, micro-expressions, jitter ±20% |
+| **7. WiFi AP Web UI** | ✅ | Self-hosted control page at 192.168.4.1; emotion grid, gesture buttons, config sliders |
 
 ---
 
@@ -120,19 +119,26 @@ All modules communicate via callbacks, not global references:
 | **speaker** | PWM beep patterns | ✅ Beep generation (stubbed in tests) |
 | **ble_control** | NimBLE server, emotion control | ✅ Emotion validation (call stubs) |
 | **battery** | ADC voltage reading | ✅ Voltage range validation |
+| **web_server** | WiFi AP + HTTP server, REST API, HTML UI | Hardware-only (excluded from native) |
 
-All core modules tested; hardware-specific I/O (GPIO, I2C, BLE stack) stubbed in native tests.
+All core modules tested; hardware-specific I/O (GPIO, I2C, BLE stack, WiFi) stubbed in native tests.
 
 ### Personality Engine
 `include/personality.h` — Three independent subsystems:
-1. **Attention Arc** — Time-based emotional degradation (5–15 min neglect)
-   - Stages: BORED (5 min) → SAD (10 min) → CONFUSED (12.5 min) → ANGRY (15 min)
-   - Resets on touch interaction (enters SHY recovery state)
+1. **Attention Arc** — Time-based emotional degradation (2.5–15 min neglect)
+   - Stages: NEEDY (2.5 min) → BORED (5 min) → SAD (10 min) → GRUMPY (12.5 min) → ANGRY (15 min)
+   - Deep neglect (GRUMPY/ANGRY) requires multiple touches to forgive before SHY recovery
+   - Light neglect resets immediately on touch (enters SHY recovery state)
 2. **Mood Drift** — Hour-of-day weighted random emotions every ~2 min
    - Emits random emotion with weights biased by time-of-day (no external time, uses `millis()` to estimate)
    - Each drift is independent; doesn't interrupt attention arc
 3. **Micro-expressions** — 15% chance of random BLINK per drift
    - Adds subtle personality: random blink on ~every 7th mood drift event
+4. **Mood Gravity** — Current emotion biases next drift toward same cluster
+   - 3 clusters: positive (HAPPY, EXCITED, LOVE, PLAYFUL, CONTENT), neutral (IDLE, THINKING, etc.), negative (SAD, BORED, NEEDY, etc.)
+   - 65% chance to stay in current cluster, 35% normal time-of-day drift
+5. **Night Cycle** (2-4 AM, NTP required) — Restless light sleep
+   - 70% SLEEPY, 20% BLINK, 10% brief IDLE wake; ~45s drift interval
 
 **Jitter System:** All timing intervals ±20% variance applied independently:
 ```cpp
@@ -156,17 +162,19 @@ All pin assignments and timing constants live in `include/config.h`.
 - I2C address: 0x3C (standard for SSD1306)
 
 ### Other Pins
-- **GPIO 3** = Touch sensor (capacitive button)
 - **GPIO 10** = Speaker (PWM beeper) — *GPIO 9 conflicts with USB*
 - **GPIO 2** = Battery ADC (voltage monitoring)
+- **GPIO 3** = Touch sensor (capacitive button) — *reserved, not yet wired*
+- **Mic pin** = TBD — *planned (SparkFun Electret Breakout)*
 
 ### Timing Constants (Customizable in config.h)
 ```cpp
 #define LONG_PRESS_MS 600                 // Threshold for LONG_PRESS gesture
 #define DOUBLE_TAP_WINDOW_MS 300          // Window for DOUBLE_TAP detection
+#define ATTENTION_STAGE0_MS 150000        // 2.5 min → NEEDY
 #define ATTENTION_STAGE1_MS 300000        // 5 min → BORED
 #define ATTENTION_STAGE2_MS 600000        // 10 min → SAD
-#define ATTENTION_STAGE3_MS 750000        // 12.5 min → CONFUSED
+#define ATTENTION_STAGE3_MS 750000        // 12.5 min → GRUMPY
 #define ATTENTION_STAGE4_MS 900000        // 15 min → ANGRY
 #define MOOD_DRIFT_INTERVAL_MS 120000     // ~2 min between mood changes
 #define MICRO_EXPRESSION_CHANCE 15        // % chance for random BLINK
@@ -206,6 +214,7 @@ build_src_filter =
 - `speaker.cpp` — Uses GPIO PWM (stubbed)
 - `ble_control.cpp` — Uses NimBLE (not compiled for tests)
 - `battery.cpp` — Uses ADC (stubbed in tests)
+- `web_server.cpp` — Uses WiFi + WebServer (guarded by `#ifndef NATIVE_BUILD`)
 
 This keeps native tests fast and hardware-agnostic.
 
@@ -218,7 +227,7 @@ This keeps native tests fast and hardware-agnostic.
 - BLE emotion validation (call stubs, not real BLE)
 - Battery monitoring
 
-**64/64 tests passing, zero warnings.**
+**95/97 tests passing (2 pre-existing thinking draw failures).**
 
 ---
 
@@ -277,11 +286,21 @@ emotionManager.tick(canvas);  // Pass mock, not DisplayManager
 - Draw functions use `static` local variables to persist state across `tick()` calls
 - Example: `drawHappy()` uses `static int frame = 0;` to track animation progress
 - Each call to `tick()` advances the frame; loop behavior controlled by registry
+- **No coordinate translation in animations** — Eyes and mouth must stay at fixed base positions across frames. Animate shape, size, or curvature only. Shifting x/y coordinates between frames causes visible jitter that looks like a deformity on the small OLED display.
 
 ### Compile Flags
 - `DEBUG_MODE_ENABLED` — If 1, displays fixed `DEBUG_MODE_EMOTION` and skips personality engine
 - `ENABLE_EMOTION_BEEP` — If 1, plays beeps when emotions change
 - Both default to 0 for normal operation; native tests disable both
+
+### Main Loop Architecture
+`loop()` runs without `delay()`. Web server polling happens on every iteration (full CPU speed) for fast HTTP responses. All other modules use a millis-based 50ms gate:
+```cpp
+webServerManager.update();          // always — HTTP needs rapid polling
+if (currentTime - lastTick < 50) return;
+// ... beep, emotion, BLE, personality, input, display
+```
+**Do not re-add `delay()` to loop()** — it breaks HTTP response times.
 
 ---
 
@@ -342,14 +361,22 @@ emotionManager.tick(canvas);  // Pass mock, not DisplayManager
 - Enable debug in `DisplayManager::init()` to see I2C scan output
 
 ### Gesture Not Detected
-- Touch on capacitive button (GPIO 3)
-- Check gesture thresholds in `config.h`: `LONG_PRESS_MS`, `DOUBLE_TAP_WINDOW_MS`
+- **Note:** Touch sensor (GPIO 3) is not yet physically wired — gestures won't fire until connected
+- Once wired: check gesture thresholds in `config.h`: `LONG_PRESS_MS`, `DOUBLE_TAP_WINDOW_MS`
 - Verify gesture state machine in `src/input.cpp` with serial debug output
 
 ### BLE Connection Issues
 - Device should advertise as "SANGI" — check serial monitor for "BLE: advertising"
 - Use **nRF Connect** app (free, iOS/Android) to scan and connect
 - Service UUID: `face0001-...`, Characteristic: `face0002-...` (dynamically generated)
+
+### Web UI Not Reachable
+- Connect device to **"SANGI"** WiFi (open network, no password)
+- On phone: when prompted "Network has no internet" → tap **"Use this network anyway"** (iOS/Android route away from APs with no internet by default)
+- Confirm device connected: serial should show `[WEB] heap: XXXX | clients: 1` within 10s
+- Open `http://192.168.4.1` in browser (not https)
+- Serial monitor shows `[WEB] Free heap (post-WiFi): XXXX` on boot — must be > 50000
+- API endpoints: `GET /api/status`, `POST /api/emotion`, `POST /api/gesture`, `GET /api/config`, `POST /api/config`, `POST /api/config/reset`
 
 ---
 

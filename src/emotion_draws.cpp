@@ -238,34 +238,37 @@ void drawConfused(ICanvas& canvas, int frame, const void* ctx) {
 // Phases: furrow (F0-6), hold glare (F7-14), shake (F15-34), intensify (F35-44), settle (F45-55)
 
 void drawAngry(ICanvas& canvas, int frame, const void* ctx) {
+  // Brow geometry: outer(x=18/110) is higher, inner(x=50/78) is lower — angry V shape.
+  // All brow Y coords keep brow bottom pixel ≥ 2px above eye top (eyeY - eyeH/2).
+  // Eye top in hold = 33-6 = 27; brow bottom (inner=20, thick=5) = 24 → 3px gap.
   if (frame < 7) {
-    // Furrow: brows descend, eyes narrow and drop
+    // Furrow: brows descend with eyes, gap maintained throughout
     int eyeH = ease(18, 12, frame, 6);
     int eyeY = ease(30, 33, frame, 6);
     int browThick = ease(2, 5, frame, 6);
     canvas.drawEyes(38, eyeY, 90, eyeY, eyeH);
-    canvas.drawBrow(18, ease(22, 16, frame, 6), 50, ease(28, 24, frame, 6), browThick);
-    canvas.drawBrow(78, ease(28, 24, frame, 6), 110, ease(22, 16, frame, 6), browThick);
+    canvas.drawBrow(18, ease(9, 12, frame, 6), 50, ease(17, 20, frame, 6), browThick);
+    canvas.drawBrow(78, ease(17, 20, frame, 6), 110, ease(9, 12, frame, 6), browThick);
     canvas.fillRoundRect(54, 55, 20, 4, 2, COLOR_WHITE);
   } else if (frame < 15) {
     // Hold glare: max furrow — extended pause builds menace before the explosion
     canvas.drawEyes(38, 33, 90, 33, 12);
-    canvas.drawBrow(18, 16, 50, 24, 5);
-    canvas.drawBrow(78, 24, 110, 16, 5);
+    canvas.drawBrow(18, 12, 50, 20, 5);
+    canvas.drawBrow(78, 20, 110, 12, 5);
     canvas.fillRoundRect(54, 55, 20, 4, 2, COLOR_WHITE);
   } else if (frame < 35) {
     // Shake: ±3px horizontal alternation
     int xOff = ((frame % 2) == 0) ? -3 : 3;
     canvas.drawEyes(38 + xOff, 33, 90 + xOff, 33, 12);
-    canvas.drawBrow(18 + xOff, 16, 50 + xOff, 24, 5);
-    canvas.drawBrow(78 + xOff, 24, 110 + xOff, 16, 5);
+    canvas.drawBrow(18 + xOff, 12, 50 + xOff, 20, 5);
+    canvas.drawBrow(78 + xOff, 20, 110 + xOff, 12, 5);
     canvas.fillRoundRect(54 + xOff, 55, 20, 4, 2, COLOR_WHITE);
   } else if (frame < 45) {
     // Intensify: ±4px shake, brows thicker
     int xOff = ((frame % 2) == 0) ? -4 : 4;
     canvas.drawEyes(38 + xOff, 33, 90 + xOff, 33, 11);
-    canvas.drawBrow(18 + xOff, 15, 50 + xOff, 25, 6);
-    canvas.drawBrow(78 + xOff, 25, 110 + xOff, 15, 6);
+    canvas.drawBrow(18 + xOff, 11, 50 + xOff, 19, 6);
+    canvas.drawBrow(78 + xOff, 19, 110 + xOff, 11, 6);
     canvas.fillRoundRect(54 + xOff, 55, 20, 4, 2, COLOR_WHITE);
   } else {
     // Settle: brows lift, eyes widen back to furrow-start — invisible seam with F0
@@ -273,8 +276,8 @@ void drawAngry(ICanvas& canvas, int frame, const void* ctx) {
     int eyeY = ease(33, 30, frame - 45, 10);
     int browThick = ease(5, 2, frame - 45, 10);
     canvas.drawEyes(38, eyeY, 90, eyeY, eyeH);
-    canvas.drawBrow(18, ease(16, 22, frame - 45, 10), 50, ease(24, 28, frame - 45, 10), browThick);
-    canvas.drawBrow(78, ease(24, 28, frame - 45, 10), 110, ease(16, 22, frame - 45, 10), browThick);
+    canvas.drawBrow(18, ease(12, 9, frame - 45, 10), 50, ease(20, 17, frame - 45, 10), browThick);
+    canvas.drawBrow(78, ease(20, 17, frame - 45, 10), 110, ease(12, 9, frame - 45, 10), browThick);
     canvas.fillRoundRect(54, 54, 20, 4, 2, COLOR_WHITE);
   }
 }
@@ -378,8 +381,8 @@ void drawExcited(ICanvas& canvas, int frame, const void* ctx) {
 }
 
 // ===== 2.10 SLEEPY — drifting off =====
-// 60 frames @ 50ms = 3.0s half-cycle, 6.0s full ping-pong cycle.
-// Phases: closing (F0-10), sleeping/z-cascade (F11-35), micro-stir (F36-42), reopen (F43-59)
+// 59 frames @ 80ms = 4.7s per cycle, LOOP_RESTART.
+// Phases: closing (F0-10), deep sleep/z-cascade (F11-50), fast wake flutter (F51-58)
 
 void drawSleepy(ICanvas& canvas, int frame, const void* ctx) {
   if (frame < 11) {
@@ -393,38 +396,32 @@ void drawSleepy(ICanvas& canvas, int frame, const void* ctx) {
     } else {
       canvas.fillCircle(64, 52, yawnR, COLOR_WHITE);
     }
-  } else if (frame < 36) {
-    // Sleeping: slit eyes, Z cascade builds up
+  } else if (frame < 51) {
+    // Deep sleep: slit eyes held, z's float one-by-one from right eye up-right
     canvas.drawEyes(38, 32, 90, 32, 2);
     canvas.fillCircle(64, 52, 7, COLOR_WHITE);
-    // Z letters float up-right, one new Z added every 5 frames
-    int zCount = (frame - 11) / 5 + 1;
-    if (zCount > 4) zCount = 4;
-    for (int i = 0; i < zCount; i++) {
+    // Each z spawns every 10 frames, travels for 26 frames from above right eye
+    // Start: (96, 20) — clear of eye top at y≈31; End: (114, 4)
+    canvas.setTextColor(COLOR_WHITE);
+    int lf = frame - 11;  // local frame 0-39
+    for (int i = 0; i < 4; i++) {
+      int age = lf - i * 10;
+      if (age < 0 || age >= 26) continue;
+      int x = 96 + (114 - 96) * age / 25;
+      int y = 20 + (4 - 20) * age / 25;
       canvas.setTextSize(1);
-      canvas.setCursor(90 + i * 8, 28 - i * 6);
+      canvas.setCursor(x, y);
       canvas.print("z");
     }
-    // Capital Z at top when cascade is full
-    if (zCount >= 4) {
-      canvas.setTextSize(1);
-      canvas.setCursor(116, 6);
-      canvas.print("Z");
-    }
-  } else if (frame < 43) {
-    // Micro-stir: eyes crack open then close again
-    int stirH = (frame < 39) ? ease(2, 5, frame - 36, 3) : ease(5, 2, frame - 39, 3);
-    canvas.drawEyes(38, 32, 90, 32, stirH);
-    canvas.fillCircle(64, 52, 6, COLOR_WHITE);
   } else {
-    // Reopen: eyes to H=22 (full neutral), yawn shrinks to 0 — clean ping-pong turnaround
-    int eyeH = ease(3, 22, frame - 43, 16);
-    int eyeY = ease(32, 28, frame - 43, 16);
-    int yawnR = ease(7, 0, frame - 43, 16);
+    // Fast wake flutter: rapid blink as SANGI startles awake (8 frames)
+    // Eyes alternate open/close with increasing height, Y springs back to neutral
+    static const int8_t wakeEyeH[8] = {2, 14, 4, 18, 4, 22, 20, 22};
+    int wakeFrame = frame - 51;
+    int eyeH = wakeEyeH[wakeFrame < 8 ? wakeFrame : 7];
+    int eyeY = ease(32, 28, wakeFrame, 7);
     canvas.drawEyes(38, eyeY, 90, eyeY, eyeH);
-    if (yawnR > 0) {
-      canvas.drawCircle(64, 50, yawnR, COLOR_WHITE);
-    }
+    // No yawn — snapped awake
   }
 }
 
@@ -434,45 +431,30 @@ void drawSleepy(ICanvas& canvas, int frame, const void* ctx) {
 
 void drawThinking(ICanvas& canvas, int frame, const void* ctx) {
   if (frame < 7) {
-    // Look up-left: eyes shift -4px X, -4px Y
-    int eyeLX = ease(38, 34, frame, 6);
-    int eyeRX = ease(90, 86, frame, 6);
-    int eyeY = ease(28, 24, frame, 6);
-    canvas.drawEyes(eyeLX, eyeY, eyeRX, eyeY, 20);
+    // Squint: eyes shrink in place
+    int eyeH = ease(20, 14, frame, 6);
+    canvas.drawEyes(38, 28, 90, 28, eyeH);
     canvas.fillRoundRect(58, 53, 12, 4, 2, COLOR_WHITE);
-  } else if (frame < 21) {
-    // Hold: eyes looking up-left, dots appear sequentially
-    canvas.drawEyes(34, 24, 86, 24, 20);
-    canvas.fillRoundRect(56, 53, 12, 4, 2, COLOR_WHITE);
-    // One dot appears every 4 frames
-    int dots = (frame - 7) / 4 + 1;
+  } else if (frame < 35) {
+    // Slow formulation: small eyes, one dot every 9 frames (dots at F7, F16, F25)
+    canvas.drawEyes(38, 28, 90, 28, 14);
+    canvas.fillRoundRect(58, 53, 12, 4, 2, COLOR_WHITE);
+    int dots = (frame - 7) / 9 + 1;
     if (dots > 3) dots = 3;
     for (int i = 0; i < dots; i++) {
       canvas.fillRect(110 + i * 6, 10, 3, 3, COLOR_WHITE);
     }
-  } else if (frame < 29) {
-    // Look up-right: eyes shift +4px X
-    int eyeLX = ease(34, 42, frame - 21, 7);
-    int eyeRX = ease(86, 94, frame - 21, 7);
-    canvas.drawEyes(eyeLX, 24, eyeRX, 24, 20);
+  } else if (frame < 40) {
+    // Aha! Eyes snap open quickly, "!" replaces dots, mouth unchanged
+    int eyeH = ease(14, 26, frame - 35, 4);
+    canvas.drawEyes(38, 28, 90, 28, eyeH);
     canvas.fillRoundRect(58, 53, 12, 4, 2, COLOR_WHITE);
-    canvas.fillRect(110, 10, 3, 3, COLOR_WHITE);
-    canvas.fillRect(116, 10, 3, 3, COLOR_WHITE);
-    canvas.fillRect(122, 10, 3, 3, COLOR_WHITE);
-  } else if (frame < 37) {
-    // Aha! Eyes widen +2, "!" replaces dots
-    int eyeH = ease(20, 22, frame - 29, 4);
-    canvas.drawEyes(42, 24, 94, 24, eyeH);
-    canvas.fillRoundRect(60, 53, 12, 4, 2, COLOR_WHITE);
-    // Exclamation mark
     canvas.fillRect(114, 6, 3, 14, COLOR_WHITE);
     canvas.fillRect(114, 22, 3, 3, COLOR_WHITE);
   } else {
-    // Return to center
-    int eyeLX = ease(42, 38, frame - 37, 6);
-    int eyeRX = ease(94, 90, frame - 37, 6);
-    int eyeY = ease(24, 28, frame - 37, 6);
-    canvas.drawEyes(eyeLX, eyeY, eyeRX, eyeY, 20);
+    // Quick settle: eyes drop back to normal size
+    int eyeH = ease(26, 20, frame - 40, 3);
+    canvas.drawEyes(38, 28, 90, 28, eyeH);
     canvas.fillRoundRect(58, 53, 12, 4, 2, COLOR_WHITE);
   }
 }
@@ -604,5 +586,333 @@ void drawBored(ICanvas& canvas, int frame, const void* ctx) {
     canvas.fillRoundRect(26, 28 - eyeH / 2, 24, eyeH, 7, COLOR_WHITE);
     canvas.fillRoundRect(78, 30 - eyeH / 2, 24, eyeH, 7, COLOR_WHITE);
     canvas.fillRoundRect(57, 53, 14, 4, 2, COLOR_WHITE);
+  }
+}
+
+// ===== 2.15 SHY — bashful recovery after neglect =====
+// 50 frames @ 60ms = 3.0s loop.
+// Phases: startle (F0-7), avert (F8-18), peek (F19-30), warm up (F31-41), linger (F42-49)
+// Visually distinct: asymmetric eye heights (one squinting, one peeking), prominent blush.
+// Eyes fixed at standard positions (38, 90), Y=28. Expression through scale only.
+
+void drawShy(ICanvas& canvas, int frame, const void* ctx) {
+  if (frame < 8) {
+    // Startle: both eyes squeeze shut asymmetrically — left hides more than right
+    int leftH  = ease(22, 4, frame, 7);   // left squints nearly shut
+    int rightH = ease(22, 10, frame, 7);   // right stays half-open (peeking)
+    canvas.fillRoundRect(26, 28 - leftH / 2, 24, leftH, 7, COLOR_WHITE);
+    canvas.fillRoundRect(78, 28 - rightH / 2, 24, rightH, 7, COLOR_WHITE);
+    // Blush starts appearing
+    if (frame >= 4) {
+      int blushR = ease(1, 3, frame - 4, 3);
+      canvas.drawBlush(16, 42, 108, 42, blushR);
+    }
+  } else if (frame < 19) {
+    // Avert: left eye a narrow slit, right eye half-open — bashful squint
+    int leftH  = ease(4, 3, frame - 8, 10);   // left barely open
+    int rightH = ease(10, 12, frame - 8, 10);  // right peeks open a touch more
+    canvas.fillRoundRect(26, 28 - leftH / 2, 24, leftH, 7, COLOR_WHITE);
+    canvas.fillRoundRect(78, 28 - rightH / 2, 24, rightH, 7, COLOR_WHITE);
+    // Full blush, pulses gently
+    int blushR = ((frame % 4) < 2) ? 4 : 5;
+    canvas.drawBlush(16, 42, 108, 42, blushR);
+    // Tiny closed mouth — pressed together nervously
+    canvas.fillRoundRect(60, 53, 8, 3, 2, COLOR_WHITE);
+  } else if (frame < 31) {
+    // Peek: both eyes open further, left catches up — timid glance
+    int f = frame - 19;
+    int leftH  = ease(3, 12, f, 11);    // left cracks open
+    int rightH = ease(12, 18, f, 11);   // right opens wider
+    canvas.fillRoundRect(26, 28 - leftH / 2, 24, leftH, 7, COLOR_WHITE);
+    canvas.fillRoundRect(78, 28 - rightH / 2, 24, rightH, 7, COLOR_WHITE);
+    // Blush steady
+    canvas.drawBlush(16, 42, 108, 42, 5);
+    // Small tentative smile starts forming
+    int mouthW = ease(8, 14, f, 11);
+    int mouthH = ease(3, 4, f, 11);
+    canvas.fillRoundRect(60, 53, mouthW, mouthH, 2, COLOR_WHITE);
+  } else if (frame < 42) {
+    // Warm up: eyes become more symmetric, approaching neutral
+    int f = frame - 31;
+    int leftH  = ease(12, 20, f, 10);   // left nearly matches right
+    int rightH = ease(18, 22, f, 10);   // right reaches full open
+    canvas.fillRoundRect(26, 28 - leftH / 2, 24, leftH, 7, COLOR_WHITE);
+    canvas.fillRoundRect(78, 28 - rightH / 2, 24, rightH, 7, COLOR_WHITE);
+    // Blush fading
+    int blushR = ease(5, 3, f, 10);
+    canvas.drawBlush(16, 42, 108, 42, blushR);
+    // Smile grows warmer
+    int mouthW = ease(14, 18, f, 10);
+    int mouthH = ease(4, 5, f, 10);
+    canvas.fillRoundRect(60, 53, mouthW, mouthH, 3, COLOR_WHITE);
+  } else {
+    // Linger: near-neutral with residual blush — left eye still slightly smaller
+    int f = frame - 42;
+    int leftH  = ease(20, 22, f, 7);
+    int rightH = 22;
+    canvas.fillRoundRect(26, 28 - leftH / 2, 24, leftH, 7, COLOR_WHITE);
+    canvas.fillRoundRect(78, 28 - rightH / 2, 24, rightH, 7, COLOR_WHITE);
+    // Blush lingers softly
+    int blushR = ease(3, 1, f, 7);
+    if (blushR > 0) canvas.drawBlush(16, 42, 108, 42, blushR);
+    // Gentle smile
+    canvas.fillRoundRect(60, 53, 14, 5, 3, COLOR_WHITE);
+  }
+}
+
+// ===== 2.16 NEEDY — pleading solicitation =====
+// 54 frames @ 65ms = 3.5s loop.
+// Phases: swell (F0-14), plead (F15-35), quiver (F36-45), settle (F46-53)
+// Visually distinct: oversized eyes (H=28 at peak, vs 22 normal), pupils looking
+// upward, small open mouth that trembles. No blush — NEEDY is direct, not bashful.
+// Eyes at standard X positions (38, 90). Y shifts up slightly to create "looking up at you."
+
+void drawNeedy(ICanvas& canvas, int frame, const void* ctx) {
+  if (frame < 15) {
+    // Swell: eyes grow from neutral H=22 to oversized H=28, shift up Y=28→25
+    int eyeH = ease(22, 28, frame, 14);
+    int eyeY = ease(28, 25, frame, 14);
+    canvas.drawEyes(38, eyeY, 90, eyeY, eyeH);
+    // Sad mouth fades in — thick downturned arc
+    int mouthW = ease(0, 14, frame, 14);
+    if (mouthW > 4) {
+      int mx = 64 - mouthW / 2;
+      for (int i = 0; i < 3; i++) {
+        canvas.drawLine(mx, 53 + i, 64, 56 + i, COLOR_WHITE);
+        canvas.drawLine(64, 56 + i, mx + mouthW, 53 + i, COLOR_WHITE);
+      }
+    }
+  } else if (frame < 36) {
+    // Plead: eyes pulse H=28→25→28 in slow rhythm
+    int pulseFrame = (frame - 15) % 10;
+    int eyeH;
+    if (pulseFrame < 5) {
+      eyeH = ease(28, 25, pulseFrame, 4);
+    } else {
+      eyeH = ease(25, 28, pulseFrame - 5, 4);
+    }
+    canvas.drawEyes(38, 25, 90, 25, eyeH);
+    // Small highlight dots near top of each eye — catch-light for pleading look
+    canvas.fillCircle(42, 20, 2, COLOR_BLACK);
+    canvas.fillCircle(94, 20, 2, COLOR_BLACK);
+    // Sad mouth — thick downturned arc, quivers slightly
+    int mouthW = ((frame % 6) < 3) ? 14 : 12;
+    int mx = 64 - mouthW / 2;
+    int dip = ((frame % 6) < 3) ? 56 : 55;
+    for (int i = 0; i < 3; i++) {
+      canvas.drawLine(mx, 53 + i, 64, dip + i, COLOR_WHITE);
+      canvas.drawLine(64, dip + i, mx + mouthW, 53 + i, COLOR_WHITE);
+    }
+  } else if (frame < 46) {
+    // Quiver: eyes tremble — height jitters between 27 and 28
+    int eyeH = ((frame % 2) == 0) ? 28 : 27;
+    canvas.drawEyes(38, 25, 90, 25, eyeH);
+    canvas.fillCircle(42, 20, 2, COLOR_BLACK);
+    canvas.fillCircle(94, 20, 2, COLOR_BLACK);
+    // Mouth quivers — thick
+    int dip = ((frame % 2) == 0) ? 56 : 55;
+    for (int i = 0; i < 3; i++) {
+      canvas.drawLine(57, 53 + i, 64, dip + i, COLOR_WHITE);
+      canvas.drawLine(64, dip + i, 71, 53 + i, COLOR_WHITE);
+    }
+  } else {
+    // Settle: eyes ease back toward neutral H=28→22, Y=25→28
+    int f = frame - 46;
+    int eyeH = ease(28, 22, f, 7);
+    int eyeY = ease(25, 28, f, 7);
+    canvas.drawEyes(38, eyeY, 90, eyeY, eyeH);
+    // Mouth fades out — thick
+    int mouthW = ease(14, 0, f, 7);
+    if (mouthW > 4) {
+      int mx = 64 - mouthW / 2;
+      for (int i = 0; i < 3; i++) {
+        canvas.drawLine(mx, 53 + i, 64, 56 + i, COLOR_WHITE);
+        canvas.drawLine(64, 56 + i, mx + mouthW, 53 + i, COLOR_WHITE);
+      }
+    }
+  }
+}
+
+// ===== 2.18 PLAYFUL — mischievous invitation =====
+// 48 frames @ 40ms = 1.92s loop, LOOP_RESTART.
+// Signature: left eye half-squinted (H=10) vs right eye open (H=22) — asymmetric play-face.
+// Grin shifted 5px right of face center (center at x=69 vs face center x=64).
+// Wink at F9-23 (left eye closes to H=2, holds, reopens). Invitation bob at F24-37.
+// vs HAPPY:    asymmetric + no blush — mischievous grin, not warm centered smile.
+// vs THINKING: THINKING narrows both eyes, turns inward; PLAYFUL directs outward with open right eye.
+// vs EXCITED:  no pupils, no sharp alternation — beckoning, not overwhelmed.
+
+// Draws the PLAYFUL asymmetric grin with thickness lines.
+// Left corner at (lx, ly), right corner raised to (rx, ly-rise).
+// A two-segment line — left half rises from corner to center, right half continues rising.
+static void drawPlayfulGrin(ICanvas& c, int lx, int rx, int ly, int rise, int thick) {
+  int cx = (lx + rx) / 2;
+  int cy = ly - rise / 2;   // midpoint Y — halfway up the rise
+  for (int i = 0; i < thick; i++) {
+    c.drawLine(lx, ly + i, cx, cy + i, COLOR_WHITE);   // left half: corner → mid
+    c.drawLine(cx, cy + i, rx, (ly - rise) + i, COLOR_WHITE);  // right half: mid → raised corner
+  }
+}
+
+void drawPlayful(ICanvas& canvas, int frame, const void* ctx) {
+  if (frame < 9) {
+    // Build: left squints H=22→10, right stays open H=22; asymmetric grin grows
+    int leftH  = ease(22, 10, frame, 8);
+    int mouthW = ease(4, 24, frame, 8);
+    int rise   = mouthW * 6 / 24;  // right corner rises proportionally (0→6px)
+    canvas.fillRoundRect(26, 28 - leftH / 2, 24, leftH, 7, COLOR_WHITE);
+    canvas.fillRoundRect(78, 17,             24, 22,    7, COLOR_WHITE);
+    drawPlayfulGrin(canvas, 64 - mouthW / 2, 64 + mouthW / 2, 58, rise, 3);
+  } else if (frame < 24) {
+    // Wink: left closes F9-13, held shut F14-15, reopens F16-23
+    int leftH;
+    if (frame < 14) {
+      leftH = ease(10, 2, frame - 9, 4);
+    } else if (frame < 16) {
+      leftH = 2;
+    } else {
+      leftH = ease(2, 10, frame - 16, 7);
+    }
+    canvas.fillRoundRect(26, 28 - leftH / 2, 24, leftH, 7, COLOR_WHITE);
+    canvas.fillRoundRect(78, 17,              24, 22,    7, COLOR_WHITE);
+    // Asymmetric grin: left corner y=58, right corner raised to y=52 (+6px)
+    drawPlayfulGrin(canvas, 52, 76, 58, 6, 3);
+  } else if (frame < 38) {
+    // Bounce: play-bow bob ±2px, asymmetric grin held
+    int yOff = ((frame - 24) % 6 < 3) ? -2 : 0;
+    canvas.fillRoundRect(26, 28 + yOff - 5,  24, 10, 7, COLOR_WHITE);
+    canvas.fillRoundRect(78, 28 + yOff - 11, 24, 22, 7, COLOR_WHITE);
+    drawPlayfulGrin(canvas, 52, 76, 58 + yOff, 6, 3);
+  } else {
+    // Settle: left eye H=10→22, grin shrinks W=24→4 — invisible seam back to F0
+    int f      = frame - 38;
+    int leftH  = ease(10, 22, f, 9);
+    int mouthW = ease(24, 4, f, 9);
+    int rise   = mouthW * 6 / 24;
+    canvas.fillRoundRect(26, 28 - leftH / 2, 24, leftH, 7, COLOR_WHITE);
+    canvas.fillRoundRect(78, 17,             24, 22,    7, COLOR_WHITE);
+    drawPlayfulGrin(canvas, 64 - mouthW / 2, 64 + mouthW / 2, 58, rise, 3);
+  }
+}
+
+// ===== 2.19 GRUMPY — low-level flat disapproval =====
+// 56 frames @ 45ms = ~2.5s loop, LOOP_PINGPONG.
+// Phases: furrow (F0-8), stare (F9-16), slow bilateral squint (F17-48), settle (F49-55)
+// Mouth: flattened downturned frown — 3px drop, not a sharp V.
+// Signature beat: both eyes slowly squint H=10→4 and reopen over 32 frames (~675ms each way).
+// No pupils. No asymmetry. Just slow, heavy, unimpressed judgment.
+
+static void drawGrumpyFrown(ICanvas& c) {
+  // Flattened downturned frown: 3px drop (corners y=57, center y=54)
+  for (int i = 0; i < 3; i++) {
+    c.drawLine(54, 57 + i, 64, 54 + i, COLOR_WHITE);  // left corner → center
+    c.drawLine(64, 54 + i, 74, 57 + i, COLOR_WHITE);  // center → right corner
+  }
+}
+
+void drawGrumpy(ICanvas& canvas, int frame, const void* ctx) {
+  if (frame < 9) {
+    // Furrow: flat brows lower Y=9→15, eyes narrow H=22→10, frown fades in
+    int eyeH  = ease(22, 10, frame, 8);
+    int eyeY  = ease(28, 30, frame, 8);
+    int browY = ease(9, 15, frame, 8);
+    int browT = ease(2, 3, frame, 8);
+    canvas.drawEyes(38, eyeY, 90, eyeY, eyeH);
+    canvas.drawBrow(18, browY, 50, browY, browT);   // flat — both endpoints same Y
+    canvas.drawBrow(78, browY, 110, browY, browT);
+    if (frame >= 5) drawGrumpyFrown(canvas);
+
+  } else if (frame < 17) {
+    // Hold stare: heavy brows just above half-lidded H=10 eyes — unmoving disapproval
+    canvas.drawEyes(38, 30, 90, 30, 10);
+    canvas.drawBrow(18, 15, 50, 15, 3);
+    canvas.drawBrow(78, 15, 110, 15, 3);
+    drawGrumpyFrown(canvas);
+
+  } else if (frame < 49) {
+    // Slow bilateral squint: 15 frames closing + 2 hold + 15 reopening = 32 frames
+    // At 45ms/frame: ~675ms to close, ~675ms to reopen
+    int sqF  = frame - 17;
+    int eyeH;
+    if (sqF < 15)      eyeH = ease(10, 7, sqF, 14);
+    else if (sqF < 17) eyeH = 7;
+    else               eyeH = ease(7, 10, sqF - 17, 14);
+    canvas.drawEyes(38, 30, 90, 30, eyeH);
+    canvas.drawBrow(18, 15, 50, 15, 3);
+    canvas.drawBrow(78, 15, 110, 15, 3);
+    drawGrumpyFrown(canvas);
+
+  } else {
+    // Settle: brows ease back Y=15→9, eyes widen H=10→22 — clean pingpong seam with F0
+    int sF    = frame - 49;
+    int eyeH  = ease(10, 22, sF, 6);
+    int eyeY  = ease(30, 28, sF, 6);
+    int browY = ease(15, 9, sF, 6);
+    int browT = ease(3, 2, sF, 6);
+    canvas.drawEyes(38, eyeY, 90, eyeY, eyeH);
+    canvas.drawBrow(18, browY, 50, browY, browT);
+    canvas.drawBrow(78, browY, 110, browY, browT);
+    drawGrumpyFrown(canvas);
+  }
+}
+
+// ===== 2.17 CONTENT — quiet satisfaction =====
+// 60 frames @ 90ms = 5.4s loop, LOOP_PINGPONG.
+// The purring state. Distinct from HAPPY (no bounce, no sparkles) and BORED (not disengaged).
+// vs BORED: eyes more open (H=14 vs 8), no head tilt, wide smile, gentle blush pulse.
+// vs HAPPY: no bounce, no sparkles, slower tempo — settled warmth, not excitement.
+// Phases: settle (F0-14), deep content (F15-40), slow blink (F41-48), warm hold (F49-59)
+
+void drawContent(ICanvas& canvas, int frame, const void* ctx) {
+  if (frame < 15) {
+    // Settle: eyes ease from neutral to relaxed H=14, Y drifts slightly
+    int eyeH = ease(22, 14, frame, 14);
+    int eyeY = ease(28, 29, frame, 14);
+    canvas.drawEyes(38, eyeY, 90, eyeY, eyeH);
+    // Smile grows — wide, gentle, closed-mouth curve
+    int mouthW = ease(14, 28, frame, 14);
+    int mouthH = ease(5, 7, frame, 14);
+    canvas.fillRoundRect(64 - mouthW / 2, 51, mouthW, mouthH, 4, COLOR_WHITE);
+    // Blush fades in — warmth signal
+    if (frame >= 6) {
+      int blushR = ease(1, 4, frame - 6, 8);
+      canvas.drawBlush(18, 44, 110, 44, blushR);
+    }
+  } else if (frame < 41) {
+    // Deep content: relaxed eyes with slow breathing bob (Y oscillates 29→28→29)
+    int breathCycle = (frame - 15) % 13;
+    int eyeY;
+    if (breathCycle < 7) {
+      eyeY = ease(29, 28, breathCycle, 6);
+    } else {
+      eyeY = ease(28, 29, breathCycle - 7, 5);
+    }
+    canvas.drawEyes(38, eyeY, 90, eyeY, 14);
+    // Wide gentle smile held steady
+    canvas.fillRoundRect(50, 51, 28, 7, 4, COLOR_WHITE);
+    // Blush pulses gently — like a purr rhythm
+    int blushR = ((frame % 8) < 4) ? 4 : 5;
+    canvas.drawBlush(18, 44, 110, 44, blushR);
+  } else if (frame < 49) {
+    // Slow trust-blink: eyes close gently then reopen
+    int blinkFrame = frame - 41;
+    int eyeH;
+    if (blinkFrame < 4) {
+      eyeH = ease(14, 3, blinkFrame, 3);  // close
+    } else {
+      eyeH = ease(3, 14, blinkFrame - 4, 3);  // reopen
+    }
+    canvas.drawEyes(38, 29, 90, 29, eyeH);
+    canvas.fillRoundRect(50, 51, 28, 7, 4, COLOR_WHITE);
+    canvas.drawBlush(18, 44, 110, 44, 4);
+  } else {
+    // Warm hold: eyes relax slightly more, smile softens — seamless loop point
+    int eyeH = ease(14, 16, frame - 49, 10);
+    int mouthW = ease(28, 24, frame - 49, 10);
+    canvas.drawEyes(38, 29, 90, 29, eyeH);
+    canvas.fillRoundRect(64 - mouthW / 2, 51, mouthW, 7, 4, COLOR_WHITE);
+    // Blush gently fading toward loop seam
+    int blushR = ease(4, 3, frame - 49, 10);
+    canvas.drawBlush(18, 44, 110, 44, blushR);
   }
 }

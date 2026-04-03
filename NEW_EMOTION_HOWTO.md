@@ -20,13 +20,15 @@ Add your emotion before `EMOTION_GITHUB_STATS`:
 
 **File: `src/emotion_draws.cpp`**
 
+**Important:** Keep eye and mouth base coordinates fixed across all frames. Only animate shape, size, or curvature — never shift x/y positions. Translating features between frames causes visible jitter that looks like a deformity on the small OLED.
+
 ```cpp
 void drawDizzy(ICanvas& canvas, int frame, const void* ctx) {
-  // Spiral eyes + wobbling
-  int wobble = (frame % 10) - 5;
-  canvas.drawEyes(40 + wobble, 28, 88 - wobble, 28, 18);
-  canvas.drawCircle(40 + wobble, 28, 6, COLOR_WHITE);
-  canvas.drawCircle(88 - wobble, 28, 6, COLOR_WHITE);
+  // Spiral eyes — fixed position, animate the spiral radius
+  int spiralR = 3 + (frame % 10);
+  canvas.drawEyes(40, 28, 88, 28, 18);
+  canvas.drawCircle(40, 28, spiralR, COLOR_WHITE);
+  canvas.drawCircle(88, 28, spiralR, COLOR_WHITE);
   canvas.drawMouth(52, 50, 24, 5);
 }
 ```

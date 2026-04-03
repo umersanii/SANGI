@@ -1,11 +1,11 @@
 # SANGI: Autonomous Emotion Robot
 
 [![Status](https://img.shields.io/badge/status-v1%20complete-brightgreen)](https://github.com/umersanii/SANGI)
-[![Tests](https://img.shields.io/badge/tests-37%2F37%20passing-brightgreen)](./test/)
+[![Tests](https://img.shields.io/badge/tests-96%2F96%20passing-brightgreen)](./test/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](#license)
 [![Platform](https://img.shields.io/badge/platform-ESP32--C3-orange)](#hardware)
 
-**A cute, standalone robot with animated expressions, personality-driven behavior, BLE control, and touch gestures—no WiFi required.**
+**A cute, standalone robot with animated expressions, personality-driven behavior, BLE control, and WiFi web UI—no internet required.**
 
 ---
 
@@ -29,11 +29,11 @@
 
 SANGI is a **fully autonomous ESP32-C3 robot** with an animated OLED face that:
 
-- Expresses 14 different emotions with smooth animations
-- Responds to touch with smart gesture recognition (tap, long-press, double-tap)
+- Expresses 18 different emotions with smooth animations
 - Has personality that evolves over time based on neglect and time of day
-- Works offline with optional BLE remote control
+- Works offline with optional BLE remote control and WiFi web UI
 - Runs forever on battery with zero external dependencies
+- Touch gestures and mic reaction — *planned, not yet wired*
 
 Perfect for a desk companion, IoT learning project, or just fun robot hacking.
 
@@ -41,7 +41,7 @@ Perfect for a desk companion, IoT learning project, or just fun robot hacking.
 
 ## Features
 
-### 14 Animated Emotions
+### 18 Animated Emotions
 
 <table>
 <tr>
@@ -49,23 +49,24 @@ Perfect for a desk companion, IoT learning project, or just fun robot hacking.
 <td>😄 HAPPY</td>
 <td>😴 SLEEPY</td>
 <td>😲 EXCITED</td>
-</tr>
-<tr>
 <td>😢 SAD</td>
 <td>😠 ANGRY</td>
-<td>🤔 THINKING</td>
-<td>😕 CONFUSED</td>
 </tr>
 <tr>
+<td>🤔 THINKING</td>
+<td>😕 CONFUSED</td>
 <td>💕 LOVE</td>
-<td>😲 SURPRISED</td>
+<td>😮 SURPRISED</td>
 <td>💀 DEAD</td>
 <td>😑 BORED</td>
 </tr>
 <tr>
 <td>😳 SHY</td>
+<td>🥺 NEEDY</td>
+<td>😌 CONTENT</td>
+<td>😉 PLAYFUL</td>
+<td>😒 GRUMPY</td>
 <td>⚡ BLINK</td>
-<td colspan="2"></td>
 </tr>
 </table>
 
@@ -79,7 +80,7 @@ Perfect for a desk companion, IoT learning project, or just fun robot hacking.
 | Touch Recovery | Touch during neglect → bashful SHY → happy recovery |
 | Jittered Timing | All intervals ±20% variance for realistic behavior |
 
-### Gesture Recognition
+### Gesture Recognition *(planned — touch sensor not yet wired)*
 
 - TAP (< 600ms) → Shows HAPPY
 - LONG PRESS (≥ 600ms) → Shows LOVE
@@ -97,9 +98,11 @@ Perfect for a desk companion, IoT learning project, or just fun robot hacking.
 - No network, no cloud, no internet required
 - Autonomous personality cycling
 - Local BLE for control
-- Touch interaction
+- WiFi AP web UI at 192.168.4.1
 - Battery voltage monitoring
 - Audio feedback via speaker
+- Touch interaction — *planned*
+- Microphone input — *planned*
 
 ---
 
@@ -142,9 +145,9 @@ Battery: 4.15V | Emotion: IDLE | Uptime: 0s
 
 ### Verify It Works
 
-- Touch the sensor → Robot shows HAPPY
-- Hold for 600ms → Robot shows LOVE
-- Double tap → Robot shows EXCITED
+- OLED should display the IDLE face
+- Use BLE (nRF Connect) or WiFi web UI at `http://192.168.4.1` to change emotions
+- Touch gestures require the sensor to be wired first *(planned)*
 
 ---
 
@@ -159,9 +162,10 @@ Battery: 4.15V | Emotion: IDLE | Uptime: 0s
 |-----------|------|----------------|
 | Microcontroller | ESP32-C3 | — |
 | Display | SSD1306 OLED 128×64 (I2C) | GPIO 6 (SDA), GPIO 7 (SCL) |
-| Touch Sensor | Capacitive button | GPIO 3 |
 | Battery ADC | Voltage monitoring | GPIO 2 |
 | Speaker | PWM beeper | GPIO 10 |
+| Touch Sensor *(planned)* | Capacitive button | GPIO 3 |
+| Microphone *(planned)* | SparkFun Electret Breakout | TBD |
 
 ### Wiring
 
@@ -172,10 +176,6 @@ GPIO 7 (SCL) → SCL
 GND → GND
 3V3 → VCC
 
-ESP32-C3 → Touch Sensor
-GPIO 3 → Touch input
-GND → GND
-
 ESP32-C3 → Speaker
 GPIO 10 → Positive lead
 GND → Negative lead
@@ -183,15 +183,26 @@ GND → Negative lead
 ESP32-C3 → Battery
 GPIO 2 (ADC) → Positive terminal (voltage divider recommended)
 GND → Negative terminal
+
+--- Planned (not yet wired) ---
+
+ESP32-C3 → Touch Sensor
+GPIO 3 → Touch input
+GND → GND
+
+ESP32-C3 → Microphone (SparkFun Electret Breakout)
+TBD (ADC pin) → AUD
+GND → GND
+3V3 → VCC
 ```
 
 ---
 
 ## Usage
 
-### Via Touch Gestures (Default)
+### Via Touch Gestures *(planned — hardware not yet wired)*
 
-Simply interact with the capacitive touch sensor:
+Firmware is ready; connect a capacitive touch sensor to GPIO 3 to enable:
 
 ```
 Quick tap (< 600ms)          → HAPPY 😄
@@ -229,7 +240,7 @@ When `DEBUG_MODE_ENABLED` is set, the robot displays a fixed emotion and ignores
 
 ## Testing
 
-Run all 37 native unit tests (no hardware needed):
+Run all 96 native unit tests (no hardware needed):
 
 ```bash
 platformio test -e native
@@ -279,7 +290,7 @@ SANGI/
 │   ├── main.cpp              # Orchestration (wires modules, callbacks)
 │   ├── emotion.cpp           # State machine
 │   ├── emotion_registry.cpp  # Registry lookup
-│   ├── emotion_draws.cpp     # 14 emotion animations (51 frames each)
+│   ├── emotion_draws.cpp     # 18 emotion animations (51 frames each)
 │   ├── animations.cpp        # Generic frame-based ticker
 │   ├── display.cpp           # OLED rendering
 │   ├── battery.cpp           # ADC voltage reading
@@ -301,7 +312,7 @@ SANGI/
 │   ├── canvas.h              # ICanvas interface
 │   └── personality.h         # Personality engine class
 ├── test/
-│   ├── test_sangi.cpp        # 37 unit tests
+│   ├── test_sangi.cpp        # 96 unit tests
 │   ├── mock_canvas.h         # Mock display for testing
 │   └── arduino_stub/         # Arduino API stubs (millis, Serial, GPIO)
 ├── platformio.ini
@@ -393,5 +404,5 @@ MIT License — See [LICENSE](./LICENSE) for details.
 
 ---
 
-**Status:** v1 Complete — Tested on hardware, all 37 tests passing.
+**Status:** v1 Complete — Tested on hardware, all 96 tests passing.
 

@@ -1,4 +1,5 @@
 #include "speaker.h"
+#include "runtime_config.h"
 #include <Arduino.h>
 
 BeepManager beepManager;
@@ -87,8 +88,33 @@ static const BeepTone PATTERN_BORED[] = {
   {400, 300}, {0, 200}, {300, 400}
 };
 
+static const BeepTone PATTERN_NEEDY[] = {
+  {700, 150}, {0, 80},   // rising whimper
+  {900, 180}, {0, 100},
+  {700, 150}, {0, 80},
+  {900, 220}             // held plea
+};
+
+static const BeepTone PATTERN_CONTENT[] = {
+  {440, 200}, {0, 150},   // warm hum
+  {460, 250}               // slightly higher, held — purr
+};
+
+static const BeepTone PATTERN_PLAYFUL[] = {
+  {900, 70},  {0, 30},    // chirp
+  {1100, 70}, {0, 30},    // chirp up
+  {900, 70},  {0, 30},    // back down
+  {1200, 120}             // inviting held note
+};
+
+static const BeepTone PATTERN_GRUMPY[] = {
+  {320, 200}, {0, 60},    // low flat grumble
+  {260, 280}              // lower held note — dismissive exhale
+};
+
 // ===== BEEP MANAGER IMPLEMENTATION =====
 
+// Initializes beep state machine fields to idle; hardware setup is deferred to init().
 BeepManager::BeepManager()
   : currentPattern(nullptr),
     patternLength(0),
@@ -98,53 +124,78 @@ BeepManager::BeepManager()
     isTonePlaying(false) {
 }
 
+static const BeepTone PATTERN_STARTUP[] = {
+  {523, 100}, {0, 40},   // C5
+  {659, 100}, {0, 40},   // E5
+  {784, 100}, {0, 40},   // G5
+  {1047, 200}            // C6
+};
+
+// Configures the LEDC PWM channel and plays the startup C major arpeggio tone sequence.
 void BeepManager::init() {
-  // Configure PWM for speaker on GPIO 9
   ledcSetup(SPEAKER_CHANNEL, SPEAKER_BASE_FREQ, SPEAKER_RESOLUTION);
   ledcAttachPin(SPEAKER_PIN, SPEAKER_CHANNEL);
   ledcWrite(SPEAKER_CHANNEL, 0); // Start silent
-  Serial.println("🔊 BeepManager initialized on GPIO 9");
+
+  // Startup test tone — C major arpeggio
+  Serial.println("[SPEAKER] Playing startup tone...");
+  for (int i = 0; i < (int)(sizeof(PATTERN_STARTUP) / sizeof(BeepTone)); i++) {
+    int freq = PATTERN_STARTUP[i].frequency;
+    int dur  = PATTERN_STARTUP[i].duration;
+    if (freq > 0) {
+      Serial.printf("[SPEAKER] tone %dHz for %dms\n", freq, dur);
+      ledcWriteTone(SPEAKER_CHANNEL, freq);
+      ledcWrite(SPEAKER_CHANNEL, runtimeConfig.speakerVolume);
+    } else {
+      Serial.printf("[SPEAKER] silence %dms\n", dur);
+      ledcWrite(SPEAKER_CHANNEL, 0);
+    }
+    delay(dur);
+  }
+  ledcWrite(SPEAKER_CHANNEL, 0);
+  Serial.printf("[SPEAKER] init done — GPIO %d, volume %d/255\n", SPEAKER_PIN, runtimeConfig.speakerVolume);
 }
 
+// Advances the non-blocking beep state machine; moves to the next tone when the current duration elapses.
 void BeepManager::update() {
   if (!isActive || currentPattern == nullptr) {
     return;
   }
-  
+
   unsigned long currentTime = millis();
-  
+
   // Handle millis() overflow (49 days)
   if (currentTime < toneStartTime) {
     toneStartTime = currentTime;
     return;
   }
-  
+
   // Check if current tone duration has elapsed
   if (currentTime - toneStartTime >= (unsigned long)currentPattern[currentToneIndex].duration) {
     // Stop current tone
     ledcWrite(SPEAKER_CHANNEL, 0);
-    
+
     // Move to next tone
     currentToneIndex++;
-    
+
     // Check if pattern is complete
     if (currentToneIndex >= patternLength) {
       stopCurrentBeep();
       return;
     }
-    
+
     // Start next tone
     int frequency = currentPattern[currentToneIndex].frequency;
     if (frequency > 0) {
       ledcWriteTone(SPEAKER_CHANNEL, frequency);
-      ledcWrite(SPEAKER_CHANNEL, SPEAKER_VOLUME); // Configurable volume to prevent power issues
+      ledcWrite(SPEAKER_CHANNEL, runtimeConfig.speakerVolume); // Configurable volume to prevent power issues
       isTonePlaying = true;
     } else {
       // Silence (frequency = 0)
       ledcWrite(SPEAKER_CHANNEL, 0);
       isTonePlaying = false;
     }
-    
+
     toneStartTime = currentTime;
   }
 }
@@ -171,35 +222,43 @@ static const EmotionPattern EMOTION_PATTERNS[] = {
   PATTERN_ENTRY(EMOTION_SURPRISED, PATTERN_SURPRISED),
   PATTERN_ENTRY(EMOTION_DEAD, PATTERN_DEAD),
   PATTERN_ENTRY(EMOTION_BORED, PATTERN_BORED),
+  PATTERN_ENTRY(EMOTION_NEEDY, PATTERN_NEEDY),
+  PATTERN_ENTRY(EMOTION_CONTENT, PATTERN_CONTENT),
+  PATTERN_ENTRY(EMOTION_PLAYFUL, PATTERN_PLAYFUL),
+  PATTERN_ENTRY(EMOTION_GRUMPY, PATTERN_GRUMPY),
 };
 static const int NUM_PATTERNS = sizeof(EMOTION_PATTERNS) / sizeof(EmotionPattern);
 
+// Looks up the beep pattern for the given emotion and starts playback. No-ops if already active or BLINK.
 void BeepManager::queueEmotionBeep(EmotionState emotion) {
   if (isActive) return;
   if (emotion == EMOTION_BLINK) return;  // No sound for blink
 
   for (int i = 0; i < NUM_PATTERNS; i++) {
     if (EMOTION_PATTERNS[i].emotion == emotion) {
+      Serial.printf("[SPEAKER] beep for emotion %d (%d tones)\n", emotion, EMOTION_PATTERNS[i].length);
       startBeep(EMOTION_PATTERNS[i].pattern, EMOTION_PATTERNS[i].length);
       return;
     }
   }
   // Fallback to idle pattern
+  Serial.printf("[SPEAKER] no pattern for emotion %d, using idle fallback\n", emotion);
   startBeep(PATTERN_IDLE, sizeof(PATTERN_IDLE) / sizeof(BeepTone));
 }
 
+// Begins playback of the given tone pattern; starts the first tone immediately.
 void BeepManager::startBeep(const BeepTone* pattern, int patternLength) {
   currentPattern = pattern;
   this->patternLength = patternLength;
   currentToneIndex = 0;
   toneStartTime = millis();
   isActive = true;
-  
+
   // Start first tone
   int frequency = currentPattern[0].frequency;
   if (frequency > 0) {
     ledcWriteTone(SPEAKER_CHANNEL, frequency);
-    ledcWrite(SPEAKER_CHANNEL, SPEAKER_VOLUME); // Configurable volume to prevent power issues
+    ledcWrite(SPEAKER_CHANNEL, runtimeConfig.speakerVolume); // Configurable volume to prevent power issues
     isTonePlaying = true;
   } else {
     ledcWrite(SPEAKER_CHANNEL, 0);
@@ -207,6 +266,7 @@ void BeepManager::startBeep(const BeepTone* pattern, int patternLength) {
   }
 }
 
+// Stops all PWM output and resets the beep state machine to idle.
 void BeepManager::stopCurrentBeep() {
   ledcWrite(SPEAKER_CHANNEL, 0);
   currentPattern = nullptr;

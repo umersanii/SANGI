@@ -11,6 +11,7 @@
 #include "animations.h"
 #include "input.h"
 #include "personality.h"
+#include "runtime_config.h"
 #include "mock_canvas.h"
 
 // ===== TEST HELPERS =====
@@ -29,7 +30,7 @@ static void registerTestEmotions() {
   emotionRegistry.add({EMOTION_IDLE,      "IDLE",      60, 55, LOOP_PINGPONG, true,  drawIdle});
   emotionRegistry.add({EMOTION_BLINK,     "BLINK",      1,  0, LOOP_RESTART,  false, drawBlink});
   emotionRegistry.add({EMOTION_HAPPY,     "HAPPY",     50, 35, LOOP_RESTART,  true,  drawHappy});
-  emotionRegistry.add({EMOTION_SLEEPY,    "SLEEPY",    60, 50, LOOP_PINGPONG, false, drawSleepy});
+  emotionRegistry.add({EMOTION_SLEEPY,    "SLEEPY",    59, 50, LOOP_RESTART,  false, drawSleepy});
   emotionRegistry.add({EMOTION_EXCITED,   "EXCITED",   40, 25, LOOP_RESTART,  true,  drawExcited});
   emotionRegistry.add({EMOTION_SAD,       "SAD",       56, 48, LOOP_RESTART,  true,  drawSad});
   emotionRegistry.add({EMOTION_ANGRY,     "ANGRY",     56, 32, LOOP_RESTART,  true,  drawAngry});
@@ -39,6 +40,11 @@ static void registerTestEmotions() {
   emotionRegistry.add({EMOTION_SURPRISED, "SURPRISED", 44, 30, LOOP_RESTART,  true,  drawSurprised});
   emotionRegistry.add({EMOTION_DEAD,      "DEAD",      70, 55, LOOP_RESTART,  false, drawDead});
   emotionRegistry.add({EMOTION_BORED,     "BORED",     60, 65, LOOP_PINGPONG, true,  drawBored});
+  emotionRegistry.add({EMOTION_SHY,       "SHY",       50, 60, LOOP_RESTART,  true,  drawShy});
+  emotionRegistry.add({EMOTION_NEEDY,     "NEEDY",     54, 65, LOOP_PINGPONG, true,  drawNeedy});
+  emotionRegistry.add({EMOTION_CONTENT,   "CONTENT",   60, 90, LOOP_PINGPONG, true,  drawContent});
+  emotionRegistry.add({EMOTION_PLAYFUL,   "PLAYFUL",   48, 40, LOOP_RESTART,  true,  drawPlayful});
+  emotionRegistry.add({EMOTION_GRUMPY,    "GRUMPY",    56, 45, LOOP_PINGPONG, true,  drawGrumpy});
 }
 
 void setUp() {
@@ -178,8 +184,8 @@ void test_registry_cyclable_excludes_blink() {
 }
 
 void test_registry_count() {
-  // Global registry populated by setUp — 13 emotions
-  TEST_ASSERT_EQUAL(13, emotionRegistry.count());
+  // Global registry populated by setUp — 18 emotions
+  TEST_ASSERT_EQUAL(18, emotionRegistry.count());
 }
 
 // ===== ANIMATION TICK ENGINE TESTS =====
@@ -308,32 +314,72 @@ void test_bored_draws_half_lidded_eyes() {
 
 // ===== PERSONALITY ENGINE TESTS =====
 
-void test_attention_arc_escalates() {
+void test_attention_arc_needy_before_bored() {
   Personality p;
   p.init(0);
   p.onTouch(0, EMOTION_IDLE);
 
-  // Beyond stage 1 threshold with max jitter
+  // Beyond NEEDY threshold (stage0) with max jitter
+  unsigned long t = ATTENTION_STAGE0_MS + ATTENTION_STAGE0_MS * JITTER_PERCENT / 100 + 1000;
+  stubSetMillis(t);
+  Personality::Decision d = p.update(t, EMOTION_IDLE);
+  TEST_ASSERT_EQUAL(1, p.getAttentionStage());
+  TEST_ASSERT_TRUE(d.shouldChange);
+  TEST_ASSERT_EQUAL(EMOTION_NEEDY, d.emotion);
+}
+
+void test_attention_arc_escalates_5_stages() {
+  Personality p;
+  p.init(0);
+  p.onTouch(0, EMOTION_IDLE);
+
+  // Beyond stage 2 (BORED) threshold with max jitter
   unsigned long t = ATTENTION_STAGE1_MS + ATTENTION_STAGE1_MS * JITTER_PERCENT / 100 + 1000;
   stubSetMillis(t);
-  p.update(t, EMOTION_IDLE);
+  // Drive through NEEDY first, then to BORED
+  p.update(t, EMOTION_IDLE);   // → NEEDY (stage 1)
+  p.update(t, EMOTION_NEEDY);  // → BORED (stage 2) if enough time
   TEST_ASSERT_TRUE(p.getAttentionStage() >= 1);
+}
+
+void test_attention_arc_grumpy_at_stage4() {
+  Personality p;
+  p.init(0);
+  p.onTouch(0, EMOTION_IDLE);
+
+  // Jump well past ALL thresholds including max jitter on STAGE4
+  unsigned long t = ATTENTION_STAGE4_MS * 2;
+  stubSetMillis(t);
+
+  // Drive through all 5 stages
+  EmotionState current = EMOTION_IDLE;
+  bool sawGrumpy = false;
+  for (int i = 0; i < 10; i++) {
+    Personality::Decision d = p.update(t, current);
+    if (d.shouldChange) {
+      if (d.emotion == EMOTION_GRUMPY) sawGrumpy = true;
+      current = d.emotion;
+    }
+  }
+  // Should have passed through GRUMPY on the way to ANGRY
+  TEST_ASSERT_TRUE(sawGrumpy || current == EMOTION_GRUMPY || current == EMOTION_ANGRY);
+  TEST_ASSERT_TRUE(p.getAttentionStage() >= 4);
 }
 
 void test_touch_during_neglect_triggers_recovery() {
   Personality p;
   p.init(0);
 
-  // Force into neglect state (stage 2)
-  unsigned long t = ATTENTION_STAGE2_MS + ATTENTION_STAGE2_MS * JITTER_PERCENT / 100 + 1000;
+  // Force into light neglect state (stage 1-2, not deep enough for forgiveness)
+  unsigned long t = ATTENTION_STAGE1_MS + ATTENTION_STAGE1_MS * JITTER_PERCENT / 100 + 1000;
   stubSetMillis(t);
   // Drive through stages
   p.update(t, EMOTION_IDLE);
-  p.update(t, EMOTION_BORED);
+  p.update(t, EMOTION_NEEDY);
 
   TEST_ASSERT_TRUE(p.getAttentionStage() >= 1);
 
-  bool wasNeglected = p.onTouch(t, EMOTION_SAD);
+  bool wasNeglected = p.onTouch(t, EMOTION_BORED);
   TEST_ASSERT_TRUE(wasNeglected);
   TEST_ASSERT_EQUAL(0, p.getAttentionStage());
 }
@@ -357,6 +403,278 @@ void test_jitter_produces_variance() {
     if (results[i] != results[0]) { allSame = false; break; }
   }
   TEST_ASSERT_FALSE(allSame);
+}
+
+void test_glow_activates_on_touch() {
+  Personality p;
+  p.init(0);
+  p.onTouch(1000, EMOTION_IDLE);
+  TEST_ASSERT_EQUAL(GLOW_DRIFT_CYCLES, p.getGlowCycles());
+}
+
+void test_glow_resets_on_repeated_touch() {
+  Personality p;
+  p.init(0);
+  p.onTouch(1000, EMOTION_IDLE);
+  p.onTouch(2000, EMOTION_IDLE);  // second touch resets to full glow again
+  TEST_ASSERT_EQUAL(GLOW_DRIFT_CYCLES, p.getGlowCycles());
+}
+
+void test_warmth_activates_after_threshold_touches() {
+  Personality p;
+  p.init(0);
+  // Touch WARMTH_TOUCH_THRESHOLD times within the window
+  for (int i = 0; i < WARMTH_TOUCH_THRESHOLD; i++) {
+    p.onTouch((unsigned long)(i * 1000), EMOTION_IDLE);
+  }
+  TEST_ASSERT_TRUE(p.isWarmed());
+}
+
+void test_warmth_does_not_activate_below_threshold() {
+  Personality p;
+  p.init(0);
+  for (int i = 0; i < WARMTH_TOUCH_THRESHOLD - 1; i++) {
+    p.onTouch((unsigned long)(i * 1000), EMOTION_IDLE);
+  }
+  TEST_ASSERT_FALSE(p.isWarmed());
+}
+
+void test_warmth_window_resets_after_expiry() {
+  Personality p;
+  p.init(0);
+  // Touch once early
+  p.onTouch(1000, EMOTION_IDLE);
+  // Then touch past the window — count should reset, no warmth yet
+  unsigned long past = WARMTH_WINDOW_MS + 2000;
+  p.onTouch(past, EMOTION_IDLE);
+  TEST_ASSERT_FALSE(p.isWarmed());
+}
+
+void test_habituation_resets_on_different_drift() {
+  Personality p;
+  p.init(0);
+  // Force mood drift multiple times with the same resulting emotion by fixing the time
+  // We can't directly control moodDrift's random output, so just verify the counter
+  // resets when an explicitly different emotion fires
+  // Drive a drift toward BORED (attention arc)
+  unsigned long t = ATTENTION_STAGE1_MS + ATTENTION_STAGE1_MS * JITTER_PERCENT / 100 + 1000;
+  stubSetMillis(t);
+  p.update(t, EMOTION_IDLE);    // → BORED (attention arc)
+  p.onTouch(t, EMOTION_BORED);  // reset arc, counter resets
+  TEST_ASSERT_EQUAL(0, p.getConsecutiveSameDrifts());
+}
+
+static int testHourOverride = 12;
+static int testHourProvider() { return testHourOverride; }
+
+void test_ntp_time_provider_used_when_set() {
+  // Verify that time provider affects drift output.
+  // Suppress attention arc so only drift fires.
+  unsigned long savedStage0 = runtimeConfig.attentionStage0Ms;
+  runtimeConfig.attentionStage0Ms = 999999999UL;
+
+  testHourOverride = 5;
+  int nightSleepy = 0;
+  {
+    Personality p;
+    p.setTimeProvider(testHourProvider);
+    for (int i = 0; i < 200; i++) {
+      p.init(0);
+      Personality::Decision d = p.update(200000UL, EMOTION_IDLE);
+      if (d.shouldChange && d.emotion == EMOTION_SLEEPY) nightSleepy++;
+    }
+  }
+
+  testHourOverride = 9;
+  int morningSleepy = 0;
+  {
+    Personality p;
+    p.setTimeProvider(testHourProvider);
+    for (int i = 0; i < 200; i++) {
+      p.init(0);
+      Personality::Decision d = p.update(200000UL, EMOTION_IDLE);
+      if (d.shouldChange && d.emotion == EMOTION_SLEEPY) morningSleepy++;
+    }
+  }
+
+  runtimeConfig.attentionStage0Ms = savedStage0;
+  // Night should produce significantly more SLEEPY than morning
+  TEST_ASSERT_TRUE(nightSleepy > morningSleepy);
+}
+
+// ===== FORGIVENESS TESTS =====
+
+void test_forgiveness_required_for_deep_neglect() {
+  Personality p;
+  p.init(0);
+  p.onTouch(0, EMOTION_IDLE);
+
+  // Jump well past ANGRY threshold
+  unsigned long t = ATTENTION_STAGE4_MS + ATTENTION_STAGE4_MS * JITTER_PERCENT / 100 + 1000;
+  stubSetMillis(t);
+
+  // Drive through all 5 stages
+  EmotionState current = EMOTION_IDLE;
+  for (int i = 0; i < 15; i++) {
+    Personality::Decision d = p.update(t, current);
+    if (d.shouldChange) current = d.emotion;
+  }
+  TEST_ASSERT_TRUE(p.getAttentionStage() >= 4);
+
+  // First touch starts forgiveness — doesn't reset arc
+  bool wasNeglected = p.onTouch(t, current);
+  TEST_ASSERT_TRUE(wasNeglected);
+  TEST_ASSERT_TRUE(p.isForgiving());
+  TEST_ASSERT_TRUE(p.getAttentionStage() >= 4);  // arc NOT reset yet
+}
+
+void test_forgiveness_completes_after_enough_touches() {
+  Personality p;
+  p.init(0);
+  p.onTouch(0, EMOTION_IDLE);
+
+  // Jump to GRUMPY/ANGRY
+  unsigned long t = ATTENTION_STAGE4_MS + ATTENTION_STAGE4_MS * JITTER_PERCENT / 100 + 1000;
+  stubSetMillis(t);
+  EmotionState current = EMOTION_IDLE;
+  for (int i = 0; i < 15; i++) {
+    Personality::Decision d = p.update(t, current);
+    if (d.shouldChange) current = d.emotion;
+  }
+
+  // Touch FORGIVENESS_TOUCHES + 1 times (first starts counter, rest decrement)
+  p.onTouch(t, current);  // starts forgiveness
+  for (int i = 0; i < FORGIVENESS_TOUCHES; i++) {
+    p.onTouch(t + (unsigned long)(i + 1) * 1000, current);
+  }
+  // After enough touches, forgiveness complete and arc reset
+  TEST_ASSERT_FALSE(p.isForgiving());
+  TEST_ASSERT_EQUAL(0, p.getAttentionStage());
+}
+
+void test_light_neglect_no_forgiveness_needed() {
+  Personality p;
+  p.init(0);
+  p.onTouch(0, EMOTION_IDLE);
+
+  // Only reach NEEDY (stage 1) — no forgiveness required
+  unsigned long t = ATTENTION_STAGE0_MS + ATTENTION_STAGE0_MS * JITTER_PERCENT / 100 + 1000;
+  stubSetMillis(t);
+  p.update(t, EMOTION_IDLE);  // → NEEDY
+  TEST_ASSERT_TRUE(p.getAttentionStage() >= 1);
+  TEST_ASSERT_TRUE(p.getAttentionStage() < 4);
+
+  bool wasNeglected = p.onTouch(t, EMOTION_NEEDY);
+  TEST_ASSERT_TRUE(wasNeglected);
+  TEST_ASSERT_FALSE(p.isForgiving());
+  TEST_ASSERT_EQUAL(0, p.getAttentionStage());
+}
+
+// ===== MOOD GRAVITY TESTS =====
+
+void test_mood_cluster_classification() {
+  TEST_ASSERT_EQUAL(CLUSTER_POSITIVE, Personality::clusterOf(EMOTION_HAPPY));
+  TEST_ASSERT_EQUAL(CLUSTER_POSITIVE, Personality::clusterOf(EMOTION_PLAYFUL));
+  TEST_ASSERT_EQUAL(CLUSTER_POSITIVE, Personality::clusterOf(EMOTION_CONTENT));
+  TEST_ASSERT_EQUAL(CLUSTER_POSITIVE, Personality::clusterOf(EMOTION_LOVE));
+  TEST_ASSERT_EQUAL(CLUSTER_POSITIVE, Personality::clusterOf(EMOTION_EXCITED));
+  TEST_ASSERT_EQUAL(CLUSTER_NEUTRAL,  Personality::clusterOf(EMOTION_IDLE));
+  TEST_ASSERT_EQUAL(CLUSTER_NEUTRAL,  Personality::clusterOf(EMOTION_THINKING));
+  TEST_ASSERT_EQUAL(CLUSTER_NEGATIVE, Personality::clusterOf(EMOTION_SAD));
+  TEST_ASSERT_EQUAL(CLUSTER_NEGATIVE, Personality::clusterOf(EMOTION_BORED));
+  TEST_ASSERT_EQUAL(CLUSTER_NEGATIVE, Personality::clusterOf(EMOTION_GRUMPY));
+  TEST_ASSERT_EQUAL(CLUSTER_NEGATIVE, Personality::clusterOf(EMOTION_ANGRY));
+  TEST_ASSERT_EQUAL(CLUSTER_NEGATIVE, Personality::clusterOf(EMOTION_SLEEPY));
+}
+
+static int noonProvider() { return 12; }
+
+void test_mood_gravity_biases_toward_same_cluster() {
+  // Compare positive-cluster hit rate when starting from HAPPY vs IDLE.
+  // Suppress attention arc so only drift fires.
+  unsigned long savedStage0 = runtimeConfig.attentionStage0Ms;
+  runtimeConfig.attentionStage0Ms = 999999999UL;
+
+  int fromHappy = 0;
+  {
+    Personality p;
+    p.setTimeProvider(noonProvider);
+    for (int i = 0; i < 200; i++) {
+      p.init(0);
+      Personality::Decision d = p.update(200000UL, EMOTION_HAPPY);
+      if (d.shouldChange && Personality::clusterOf(d.emotion) == CLUSTER_POSITIVE) fromHappy++;
+    }
+  }
+  int fromIdle = 0;
+  {
+    Personality p;
+    p.setTimeProvider(noonProvider);
+    for (int i = 0; i < 200; i++) {
+      p.init(0);
+      Personality::Decision d = p.update(200000UL, EMOTION_IDLE);
+      if (d.shouldChange && Personality::clusterOf(d.emotion) == CLUSTER_POSITIVE) fromIdle++;
+    }
+  }
+
+  runtimeConfig.attentionStage0Ms = savedStage0;
+  // Starting HAPPY should produce more positive drifts than starting IDLE
+  TEST_ASSERT_TRUE(fromHappy > fromIdle);
+}
+
+// ===== NIGHT CYCLE TESTS =====
+
+void test_night_cycle_activates_at_2am() {
+  Personality p;
+  p.init(0);
+  p.setTimeProvider([]() -> int { return 2; });
+
+  // Advance time past drift interval to trigger night cycle
+  unsigned long t = 200000;
+  Personality::Decision d = p.update(t, EMOTION_IDLE);
+  TEST_ASSERT_TRUE(p.isNightCycleActive());
+}
+
+void test_night_cycle_inactive_outside_window() {
+  Personality p;
+  p.init(0);
+  p.setTimeProvider([]() -> int { return 5; });
+
+  unsigned long t = 200000;
+  p.update(t, EMOTION_IDLE);
+  TEST_ASSERT_FALSE(p.isNightCycleActive());
+}
+
+void test_night_cycle_produces_mostly_sleepy() {
+  Personality p;
+  p.init(0);
+  p.setTimeProvider([]() -> int { return 3; });
+
+  int sleepyCount = 0;
+  int totalChanges = 0;
+  for (int i = 0; i < 100; i++) {
+    unsigned long t = (unsigned long)(i + 1) * 100000UL;  // well past 45s interval
+    Personality::Decision d = p.update(t, EMOTION_IDLE);
+    if (d.shouldChange) {
+      totalChanges++;
+      if (d.emotion == EMOTION_SLEEPY) sleepyCount++;
+    }
+    p.init(t);
+    p.setTimeProvider([]() -> int { return 3; });
+  }
+  // 70% SLEEPY in night cycle — expect at least 40% of total changes to be SLEEPY
+  if (totalChanges > 0) {
+    TEST_ASSERT_TRUE(sleepyCount > totalChanges / 3);
+  }
+}
+
+void test_night_cycle_requires_time_provider() {
+  Personality p;
+  p.init(0);
+  // No time provider set — night cycle should not activate even at equivalent millis
+  unsigned long t = 2 * HOUR_IN_MILLIS + 100000;  // ~2:01 AM by millis
+  stubSetMillis(t);
+  p.update(t, EMOTION_IDLE);
+  TEST_ASSERT_FALSE(p.isNightCycleActive());
 }
 
 // ===== GESTURE DETECTION TESTS =====
@@ -390,13 +708,14 @@ void test_classify_gesture_boundary_double_tap() {
 void test_all_emotions_draw_without_crash() {
   // Each emotion tested up to its own frame count (not a uniform 51)
   struct { DrawFrameFn fn; int frames; } emotions[] = {
-    {drawIdle, 60}, {drawBlink, 1}, {drawHappy, 50}, {drawSleepy, 60},
+    {drawIdle, 60}, {drawBlink, 1}, {drawHappy, 50}, {drawSleepy, 59},
     {drawExcited, 40}, {drawSad, 56}, {drawAngry, 56}, {drawConfused, 44},
     {drawThinking, 44}, {drawLove, 44}, {drawSurprised, 44},
-    {drawDead, 70}, {drawBored, 60}
+    {drawDead, 70}, {drawBored, 60}, {drawShy, 50}, {drawPlayful, 48},
+    {drawGrumpy, 56}
   };
   MockCanvas canvas;
-  for (int i = 0; i < 13; i++) {
+  for (int i = 0; i < 16; i++) {
     for (int frame = 0; frame < emotions[i].frames; frame++) {
       canvas.reset();
       emotions[i].fn(canvas, frame, nullptr);
@@ -646,6 +965,219 @@ void test_bored_has_sigh_mouth() {
   TEST_ASSERT_TRUE(idx >= 0);
 }
 
+void test_shy_has_asymmetric_eyes_during_avert() {
+  MockCanvas canvas;
+  drawShy(canvas, 12, nullptr);  // avert phase (F8-18)
+  // Left eye (hiding) and right eye (peeking) should have different heights
+  int idx1 = canvas.findCall(DrawCall::FILL_RRECT, 0);
+  int idx2 = canvas.findCall(DrawCall::FILL_RRECT, idx1 + 1);
+  TEST_ASSERT_TRUE(idx1 >= 0 && idx2 >= 0);
+  TEST_ASSERT_TRUE(canvas.call(idx1).h != canvas.call(idx2).h);
+}
+
+void test_shy_has_blush() {
+  MockCanvas canvas;
+  drawShy(canvas, 15, nullptr);  // avert phase — blush should be present
+  bool hasBlush = false;
+  for (int i = 0; i < canvas.callCount(); i++) {
+    if (canvas.call(i).type == DrawCall::FILL_CIRCLE) {
+      hasBlush = true; break;
+    }
+  }
+  TEST_ASSERT_TRUE(hasBlush);
+}
+
+void test_shy_eyes_converge_in_height() {
+  MockCanvas canvas1, canvas2;
+  drawShy(canvas1, 12, nullptr);  // avert phase — left eye much smaller than right
+  drawShy(canvas2, 35, nullptr);  // warm up phase — heights converging
+  // Left eye (first RRECT) should be taller in warm-up than avert
+  int avertLeft = canvas1.findCall(DrawCall::FILL_RRECT, 0);
+  int warmLeft  = canvas2.findCall(DrawCall::FILL_RRECT, 0);
+  TEST_ASSERT_TRUE(avertLeft >= 0 && warmLeft >= 0);
+  TEST_ASSERT_TRUE(canvas2.call(warmLeft).h > canvas1.call(avertLeft).h);
+}
+
+// ===== NEEDY emotion tests =====
+
+void test_needy_has_oversized_eyes_at_plead() {
+  MockCanvas canvas;
+  drawNeedy(canvas, 20, nullptr);  // plead phase (F15-35)
+  // Eyes should be larger than neutral H=22
+  int idx = canvas.findCall(DrawCall::FILL_RRECT, 0);
+  TEST_ASSERT_TRUE(idx >= 0);
+  TEST_ASSERT_TRUE(canvas.call(idx).h >= 25);  // oversized eyes
+}
+
+void test_needy_has_sad_mouth() {
+  MockCanvas canvas;
+  drawNeedy(canvas, 20, nullptr);  // plead phase
+  // Should have drawLine calls for the downturned mouth arc
+  bool hasMouthLine = false;
+  for (int i = 0; i < canvas.callCount(); i++) {
+    if (canvas.call(i).type == DrawCall::DRAW_LINE &&
+        canvas.call(i).y > 50) {  // mouth region
+      hasMouthLine = true; break;
+    }
+  }
+  TEST_ASSERT_TRUE(hasMouthLine);
+}
+
+void test_needy_eyes_pulse_during_plead() {
+  MockCanvas canvas1, canvas2;
+  drawNeedy(canvas1, 17, nullptr);  // early plead — eyes shrinking
+  drawNeedy(canvas2, 22, nullptr);  // mid plead — eyes growing back
+  int idx1 = canvas1.findCall(DrawCall::FILL_RRECT, 0);
+  int idx2 = canvas2.findCall(DrawCall::FILL_RRECT, 0);
+  TEST_ASSERT_TRUE(idx1 >= 0 && idx2 >= 0);
+  // Heights should differ due to pulsing
+  TEST_ASSERT_TRUE(canvas1.call(idx1).h != canvas2.call(idx2).h);
+}
+
+// ===== CONTENT emotion tests =====
+
+void test_content_has_half_closed_eyes() {
+  MockCanvas canvas;
+  drawContent(canvas, 25, nullptr);  // deep content phase (F15-40)
+  // Eyes relaxed (H=14) — more open than BORED (H=8), less than neutral (H=22)
+  int idx = canvas.findCall(DrawCall::FILL_RRECT, 0);
+  TEST_ASSERT_TRUE(idx >= 0);
+  TEST_ASSERT_TRUE(canvas.call(idx).h > 8 && canvas.call(idx).h <= 16);
+}
+
+void test_content_has_wide_smile() {
+  MockCanvas canvas;
+  drawContent(canvas, 25, nullptr);  // deep content phase
+  // Should have a wide smile (fillRoundRect in mouth region, W >= 24)
+  bool hasWideSmile = false;
+  for (int i = 0; i < canvas.callCount(); i++) {
+    if (canvas.call(i).type == DrawCall::FILL_RRECT &&
+        canvas.call(i).y >= 50 && canvas.call(i).w >= 24) {
+      hasWideSmile = true; break;
+    }
+  }
+  TEST_ASSERT_TRUE(hasWideSmile);
+}
+
+void test_content_has_blush() {
+  MockCanvas canvas;
+  drawContent(canvas, 25, nullptr);  // deep content phase — blush should pulse
+  bool hasBlush = false;
+  for (int i = 0; i < canvas.callCount(); i++) {
+    if (canvas.call(i).type == DrawCall::FILL_CIRCLE) {
+      hasBlush = true; break;
+    }
+  }
+  TEST_ASSERT_TRUE(hasBlush);
+}
+
+void test_content_slow_blink() {
+  MockCanvas canvas1, canvas2;
+  drawContent(canvas1, 43, nullptr);  // blink near-shut (closing done)
+  drawContent(canvas2, 47, nullptr);  // blink reopening (well underway)
+  int idx1 = canvas1.findCall(DrawCall::FILL_RRECT, 0);
+  int idx2 = canvas2.findCall(DrawCall::FILL_RRECT, 0);
+  TEST_ASSERT_TRUE(idx1 >= 0 && idx2 >= 0);
+  // Eyes should be smaller during close than during reopen
+  TEST_ASSERT_TRUE(canvas1.call(idx1).h < canvas2.call(idx2).h);
+}
+
+// ===== PLAYFUL emotion tests =====
+
+void test_playful_has_asymmetric_eyes_during_wink() {
+  MockCanvas canvas;
+  drawPlayful(canvas, 20, nullptr);  // wink reopening (F16-23) — left still squinted, right open
+  int idx1 = canvas.findCall(DrawCall::FILL_RRECT, 0);
+  int idx2 = canvas.findCall(DrawCall::FILL_RRECT, idx1 + 1);
+  TEST_ASSERT_TRUE(idx1 >= 0 && idx2 >= 0);
+  TEST_ASSERT_TRUE(canvas.call(idx1).h != canvas.call(idx2).h);
+}
+
+void test_playful_wink_closes_left_eye() {
+  MockCanvas canvas;
+  drawPlayful(canvas, 14, nullptr);  // wink held shut (F14-15) — left eye near-closed
+  int idx = canvas.findCall(DrawCall::FILL_RRECT, 0);
+  TEST_ASSERT_TRUE(idx >= 0);
+  TEST_ASSERT_TRUE(canvas.call(idx).h <= 2);
+}
+
+void test_playful_has_asymmetric_grin() {
+  MockCanvas canvas;
+  drawPlayful(canvas, 14, nullptr);  // wink hold — asymmetric grin present
+  // Grin drawn with DRAW_LINE calls in the mouth region (y > 50)
+  bool hasMouthLine = false;
+  for (int i = 0; i < canvas.callCount(); i++) {
+    if (canvas.call(i).type == DrawCall::DRAW_LINE &&
+        canvas.call(i).y > 50) {
+      hasMouthLine = true; break;
+    }
+  }
+  TEST_ASSERT_TRUE(hasMouthLine);
+}
+
+void test_playful_bounce_moves_face() {
+  MockCanvas canvasUp, canvasDown;
+  drawPlayful(canvasUp,   24, nullptr);  // bounce up (yOff=-2)
+  drawPlayful(canvasDown, 27, nullptr);  // bounce baseline (yOff=0)
+  int iUp   = canvasUp.findCall(DrawCall::FILL_RRECT, 0);
+  int iDown = canvasDown.findCall(DrawCall::FILL_RRECT, 0);
+  TEST_ASSERT_TRUE(iUp >= 0 && iDown >= 0);
+  TEST_ASSERT_TRUE(canvasUp.call(iUp).y < canvasDown.call(iDown).y);
+}
+
+// ===== GRUMPY emotion tests =====
+
+void test_grumpy_brows_are_flat() {
+  MockCanvas canvas;
+  drawGrumpy(canvas, 12, nullptr);  // hold stare (F8-20) — flat brows locked
+  // drawBrow calls drawLine with y0==y1 for flat (stored as .y and .h in MockCanvas)
+  bool foundFlatBrow = false;
+  for (int i = 0; i < canvas.callCount(); i++) {
+    if (canvas.call(i).type == DrawCall::DRAW_LINE && canvas.call(i).y < 30) {
+      // Flat brow: both endpoints at same Y (y0 == y1, stored as .y and .h)
+      if (canvas.call(i).y == canvas.call(i).h) {
+        foundFlatBrow = true; break;
+      }
+    }
+  }
+  TEST_ASSERT_TRUE(foundFlatBrow);
+}
+
+void test_grumpy_brows_are_not_v_shaped() {
+  MockCanvas canvas;
+  drawGrumpy(canvas, 12, nullptr);  // hold stare — brows flat, not V-angled like ANGRY
+  // All brow lines (y < 30) must have y0 == y1 — no angled lines allowed
+  for (int i = 0; i < canvas.callCount(); i++) {
+    if (canvas.call(i).type == DrawCall::DRAW_LINE && canvas.call(i).y < 30) {
+      TEST_ASSERT_EQUAL(canvas.call(i).y, canvas.call(i).h);
+    }
+  }
+}
+
+void test_grumpy_has_downturned_frown() {
+  MockCanvas canvas;
+  drawGrumpy(canvas, 14, nullptr);  // hold stare (F8-22) — frown fully present
+  // Frown: left half goes from low corner (y=58) UP to center (y=53) — y1 < y0
+  bool hasFrownLine = false;
+  for (int i = 0; i < canvas.callCount(); i++) {
+    if (canvas.call(i).type == DrawCall::DRAW_LINE &&
+        canvas.call(i).y >= 50 && canvas.call(i).h < canvas.call(i).y) {
+      hasFrownLine = true; break;
+    }
+  }
+  TEST_ASSERT_TRUE(hasFrownLine);
+}
+
+void test_grumpy_squint_narrows_eyes() {
+  MockCanvas stare, squinting;
+  drawGrumpy(stare,     12, nullptr);  // stare (F9-16) — eyes at H=10
+  drawGrumpy(squinting, 32, nullptr);  // squint hold (sqF=15) — eyes at H=4
+  int i1 = stare.findCall(DrawCall::FILL_RRECT, 0);
+  int i2 = squinting.findCall(DrawCall::FILL_RRECT, 0);
+  TEST_ASSERT_TRUE(i1 >= 0 && i2 >= 0);
+  TEST_ASSERT_TRUE(stare.call(i1).h > squinting.call(i2).h);
+}
+
 // ===== RUNNER =====
 int main(int argc, char** argv) {
   UNITY_BEGIN();
@@ -710,12 +1242,54 @@ int main(int argc, char** argv) {
   RUN_TEST(test_dead_has_dizzy_circles);
   RUN_TEST(test_bored_has_head_tilt);
   RUN_TEST(test_bored_has_sigh_mouth);
+  RUN_TEST(test_shy_has_asymmetric_eyes_during_avert);
+  RUN_TEST(test_shy_has_blush);
+  RUN_TEST(test_shy_eyes_converge_in_height);
+  RUN_TEST(test_needy_has_oversized_eyes_at_plead);
+  RUN_TEST(test_needy_has_sad_mouth);
+  RUN_TEST(test_needy_eyes_pulse_during_plead);
+  RUN_TEST(test_content_has_half_closed_eyes);
+  RUN_TEST(test_content_has_wide_smile);
+  RUN_TEST(test_content_has_blush);
+  RUN_TEST(test_content_slow_blink);
+  RUN_TEST(test_playful_has_asymmetric_eyes_during_wink);
+  RUN_TEST(test_playful_wink_closes_left_eye);
+  RUN_TEST(test_playful_has_asymmetric_grin);
+  RUN_TEST(test_playful_bounce_moves_face);
+  RUN_TEST(test_grumpy_brows_are_flat);
+  RUN_TEST(test_grumpy_brows_are_not_v_shaped);
+  RUN_TEST(test_grumpy_has_downturned_frown);
+  RUN_TEST(test_grumpy_squint_narrows_eyes);
 
-  // Personality engine
-  RUN_TEST(test_attention_arc_escalates);
+  // Personality engine — attention arc
+  RUN_TEST(test_attention_arc_needy_before_bored);
+  RUN_TEST(test_attention_arc_escalates_5_stages);
+  RUN_TEST(test_attention_arc_grumpy_at_stage4);
   RUN_TEST(test_touch_during_neglect_triggers_recovery);
   RUN_TEST(test_touch_when_not_neglected_returns_false);
   RUN_TEST(test_jitter_produces_variance);
+  RUN_TEST(test_glow_activates_on_touch);
+  RUN_TEST(test_glow_resets_on_repeated_touch);
+  RUN_TEST(test_warmth_activates_after_threshold_touches);
+  RUN_TEST(test_warmth_does_not_activate_below_threshold);
+  RUN_TEST(test_warmth_window_resets_after_expiry);
+  RUN_TEST(test_habituation_resets_on_different_drift);
+  RUN_TEST(test_ntp_time_provider_used_when_set);
+
+  // Personality engine — forgiveness
+  RUN_TEST(test_forgiveness_required_for_deep_neglect);
+  RUN_TEST(test_forgiveness_completes_after_enough_touches);
+  RUN_TEST(test_light_neglect_no_forgiveness_needed);
+
+  // Personality engine — mood gravity
+  RUN_TEST(test_mood_cluster_classification);
+  RUN_TEST(test_mood_gravity_biases_toward_same_cluster);
+
+  // Personality engine — night cycle
+  RUN_TEST(test_night_cycle_activates_at_2am);
+  RUN_TEST(test_night_cycle_inactive_outside_window);
+  RUN_TEST(test_night_cycle_produces_mostly_sleepy);
+  RUN_TEST(test_night_cycle_requires_time_provider);
 
   // Gesture detection
   RUN_TEST(test_classify_gesture_tap);

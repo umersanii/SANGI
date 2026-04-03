@@ -4,6 +4,17 @@ All notable changes to the SANGI robot project.
 
 ## [Unreleased]
 
+### Planned: AI Personality Engine
+- Replace rule-based `PersonalityEngine` with a small trained ML model
+- **Approach**: micromlgen Random Forest → single `.h` C array, ~6 KB flash, ~300 B RAM, zero new deps
+- **Training**: Synthetic data generated from existing personality rules, later replaced with real usage logs
+- **Input features**: time_idle, current_emotion, interaction_count, time_of_day_bucket, battery_level
+- **Goal**: Emergent behavior — emotional inertia, context sensitivity, per-device individuality
+- Attention arc narrative (BORED→SAD→CONFUSED→ANGRY) to be explicitly encoded in training data
+- See `docs/ARCHITECTURE.md` "Planned: AI Personality Engine" section for full spec
+
+
+
 ### Added
 - **NEW: Wireless Serial Logging (Native ESP32)** (2025-10-29)
   - **Built-in MQTT Serial Logging** - No USB or PC bridge required
