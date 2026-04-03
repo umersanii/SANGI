@@ -226,9 +226,6 @@ void setup() {
                 emotionRegistry.getName(DEBUG_MODE_EMOTION));
   emotionManager.setTargetEmotion(DEBUG_MODE_EMOTION);
 #endif
-#else
-  displayManager.drawEmotionFace(emotionManager.getCurrentEmotion());
-  delay(1500);
 #endif
 
   Serial.printf("=== SANGI Ready! (%d emotions registered) ===\n",

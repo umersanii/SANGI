@@ -31,7 +31,7 @@ public:
   bool init();
   void scanI2C();
   void showBootScreen();
-  void drawBatSignal();
+  void drawBootFace();
 
   // --- ICanvas pure-virtual implementations ---
   void clear() override;

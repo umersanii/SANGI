@@ -49,88 +49,89 @@ void DisplayManager::scanI2C() {
   }
 }
 
-// Draws the Batman logo using filled triangles, circles, and rectangles centered on the display.
-void DisplayManager::drawBatSignal() {
-  display.clearDisplay();
-
-  // Batman signal - centered with sharp, angular wings
-  // Center point for the bat (x=64, y=32)
-  int cx = 64;
-  int cy = 32;
-
-  // Top bat ears (sharp pointed)
-  display.fillTriangle(cx - 5, cy - 14, cx - 1, cy - 6, cx - 9, cy - 6, SSD1306_WHITE);
-  display.fillTriangle(cx + 5, cy - 14, cx + 1, cy - 6, cx + 9, cy - 6, SSD1306_WHITE);
-
-  // Bat head/body center
-  display.fillCircle(cx, cy - 4, 6, SSD1306_WHITE);
-  display.fillRect(cx - 6, cy - 4, 12, 14, SSD1306_WHITE);
-
-  // LEFT WING - sharp angular design
-  // Upper wing sweep with sharp tip
-  display.fillTriangle(cx - 6, cy - 2, cx - 54, cy - 16, cx - 50, cy + 2, SSD1306_WHITE);
-  display.fillTriangle(cx - 6, cy - 2, cx - 50, cy + 2, cx - 44, cy - 4, SSD1306_WHITE);
-
-  // Middle wing section with sharp scallop
-  display.fillTriangle(cx - 6, cy + 2, cx - 50, cy + 2, cx - 46, cy + 12, SSD1306_WHITE);
-  display.fillTriangle(cx - 6, cy + 2, cx - 46, cy + 12, cx - 38, cy + 8, SSD1306_WHITE);
-
-  // Lower wing with sharp point
-  display.fillTriangle(cx - 6, cy + 8, cx - 38, cy + 8, cx - 32, cy + 18, SSD1306_WHITE);
-  display.fillTriangle(cx - 6, cy + 8, cx - 32, cy + 18, cx - 24, cy + 14, SSD1306_WHITE);
-
-  // RIGHT WING - sharp angular design (mirrored)
-  // Upper wing sweep with sharp tip
-  display.fillTriangle(cx + 6, cy - 2, cx + 54, cy - 16, cx + 50, cy + 2, SSD1306_WHITE);
-  display.fillTriangle(cx + 6, cy - 2, cx + 50, cy + 2, cx + 44, cy - 4, SSD1306_WHITE);
-
-  // Middle wing section with sharp scallop
-  display.fillTriangle(cx + 6, cy + 2, cx + 50, cy + 2, cx + 46, cy + 12, SSD1306_WHITE);
-  display.fillTriangle(cx + 6, cy + 2, cx + 46, cy + 12, cx + 38, cy + 8, SSD1306_WHITE);
-
-  // Lower wing with sharp point
-  display.fillTriangle(cx + 6, cy + 8, cx + 38, cy + 8, cx + 32, cy + 18, SSD1306_WHITE);
-  display.fillTriangle(cx + 6, cy + 8, cx + 32, cy + 18, cx + 24, cy + 14, SSD1306_WHITE);
-
-  // Bottom center points (3 sharp points)
-  display.fillTriangle(cx - 16, cy + 10, cx - 12, cy + 22, cx - 6, cy + 10, SSD1306_WHITE);
-  display.fillTriangle(cx - 3, cy + 10, cx, cy + 24, cx + 3, cy + 10, SSD1306_WHITE);
-  display.fillTriangle(cx + 6, cy + 10, cx + 12, cy + 22, cx + 16, cy + 10, SSD1306_WHITE);
-
-  display.display();
+// Draws the confused awake face used as the held final boot frame.
+void DisplayManager::drawBootFace() {
+  this->clear();
+  // Left eye tall (wide awake), right eye squinting (still half-asleep)
+  this->fillRoundRect(26, 9,  24, 26, 7, COLOR_WHITE);   // left: tall
+  this->fillRoundRect(78, 23, 24, 12, 7, COLOR_WHITE);   // right: squat
+  // Small flat neutral mouth
+  this->drawMouth(60, 53, 12, 4);
+  // "?" drifting up top-right
+  this->setTextColor(COLOR_WHITE);
+  this->setTextSize(1);
+  this->setCursor(110, 8);
+  this->print("?");
+  this->flush();
 }
 
-// Plays the flicker-and-hold boot animation: two quick bat signal flashes then a 3-second hold.
+// Waking-up boot animation:
+//   Phase 0 — black (300ms)
+//   Phase 1 — slit eyes, no mouth (asleep, 600ms)
+//   Phase 2 — flutter x2 (stirring, ~580ms)
+//   Phase 3 — eyes ease open unevenly, groggy (6 steps, ~360ms)
+//   Phase 4 — hold confused face + "?" appears (900ms)
 void DisplayManager::showBootScreen() {
-  // Flicker effect - black screen first, then bat signal twice
+  // Phase 0: black
+  this->clear();
+  this->flush();
+  delay(300);
 
-  // First flicker: black -> bat -> black
-  display.clearDisplay();
-  display.display();
-  delay(80);
+  // Phase 1: asleep — slit eyes, no mouth
+  this->clear();
+  this->drawEyes(38, 32, 90, 32, 2);
+  this->flush();
+  delay(600);
 
-  drawBatSignal();
-  delay(120);
+  // Phase 2: stir — flutter twice
+  for (int i = 0; i < 2; i++) {
+    this->clear();
+    this->drawEyes(38, 31, 90, 31, 10);
+    this->flush();
+    delay(140);
 
-  display.clearDisplay();
-  display.display();
-  delay(500);
+    this->clear();
+    this->drawEyes(38, 32, 90, 32, 2);
+    this->flush();
+    delay(150);
+  }
 
-  // Second flicker: black -> bat -> black
-  display.clearDisplay();
-  display.display();
-  delay(80);
+  // Phase 3: open unevenly — left opens fast (→H=26), right drags behind (→H=12)
+  for (int step = 1; step <= 6; step++) {
+    int leftH  = 2 + (24 * step / 6);   // 2 → 26
+    int leftY  = 22 - leftH / 2;
+    int rightH = 2 + (10 * step / 6);   // 2 → 12
+    int rightY = 29 - rightH / 2;
+    this->clear();
+    this->fillRoundRect(26, leftY,  24, leftH,  7, COLOR_WHITE);
+    this->fillRoundRect(78, rightY, 24, rightH, 7, COLOR_WHITE);
+    this->flush();
+    delay(60);
+  }
 
-  drawBatSignal();
-  delay(120);
+  // Phase 4: hold confused — flat mouth then "?" pops in
+  this->clear();
+  this->fillRoundRect(26, 9,  24, 26, 7, COLOR_WHITE);
+  this->fillRoundRect(78, 23, 24, 12, 7, COLOR_WHITE);
+  this->drawMouth(60, 53, 12, 4);
+  this->flush();
+  delay(400);
 
-  display.clearDisplay();
-  display.display();
-  delay(80);
+  // "?" pops in
+  drawBootFace();
+  delay(900);
 
-  // Show steady bat signal for 3 seconds
-  drawBatSignal();
-  delay(3000);
+  // Blink-out into IDLE — reuses the standard transition timing so the seam is invisible.
+  // Frame 1-3: close eyes from confused face
+  display.clearDisplay(); drawEyes(38, 28, 90, 28, 16); display.display(); delay(100);
+  display.clearDisplay(); drawEyes(38, 29, 90, 29, 10); display.display(); delay(100);
+  display.clearDisplay(); drawEyes(38, 30, 90, 30,  4); display.display(); delay(200);
+  // Frame 4-5: open eyes symmetrically
+  display.clearDisplay(); drawEyes(38, 29, 90, 29, 10); display.display(); delay(120);
+  display.clearDisplay(); drawEyes(38, 28, 90, 28, 18); display.display(); delay(120);
+  // Frame 6: land on IDLE — loop() picks up from here
+  drawEmotionFace(EMOTION_IDLE);
+  delay(200);
 }
 
 // --- ICanvas implementation (delegates to Adafruit_SSD1306) ---
